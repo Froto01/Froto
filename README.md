@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Froto
 
-## Getting Started
+Froto is a logistics marketplace demo for bidding on warehouse capacity, transport capacity, and procurement tenders. It is currently a front-end-only product prototype built to show the core marketplace workflows before adding authentication, persistence, payments, or operational integrations.
 
-First, run the development server:
+This README includes a small handoff update for testing GitHub pull request publishing.
+
+## Current Demo Features
+
+- Landing page explaining the Froto marketplace concept.
+- Platform marketplace with searchable demo listings.
+- Listing detail pages with front-end-only bid rooms and bid history.
+- Tender tab with demo tenders and a create tender flow.
+- Create listing flow for carriers and 3PL warehouses.
+- User role selection and onboarding flow.
+- Dashboard with demo metrics, active bids, tenders, watched listings, suggested capacity, and recent activity.
+
+## Tech Stack
+
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- shadcn-style UI primitives
+- Radix UI dialog primitives
+- lucide-react icons
+
+The app uses local/system font stacks so production builds do not need to fetch Google Fonts.
+
+## Run Locally
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Useful checks:
 
-## Learn More
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Run the production build locally:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Main Routes
 
-## Deploy on Vercel
+- `/` - landing page
+- `/platform` - marketplace and tenders demo
+- `/platform#tenders` - opens the tender tab
+- `/platform/dashboard` - demo dashboard
+- `/platform/listing/[id]` - listing detail and bid room
+- `/platform/listings/new` - create listing demo flow
+- `/platform/tenders/new` - create tender demo flow
+- `/platform/onboarding` - role selection and onboarding demo flow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+No environment variables are required for the current demo.
+
+See `.env.example` for the current placeholder.
+
+## Current Limitations
+
+- No authentication or user accounts.
+- No database or persistent storage.
+- Demo bids, listings, tenders, and onboarding submissions reset on refresh.
+- No payment, escrow, invoicing, or settlement flow.
+- No carrier, warehouse, or shipper verification.
+- No real tender response workflow.
+- No notifications or email delivery.
+- No API routes yet.
+- Remote listing images are configured for Unsplash demo images only.
+
+## Next Roadmap
+
+1. Add authentication and organization profiles.
+2. Add database models for users, organizations, listings, bids, tenders, and tender responses.
+3. Replace mock data with API-backed data.
+4. Add create/edit/manage flows for listings and tenders.
+5. Add bidding rules, timers, bid increments, and award states.
+6. Add supplier response comparison for tenders.
+7. Add notifications for bids, tender updates, and awards.
+8. Add audit history and operational status tracking.
+9. Prepare production deployment settings and monitoring.
