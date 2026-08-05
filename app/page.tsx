@@ -3,6 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Show,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+} from "@clerk/nextjs";
+import {
   ArrowRight,
   Truck,
   Warehouse,

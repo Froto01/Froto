@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Froto | Bid. Move. Deliver.",
-  description:
-    "Froto is a logistics marketplace for warehouse capacity, transport capacity, and procurement tenders.",
+  title: "Froto",
+  description: "From to, made simple.",
 };
 
 export default function RootLayout({
@@ -13,8 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased">{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }
