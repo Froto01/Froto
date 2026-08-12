@@ -146,7 +146,7 @@ export default async function DashboardPage() {
               </Link>
             </Button>
             <Button asChild className="gap-2">
-              <Link href="/platform/onboarding">
+              <Link href="/start">
                 <UserPlus className="h-4 w-4" />
                 Get Started
               </Link>
