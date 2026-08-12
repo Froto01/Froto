@@ -1,4 +1,9 @@
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma"; 
+
+
 import {
   ArrowLeft,
   BarChart3,
@@ -28,7 +33,37 @@ function getCapacityNumber(capacity: string) {
   return Number(capacity.match(/\d+/)?.[0] || 0);
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect("/auth-test");
+  }
+
+  const user = await prisma.user.findUnique({
+  where: {
+    clerkId: userId,
+  },
+  include: {
+    companies: {
+      include: {
+        company: true,
+      },
+    },
+  },
+});
+
+  if (!user) {
+    redirect("/user-sync");
+  }
+
+  const membership = user.companies[0];
+
+  if (!membership) {
+    redirect("/company/new");
+  }
+
+  const company = membership.company;
   const tenderValue = MOCK_TENDERS.reduce(
     (total, tender) => total + tender.productCost + tender.logisticsCost,
     0
@@ -84,13 +119,24 @@ export default function DashboardPage() {
       <header className="border-b bg-white">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-              Froto dashboard
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
-              Marketplace overview
-            </h1>
-          </div>
+                     
+  <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+    Froto dashboard
+  </p>
+
+  <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
+    {company.name}
+  </h1>
+
+  <div className="mt-2 flex items-center gap-2">
+    <Badge variant="outline">{membership.role}</Badge>
+    <span className="text-sm text-neutral-500">
+      Marketplace overview
+    </span>
+  </div>
+</div>
+
+  
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="outline" className="gap-2">
