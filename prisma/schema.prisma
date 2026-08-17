@@ -23,8 +23,12 @@ model Company {
   name      String
   abn       String?         @unique
   verified  Boolean         @default(false)
+companyType String?
+locations   String?
+notes       String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+  
   members   CompanyMember[]
 }
 

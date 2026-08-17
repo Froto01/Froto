@@ -10,6 +10,7 @@ import {
   Truck,
   Warehouse,
 } from "lucide-react";
+import { updateCompanyProfile } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -77,10 +78,17 @@ export default function OnboardingPage() {
     }));
   }
 
-  function submitProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmittedProfile(form);
-  }
+ async function submitProfile(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  await updateCompanyProfile({
+    companyType: form.role,
+    locations: form.locations,
+    notes: form.notes,
+  });
+
+  setSubmittedProfile(form);
+}
 
   return (
     <main className="min-h-screen bg-neutral-50 pb-16">
