@@ -8,14 +8,14 @@ datasource db {
 }
 
 model User {
-  id        String          @id @default(cuid())
-  clerkId   String          @unique
-  email     String          @unique
-  firstName String?
-  lastName  String?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  companies CompanyMember[]
+  id         String          @id @default(cuid())
+  clerkId    String          @unique
+  email      String          @unique
+  firstName  String?
+  lastName   String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  companies  CompanyMember[]
   bidsPlaced Bid[]           @relation("BidPlacedByUser")
 }
 
@@ -60,28 +60,34 @@ model Listing {
   availableTo         DateTime
   startingBid         Decimal  @db.Decimal(12, 2)
   minimumBidIncrement Decimal  @db.Decimal(12, 2)
+  biddingClosesAt     DateTime?
+  awardedBidId        String?  @unique
+  awardedAt           DateTime?
   notes               String?
   status              String   @default("ACTIVE")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  bids                Bid[]
+  bids                Bid[]    @relation("ListingBids")
+  awardedBid          Bid?     @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
 
   @@index([companyId])
   @@index([status])
   @@index([listingType])
+  @@index([biddingClosesAt])
 }
 
 model Bid {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   listingId       String
   bidderCompanyId String
   placedByUserId  String
-  amount          Decimal  @db.Decimal(12, 2)
-  createdAt       DateTime @default(now())
-  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  bidderCompany   Company  @relation("BidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
-  placedByUser    User     @relation("BidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
+  amount          Decimal   @db.Decimal(12, 2)
+  createdAt       DateTime  @default(now())
+  listing         Listing   @relation("ListingBids", fields: [listingId], references: [id], onDelete: Cascade)
+  bidderCompany   Company   @relation("BidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
+  placedByUser    User      @relation("BidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
+  awardedListing  Listing?  @relation("AwardedBid")
 
   @@index([listingId, createdAt])
   @@index([bidderCompanyId])
