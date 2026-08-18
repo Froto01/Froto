@@ -167,19 +167,22 @@ export default function PlatformPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20">
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl bg-sky-600 flex items-center justify-center text-white font-bold text-sm">
-              FR
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-neutral-900 text-sm">Froto</span>
-              <span className="text-[10px] text-neutral-500 -mt-1">
-                Bid. Move. Deliver.
-              </span>
-            </div>
-          </div>
+      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-3">
+          <Link
+            href="/"
+            aria-label="Froto home"
+            className="shrink-0 rounded-xl px-1 py-0.5 transition-opacity hover:opacity-90"
+          >
+            <Image
+              src="/brand/froto-logo.svg"
+              alt="Froto. Connect. Match. Move."
+              width={168}
+              height={42}
+              priority
+              className="h-10 w-auto"
+            />
+          </Link>
 
           {showSearch && (
             <div className="ml-auto hidden md:flex items-center gap-2 w-[40ch]">
