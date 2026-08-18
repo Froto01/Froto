@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -40,15 +41,26 @@ export default async function UserSyncPage() {
   });
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
-      <div className="mx-auto max-w-xl rounded-2xl border bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold">Froto User Sync</h1>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_32%),#f8fafc] px-6 py-16">
+      <div className="mx-auto max-w-xl rounded-3xl border border-slate-200/80 bg-white p-8 shadow-sm sm:p-10">
+        <Image
+          src="/brand/froto-logo.svg"
+          alt="Froto. Connect. Match. Move."
+          width={210}
+          height={54}
+          priority
+          className="h-13 w-auto"
+        />
+
+        <h1 className="mt-8 text-3xl font-bold tracking-tight text-slate-950">
+          Your Froto account is ready
+        </h1>
 
         <p className="mt-4 text-slate-600">
-          Your authenticated Clerk account is now linked to Froto.
+          Your authenticated account is linked to Froto and ready for company setup.
         </p>
 
-        <div className="mt-8 space-y-2">
+        <div className="mt-8 space-y-3 rounded-2xl border bg-slate-50/70 p-5 text-sm text-slate-700">
           <p>
             <strong>Email:</strong> {user.email}
           </p>
@@ -58,11 +70,11 @@ export default async function UserSyncPage() {
             {[user.firstName, user.lastName].filter(Boolean).join(" ") ||
               "Not supplied"}
           </p>
-
-          <p>
-            <strong>Froto User ID:</strong> {user.id}
-          </p>
         </div>
+
+        <p className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          Connect. Match. Move.
+        </p>
       </div>
     </main>
   );
