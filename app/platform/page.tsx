@@ -32,6 +32,8 @@ type MarketplaceListing = {
   availableTo: string;
   startingBid: number;
   minimumBidIncrement: number;
+  biddingClosesAt: string | null;
+  auctionState: "OPEN" | "CLOSED";
   currentBid: number;
   bidCount: number;
   notes: string | null;
@@ -46,6 +48,15 @@ function formatAUD(value: number) {
     style: "currency",
     currency: "AUD",
   }).format(value);
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function listingLocation(listing: MarketplaceListing) {
@@ -89,7 +100,11 @@ export default function PlatformPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadListings() {
+    async function loadListings(showLoading = false) {
+      if (showLoading) {
+        setListingsLoading(true);
+      }
+
       try {
         const response = await fetch("/api/listings", {
           cache: "no-store",
@@ -114,16 +129,21 @@ export default function PlatformPage() {
           );
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && showLoading) {
           setListingsLoading(false);
         }
       }
     }
 
-    loadListings();
+    void loadListings(true);
+
+    const refreshTimer = window.setInterval(() => {
+      void loadListings(false);
+    }, 10000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(refreshTimer);
     };
   }, []);
 
@@ -279,9 +299,22 @@ export default function PlatformPage() {
                         height={800}
                         className="h-48 w-full object-cover"
                       />
-                      <Badge className="absolute left-3 top-3 bg-white/90 text-black border">
-                        {listing.listingType}
-                      </Badge>
+                      <div className="absolute left-3 top-3 flex gap-2">
+                        <Badge className="bg-white/90 text-black border">
+                          {listing.listingType}
+                        </Badge>
+                        <Badge
+                          className={
+                            listing.auctionState === "CLOSED"
+                              ? "bg-neutral-900 text-white"
+                              : "bg-sky-600 text-white"
+                          }
+                        >
+                          {listing.auctionState === "CLOSED"
+                            ? "Bidding closed"
+                            : "Bidding open"}
+                        </Badge>
+                      </div>
                     </div>
 
                     <CardHeader className="pb-2">
@@ -299,11 +332,22 @@ export default function PlatformPage() {
                       <p className="text-neutral-500">
                         {listingLocation(listing)}
                       </p>
+                      <p className="text-xs text-neutral-500">
+                        {listing.biddingClosesAt
+                          ? `${listing.auctionState === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(
+                              listing.biddingClosesAt
+                            )}`
+                          : "No bidding close time set"}
+                      </p>
 
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs text-neutral-500">
-                            {listing.bidCount > 0 ? "Current bid" : "Starting bid"}
+                            {listing.bidCount > 0
+                              ? listing.auctionState === "CLOSED"
+                                ? "Final bid"
+                                : "Current bid"
+                              : "Starting bid"}
                           </p>
                           <span className="font-semibold text-lg">
                             {formatAUD(listing.currentBid)}
@@ -317,7 +361,8 @@ export default function PlatformPage() {
                           className="rounded-2xl flex items-center gap-1"
                         >
                           <Link href={`/platform/listing/${listing.id}`}>
-                            Bid <ArrowUpRight className="h-4 w-4" />
+                            {listing.auctionState === "CLOSED" ? "View" : "Bid"}{" "}
+                            <ArrowUpRight className="h-4 w-4" />
                           </Link>
                         </Button>
                       </div>
