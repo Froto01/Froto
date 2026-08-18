@@ -17,21 +17,25 @@ model User {
   updatedAt  DateTime        @updatedAt
   companies  CompanyMember[]
   bidsPlaced Bid[]           @relation("BidPlacedByUser")
+  jobEvents  JobEvent[]      @relation("JobEventActorUser")
 }
 
 model Company {
-  id          String          @id @default(cuid())
-  name        String
-  abn         String?         @unique
-  verified    Boolean         @default(false)
-  companyType String?
-  locations   String?
-  notes       String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  members     CompanyMember[]
-  listings    Listing[]
-  bids        Bid[]           @relation("BidderCompany")
+  id           String          @id @default(cuid())
+  name         String
+  abn          String?         @unique
+  verified     Boolean         @default(false)
+  companyType  String?
+  locations    String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  members      CompanyMember[]
+  listings     Listing[]
+  bids         Bid[]           @relation("BidderCompany")
+  buyerJobs    Job[]           @relation("JobBuyerCompany")
+  providerJobs Job[]           @relation("JobProviderCompany")
+  jobEvents    JobEvent[]      @relation("JobEventActorCompany")
 }
 
 model CompanyMember {
@@ -70,6 +74,7 @@ model Listing {
   company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   bids                Bid[]    @relation("ListingBids")
   awardedBid          Bid?     @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
+  job                 Job?
 
   @@index([companyId])
   @@index([status])
@@ -88,10 +93,54 @@ model Bid {
   bidderCompany   Company   @relation("BidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
   placedByUser    User      @relation("BidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
   awardedListing  Listing?  @relation("AwardedBid")
+  job             Job?
 
   @@index([listingId, createdAt])
   @@index([bidderCompanyId])
   @@index([placedByUserId])
+}
+
+model Job {
+  id                String     @id @default(cuid())
+  listingId         String     @unique
+  awardedBidId      String     @unique
+  buyerCompanyId    String
+  providerCompanyId String
+  amount            Decimal    @db.Decimal(12, 2)
+  status            String     @default("AWARDED")
+  acceptedAt        DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  listing           Listing    @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  awardedBid        Bid        @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
+  buyerCompany      Company    @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
+  providerCompany   Company    @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
+  events            JobEvent[]
+
+  @@index([buyerCompanyId])
+  @@index([providerCompanyId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model JobEvent {
+  id             String   @id @default(cuid())
+  jobId          String
+  eventType      String
+  actorUserId    String?
+  actorCompanyId String?
+  note           String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  actorUser      User?    @relation("JobEventActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorCompany   Company? @relation("JobEventActorCompany", fields: [actorCompanyId], references: [id], onDelete: SetNull)
+
+  @@index([jobId, createdAt])
+  @@index([actorUserId])
+  @@index([actorCompanyId])
 }
 
 enum CompanyRole {
