@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma"; 
-
+import { prisma } from "@/lib/prisma";
 
 import {
   ArrowLeft,
@@ -41,17 +40,17 @@ export default async function DashboardPage() {
   }
 
   const user = await prisma.user.findUnique({
-  where: {
-    clerkId: userId,
-  },
-  include: {
-    companies: {
-      include: {
-        company: true,
+    where: {
+      clerkId: userId,
+    },
+    include: {
+      companies: {
+        include: {
+          company: true,
+        },
       },
     },
-  },
-});
+  });
 
   if (!user) {
     redirect("/user-sync");
@@ -119,24 +118,19 @@ export default async function DashboardPage() {
       <header className="border-b bg-white">
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-                     
-  <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-    Froto dashboard
-  </p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+              Froto dashboard
+            </p>
 
-  <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
-    {company.name}
-  </h1>
+            <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
+              {company.name}
+            </h1>
 
-  <div className="mt-2 flex items-center gap-2">
-    <Badge variant="outline">{membership.role}</Badge>
-    <span className="text-sm text-neutral-500">
-      Marketplace overview
-    </span>
-  </div>
-</div>
-
-  
+            <div className="mt-2 flex items-center gap-2">
+              <Badge variant="outline">{membership.role}</Badge>
+              <span className="text-sm text-neutral-500">Marketplace overview</span>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="outline" className="gap-2">
@@ -146,9 +140,9 @@ export default async function DashboardPage() {
               </Link>
             </Button>
             <Button asChild className="gap-2">
-              <Link href="/start">
+              <Link href="/platform/onboarding">
                 <UserPlus className="h-4 w-4" />
-                Get Started
+                Company Profile
               </Link>
             </Button>
             <Button asChild variant="outline" className="gap-2">
@@ -182,9 +176,7 @@ export default async function DashboardPage() {
                       <Icon className="h-4 w-4 text-sky-700" />
                     </span>
                   </div>
-                  <p className="mt-3 text-xs text-neutral-500">
-                    {metric.detail}
-                  </p>
+                  <p className="mt-3 text-xs text-neutral-500">{metric.detail}</p>
                 </CardContent>
               </Card>
             );
@@ -220,9 +212,7 @@ export default async function DashboardPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-neutral-900">
-                        {listing.name}
-                      </p>
+                      <p className="font-medium text-neutral-900">{listing.name}</p>
                       <p className="mt-1 text-sm text-neutral-500">
                         {listing.capacity}
                       </p>
@@ -276,8 +266,7 @@ export default async function DashboardPage() {
                 >
                   <p className="font-medium text-neutral-900">{tender.title}</p>
                   <p className="mt-1 text-sm text-neutral-500">
-                    Value:{" "}
-                    {formatAUD(tender.productCost + tender.logisticsCost)}
+                    Value: {formatAUD(tender.productCost + tender.logisticsCost)}
                   </p>
                 </div>
               ))}
@@ -308,9 +297,7 @@ export default async function DashboardPage() {
                       <Warehouse className="mt-0.5 h-4 w-4 text-sky-700" />
                     )}
                     <div>
-                      <p className="font-medium text-neutral-900">
-                        {listing.name}
-                      </p>
+                      <p className="font-medium text-neutral-900">{listing.name}</p>
                       <p className="mt-1 text-sm text-neutral-500">
                         {listing.location}
                       </p>
