@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -66,17 +67,23 @@ export default async function NewCompanyPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
-      <div className="mx-auto max-w-xl rounded-2xl border bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold text-sky-600">FROTO</p>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.10),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.08),_transparent_28%),#f8fafc] px-6 py-16">
+      <div className="mx-auto max-w-xl rounded-3xl border border-slate-200/80 bg-white p-8 shadow-sm sm:p-10">
+        <Image
+          src="/brand/froto-logo.svg"
+          alt="Froto. Connect. Match. Move."
+          width={215}
+          height={55}
+          priority
+          className="h-14 w-auto"
+        />
 
-        <h1 className="mt-2 text-3xl font-bold">
+        <h1 className="mt-8 text-3xl font-bold tracking-tight text-slate-950">
           Create your company
         </h1>
 
         <p className="mt-3 text-slate-600">
-          Set up the business you will use to participate in the Froto
-          marketplace.
+          Set up the business you will use to participate in the Froto marketplace.
         </p>
 
         <form action={createCompany} className="mt-8 space-y-6">
@@ -93,7 +100,7 @@ export default async function NewCompanyPage() {
               name="name"
               type="text"
               required
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3"
+              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
               placeholder="Example Logistics Pty Ltd"
             />
           </div>
@@ -110,22 +117,26 @@ export default async function NewCompanyPage() {
               id="abn"
               name="abn"
               type="text"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3"
+              className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
               placeholder="Optional for now"
             />
 
             <p className="mt-2 text-xs text-slate-500">
-              We can verify company details later.
+              Company verification can be completed later.
             </p>
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-slate-900 px-4 py-3 font-semibold text-white"
+            className="w-full rounded-xl bg-[#062856] px-4 py-3 font-semibold text-white transition-colors hover:bg-[#0a356f]"
           >
             Create company
           </button>
         </form>
+
+        <p className="mt-8 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          Connect. Match. Move.
+        </p>
       </div>
     </main>
   );
