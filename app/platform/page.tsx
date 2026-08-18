@@ -14,9 +14,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DEMO_BIDS, LOGISTICS_LISTINGS, MOCK_TENDERS } from "@/lib/mock-data";
+import { DEMO_BIDS, MOCK_TENDERS } from "@/lib/mock-data";
 
 const showSearch = true;
+
+type MarketplaceListing = {
+  id: string;
+  listingType: string;
+  title: string;
+  location: string | null;
+  origin: string | null;
+  destination: string | null;
+  capacityAmount: number;
+  capacityUnit: string;
+  temperatureClass: string;
+  availableFrom: string;
+  availableTo: string;
+  startingBid: number;
+  minimumBidIncrement: number;
+  notes: string | null;
+  status: string;
+  companyName: string;
+  companyVerified: boolean;
+  createdAt: string;
+};
 
 function formatAUD(v: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -25,11 +46,30 @@ function formatAUD(v: number) {
   }).format(v);
 }
 
+function listingLocation(listing: MarketplaceListing) {
+  if (listing.listingType === "Transport Lane") {
+    return `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}`;
+  }
+
+  return listing.location ?? "Location not supplied";
+}
+
+function listingImage(listing: MarketplaceListing) {
+  return listing.listingType === "Warehouse Space"
+    ? "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80"
+    : "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80";
+}
+
 export default function PlatformPage() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"marketplace" | "tenders">(
     "marketplace"
   );
+  const [marketplaceListings, setMarketplaceListings] = useState<
+    MarketplaceListing[]
+  >([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState<string | null>(null);
 
   const [bidAmount, setBidAmount] = useState("");
   const [demoBids, setDemoBids] = useState(DEMO_BIDS);
@@ -50,6 +90,47 @@ export default function PlatformPage() {
     return () => window.removeEventListener("hashchange", openTenderHash);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadListings() {
+      try {
+        const response = await fetch("/api/listings", {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Marketplace listings could not be loaded.");
+        }
+
+        const data = (await response.json()) as MarketplaceListing[];
+
+        if (!cancelled) {
+          setMarketplaceListings(data);
+          setListingsError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setListingsError(
+            error instanceof Error
+              ? error.message
+              : "Marketplace listings could not be loaded."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setListingsLoading(false);
+        }
+      }
+    }
+
+    loadListings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function submitDemoBid() {
     const amount = Number(bidAmount);
 
@@ -63,14 +144,22 @@ export default function PlatformPage() {
   }
 
   const filteredListings = useMemo(() => {
-    const q = query.toLowerCase();
-    return LOGISTICS_LISTINGS.filter(
-      (l) =>
-        l.name.toLowerCase().includes(q) ||
-        l.location.toLowerCase().includes(q) ||
-        l.type.toLowerCase().includes(q)
-    );
-  }, [query]);
+    const q = query.trim().toLowerCase();
+
+    return marketplaceListings.filter((listing) => {
+      const searchable = [
+        listing.title,
+        listing.listingType,
+        listingLocation(listing),
+        listing.companyName,
+        listing.temperatureClass,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchable.includes(q);
+    });
+  }, [marketplaceListings, query]);
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20">
@@ -156,8 +245,7 @@ export default function PlatformPage() {
               <CardHeader>
                 <CardTitle className="text-lg">Demo bid room</CardTitle>
                 <p className="text-sm text-neutral-500">
-                  Example auction: Sydney to Melbourne linehaul - 22 pallet
-                  spaces available.
+                  Bidding is still demo-only while the marketplace listings below are now live database records.
                 </p>
               </CardHeader>
 
@@ -186,14 +274,13 @@ export default function PlatformPage() {
                   </div>
 
                   <p className="text-xs text-neutral-500">
-                    Demo only. Later this will connect to user accounts, auction
-                    timers, bid increments, anti-sniping and notifications.
+                    Real bidding, timers and award states are the next marketplace layer.
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-neutral-900">
-                    Bid history
+                    Demo bid history
                   </p>
 
                   {demoBids.map((bid, index) => (
@@ -212,44 +299,80 @@ export default function PlatformPage() {
               </CardContent>
             </Card>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredListings.map((l) => (
-                <Card key={l.id} className="overflow-hidden rounded-2xl shadow-sm">
-                  <div className="relative">
-                    <Image
-                      src={l.image}
-                      alt={l.name}
-                      width={1200}
-                      height={800}
-                      className="h-48 w-full object-cover"
-                    />
-                    <Badge className="absolute left-3 top-3 bg-white/90 text-black border">
-                      {l.type}
-                    </Badge>
-                  </div>
-
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{l.name}</CardTitle>
-                  </CardHeader>
-
-                  <CardContent className="space-y-3 text-sm">
-                    <p className="text-neutral-700">{l.capacity}</p>
-                    <p className="text-neutral-500">{l.location}</p>
-
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-lg">
-                        {formatAUD(l.currentBid)}
-                      </span>
-                      <Button asChild className="rounded-2xl flex items-center gap-1">
-                        <Link href={`/platform/listing/${l.id}`}>
-                          Bid <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                      </Button>
+            {listingsLoading ? (
+              <Card className="rounded-2xl p-6 text-sm text-neutral-500 shadow-sm">
+                Loading live marketplace listings...
+              </Card>
+            ) : listingsError ? (
+              <Card className="rounded-2xl border-red-100 p-6 text-sm text-red-700 shadow-sm">
+                {listingsError}
+              </Card>
+            ) : filteredListings.length === 0 ? (
+              <Card className="rounded-2xl p-8 text-center shadow-sm">
+                <CardTitle className="text-lg">No live capacity found</CardTitle>
+                <p className="mt-2 text-sm text-neutral-500">
+                  Create the first real Froto listing or change your search.
+                </p>
+                <Button asChild className="mt-4">
+                  <Link href="/platform/listings/new">Create Listing</Link>
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredListings.map((listing) => (
+                  <Card
+                    key={listing.id}
+                    className="overflow-hidden rounded-2xl shadow-sm"
+                  >
+                    <div className="relative">
+                      <Image
+                        src={listingImage(listing)}
+                        alt={listing.title}
+                        width={1200}
+                        height={800}
+                        className="h-48 w-full object-cover"
+                      />
+                      <Badge className="absolute left-3 top-3 bg-white/90 text-black border">
+                        {listing.listingType}
+                      </Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{listing.title}</CardTitle>
+                      <p className="text-xs text-neutral-500">
+                        Listed by {listing.companyName}
+                      </p>
+                    </CardHeader>
+
+                    <CardContent className="space-y-3 text-sm">
+                      <p className="text-neutral-700">
+                        {listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}
+                      </p>
+                      <p className="text-neutral-500">
+                        {listingLocation(listing)}
+                      </p>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-neutral-500">Starting bid</p>
+                          <span className="font-semibold text-lg">
+                            {formatAUD(listing.startingBid)}
+                          </span>
+                        </div>
+                        <Button
+                          asChild
+                          className="rounded-2xl flex items-center gap-1"
+                        >
+                          <Link href={`/platform/listing/${listing.id}`}>
+                            View <ArrowUpRight className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </>
         )}
 
