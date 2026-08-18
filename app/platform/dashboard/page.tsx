@@ -7,19 +7,18 @@ import { prisma } from "@/lib/prisma";
 import {
   ArrowLeft,
   BarChart3,
-  Bookmark,
+  BriefcaseBusiness,
+  CheckCircle2,
   ClipboardList,
   PackageCheck,
   Plus,
   RadioTower,
-  Truck,
   UserPlus,
-  Warehouse,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DEMO_BIDS, LOGISTICS_LISTINGS, MOCK_TENDERS } from "@/lib/mock-data";
+import { MOCK_TENDERS } from "@/lib/mock-data";
 
 function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -29,85 +28,118 @@ function formatAUD(value: number) {
   }).format(value);
 }
 
-function getCapacityNumber(capacity: string) {
-  return Number(capacity.match(/\d+/)?.[0] || 0);
+function formatDateTime(value: Date) {
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(value);
+}
+
+function statusLabel(status: string) {
+  if (status === "IN_PROGRESS") return "In progress";
+  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 export default async function DashboardPage() {
   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/auth-test");
-  }
+  if (!userId) redirect("/auth-test");
 
   const user = await prisma.user.findUnique({
-    where: {
-      clerkId: userId,
-    },
+    where: { clerkId: userId },
     include: {
       companies: {
-        include: {
-          company: true,
-        },
+        include: { company: true },
       },
     },
   });
 
-  if (!user) {
-    redirect("/user-sync");
-  }
+  if (!user) redirect("/user-sync");
 
   const membership = user.companies[0];
-
-  if (!membership) {
-    redirect("/company/new");
-  }
+  if (!membership) redirect("/company/new");
 
   const company = membership.company;
-  const tenderValue = MOCK_TENDERS.reduce(
-    (total, tender) => total + tender.productCost + tender.logisticsCost,
-    0
-  );
 
-  const capacitySaved = LOGISTICS_LISTINGS.reduce(
-    (total, listing) => total + getCapacityNumber(listing.capacity),
-    0
-  );
+  const [activeListingCount, activeBidCount, jobs, recentJobEvents] = await Promise.all([
+    prisma.listing.count({
+      where: { companyId: company.id, status: "ACTIVE" },
+    }),
+    prisma.bid.count({
+      where: {
+        bidderCompanyId: company.id,
+        listing: { status: "ACTIVE" },
+      },
+    }),
+    prisma.job.findMany({
+      where: {
+        OR: [{ buyerCompanyId: company.id }, { providerCompanyId: company.id }],
+      },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        listing: true,
+        buyerCompany: { select: { name: true } },
+        providerCompany: { select: { name: true } },
+      },
+      take: 8,
+    }),
+    prisma.jobEvent.findMany({
+      where: {
+        job: {
+          OR: [{ buyerCompanyId: company.id }, { providerCompanyId: company.id }],
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        job: {
+          include: { listing: { select: { title: true } } },
+        },
+        actorCompany: { select: { name: true } },
+      },
+      take: 6,
+    }),
+  ]);
+
+  const activeJobs = jobs.filter((job) => job.status !== "COMPLETED").length;
+  const wonJobs = jobs.filter((job) => job.buyerCompanyId === company.id).length;
+  const completedJobs = jobs.filter((job) => job.status === "COMPLETED").length;
 
   const metrics = [
     {
       label: "Active listings",
-      value: LOGISTICS_LISTINGS.length,
-      detail: "Live marketplace options",
+      value: activeListingCount,
+      detail: "Your live capacity",
       icon: PackageCheck,
       tone: "blue",
     },
     {
       label: "Active bids",
-      value: DEMO_BIDS.length,
-      detail: "Demo bid room activity",
+      value: activeBidCount,
+      detail: "Your bids on live listings",
       icon: BarChart3,
       tone: "teal",
     },
     {
-      label: "Open tenders",
-      value: MOCK_TENDERS.length,
-      detail: "Sourcing events in progress",
-      icon: ClipboardList,
+      label: "Active jobs",
+      value: activeJobs,
+      detail: "Awarded through in progress",
+      icon: BriefcaseBusiness,
       tone: "green",
     },
     {
-      label: "Tender value",
-      value: formatAUD(tenderValue),
-      detail: "Product plus logistics",
+      label: "Jobs won",
+      value: wonJobs,
+      detail: "Awards won by your company",
       icon: RadioTower,
       tone: "cyan",
     },
     {
-      label: "Capacity saved",
-      value: `${capacitySaved} spots`,
-      detail: "Across demo listings",
-      icon: Warehouse,
+      label: "Completed",
+      value: completedJobs,
+      detail: "Finished Froto jobs",
+      icon: CheckCircle2,
       tone: "navy",
     },
   ];
@@ -119,13 +151,6 @@ export default async function DashboardPage() {
     cyan: "bg-cyan-50 text-froto-cyan ring-cyan-100",
     navy: "bg-slate-100 text-froto-navy ring-slate-200",
   };
-
-  const recentActivity = [
-    "Carrier A placed a new demo bid",
-    "Brisbane chilled capacity was added to watchlist",
-    "FMCG East Coast tender is open for supplier responses",
-    "Sydney dry storage listing is still accepting bids",
-  ];
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -150,17 +175,13 @@ export default async function DashboardPage() {
                 <Badge className="border border-froto-teal/15 bg-teal-50 text-froto-teal hover:bg-teal-50">
                   {membership.role}
                 </Badge>
-                <span className="text-sm text-slate-500">Marketplace overview</span>
+                <span className="text-sm text-slate-500">Live company activity</span>
               </div>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              asChild
-              variant="outline"
-              className="gap-2 border-froto-blue/15 bg-white text-froto-navy"
-            >
+            <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
               <Link href="/platform/listings/new">
                 <Plus className="h-4 w-4 text-froto-blue" />
                 Create Listing
@@ -172,11 +193,7 @@ export default async function DashboardPage() {
                 Company Profile
               </Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="gap-2 border-froto-teal/15 bg-white text-froto-navy"
-            >
+            <Button asChild variant="outline" className="gap-2 border-froto-teal/15 bg-white text-froto-navy">
               <Link href="/platform">
                 <ArrowLeft className="h-4 w-4 text-froto-teal" />
                 Marketplace
@@ -190,23 +207,15 @@ export default async function DashboardPage() {
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {metrics.map((metric) => {
             const Icon = metric.icon;
-
             return (
-              <Card
-                key={metric.label}
-                className="rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5"
-              >
+              <Card key={metric.label} className="rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-medium text-slate-500">{metric.label}</p>
-                      <p className="mt-2 text-2xl font-semibold text-froto-navy">
-                        {metric.value}
-                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-froto-navy">{metric.value}</p>
                     </div>
-                    <span
-                      className={`flex h-10 w-10 items-center justify-center rounded-2xl ring-1 ${toneClasses[metric.tone]}`}
-                    >
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ring-1 ${toneClasses[metric.tone]}`}>
                       <Icon className="h-4 w-4" />
                     </span>
                   </div>
@@ -217,166 +226,108 @@ export default async function DashboardPage() {
           })}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">
-                    Network pulse
-                  </p>
-                  <CardTitle className="mt-1 text-xl text-froto-navy">Recent activity</CardTitle>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Post-award work</p>
+                  <CardTitle className="mt-1 text-xl text-froto-navy">My jobs</CardTitle>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-froto-blue">
-                  <RadioTower className="h-4 w-4" />
-                </span>
+                <BriefcaseBusiness className="h-5 w-5 text-froto-blue" />
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {recentActivity.map((activity, index) => (
-                <div
-                  key={activity}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/60 px-4 py-3 text-sm text-slate-700"
-                >
-                  <span
-                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                      index % 3 === 0
-                        ? "bg-froto-blue"
-                        : index % 3 === 1
-                          ? "bg-froto-teal"
-                          : "bg-froto-green"
-                    }`}
-                  />
-                  {activity}
-                </div>
-              ))}
+              {jobs.length === 0 ? (
+                <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">
+                  No post-award jobs yet. New awards will appear here automatically.
+                </p>
+              ) : (
+                jobs.map((job) => {
+                  const viewerSide = job.buyerCompanyId === company.id ? "Buyer" : "Provider";
+                  const counterparty =
+                    job.buyerCompanyId === company.id ? job.providerCompany.name : job.buyerCompany.name;
+                  return (
+                    <Link
+                      key={job.id}
+                      href={`/platform/jobs/${job.id}`}
+                      className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-froto-blue/20 hover:bg-blue-50/40"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-froto-navy">{job.listing.title}</p>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {viewerSide} · {counterparty}
+                          </p>
+                        </div>
+                        <Badge className="bg-froto-navy text-white">{statusLabel(job.status)}</Badge>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Agreed value</span>
+                        <span className="font-semibold text-froto-blue">{formatAUD(Number(job.amount))}</span>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
 
           <Card className="rounded-[1.75rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">
-                    Capacity match
-                  </p>
-                  <CardTitle className="mt-1 text-xl text-froto-navy">Suggested capacity</CardTitle>
-                </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-froto-teal">
-                  <Truck className="h-4 w-4" />
-                </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">Audit trail</p>
+                <CardTitle className="mt-1 text-xl text-froto-navy">Recent job activity</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {LOGISTICS_LISTINGS.slice(0, 2).map((listing) => (
-                <div
-                  key={listing.id}
-                  className="rounded-2xl border border-froto-teal/10 bg-teal-50/35 px-4 py-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-froto-navy">{listing.name}</p>
-                      <p className="mt-1 text-sm text-slate-500">{listing.capacity}</p>
+              {recentJobEvents.length === 0 ? (
+                <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">
+                  Job events will appear here after your next award.
+                </p>
+              ) : (
+                recentJobEvents.map((event) => (
+                  <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-froto-navy">{event.job.listing.title}</p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {statusLabel(event.eventType)} · {event.actorCompany?.name ?? "Froto"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-slate-500">{formatDateTime(event.createdAt)}</span>
                     </div>
-                    <Badge className="border border-froto-teal/15 bg-white text-froto-teal hover:bg-white">
-                      {listing.type}
-                    </Badge>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-3">
-          <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg text-froto-navy">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-froto-blue">
-                  <BarChart3 className="h-4 w-4" />
-                </span>
-                My active bids
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {DEMO_BIDS.map((bid) => (
-                <div
-                  key={`${bid.bidder}-${bid.amount}`}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/60 px-4 py-3 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-froto-navy">{bid.bidder}</p>
-                    <p className="text-xs text-slate-500">{bid.time}</p>
-                  </div>
-                  <p className="font-semibold text-froto-blue">{formatAUD(bid.amount)}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg text-froto-navy">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-froto-green">
-                  <ClipboardList className="h-4 w-4" />
-                </span>
-                My tenders
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {MOCK_TENDERS.map((tender) => (
-                <div
-                  key={tender.id}
-                  className="rounded-2xl border border-froto-green/10 bg-emerald-50/35 px-4 py-3"
-                >
-                  <p className="font-medium text-froto-navy">{tender.title}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Value: {formatAUD(tender.productCost + tender.logisticsCost)}
-                  </p>
-                </div>
-              ))}
-              <Button
-                asChild
-                variant="outline"
-                className="w-full border-froto-green/15 text-froto-navy"
-              >
-                <Link href="/platform/tenders/new">Create another tender</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[1.75rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg text-froto-navy">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-froto-teal">
-                  <Bookmark className="h-4 w-4" />
-                </span>
-                Watched listings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {LOGISTICS_LISTINGS.map((listing) => (
-                <Link
-                  key={listing.id}
-                  href={`/platform/listing/${listing.id}`}
-                  className="block rounded-2xl border border-slate-200/80 bg-slate-50/60 px-4 py-3 transition-colors hover:border-froto-teal/20 hover:bg-teal-50/50"
-                >
-                  <div className="flex items-start gap-3">
-                    {listing.type === "Transport Lane" ? (
-                      <Truck className="mt-0.5 h-4 w-4 text-froto-blue" />
-                    ) : (
-                      <Warehouse className="mt-0.5 h-4 w-4 text-froto-teal" />
-                    )}
-                    <div>
-                      <p className="font-medium text-froto-navy">{listing.name}</p>
-                      <p className="mt-1 text-sm text-slate-500">{listing.location}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </CardContent>
-          </Card>
-        </section>
+        <Card className="rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-green">Tender preview</p>
+                <CardTitle className="mt-1 text-xl text-froto-navy">Tenders remain demo-only</CardTitle>
+              </div>
+              <ClipboardList className="h-5 w-5 text-froto-green" />
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            {MOCK_TENDERS.slice(0, 2).map((tender) => (
+              <div key={tender.id} className="rounded-2xl border border-froto-green/10 bg-emerald-50/35 px-4 py-3">
+                <p className="font-medium text-froto-navy">{tender.title}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Demo value: {formatAUD(tender.productCost + tender.logisticsCost)}
+                </p>
+              </div>
+            ))}
+            <Button asChild variant="outline" className="border-froto-green/15 text-froto-navy md:col-span-2">
+              <Link href="/platform#tenders">View tender demo</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
