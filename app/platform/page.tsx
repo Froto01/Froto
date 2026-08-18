@@ -4,16 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  LayoutDashboard,
-  Search,
   ArrowUpRight,
+  LayoutDashboard,
   Plus,
+  Search,
   UserPlus,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { MOCK_TENDERS } from "@/lib/mock-data";
 
 const showSearch = true;
@@ -75,12 +76,8 @@ function listingImage(listing: MarketplaceListing) {
 
 export default function PlatformPage() {
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"marketplace" | "tenders">(
-    "marketplace"
-  );
-  const [marketplaceListings, setMarketplaceListings] = useState<
-    MarketplaceListing[]
-  >([]);
+  const [activeTab, setActiveTab] = useState<"marketplace" | "tenders">("marketplace");
+  const [marketplaceListings, setMarketplaceListings] = useState<MarketplaceListing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState<string | null>(null);
 
@@ -166,9 +163,9 @@ export default function PlatformPage() {
   }, [marketplaceListings, query]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 pb-20">
-      <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-20">
+      <header className="sticky top-0 z-40 border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
           <Link
             href="/"
             aria-label="Froto home"
@@ -185,34 +182,42 @@ export default function PlatformPage() {
           </Link>
 
           {showSearch && (
-            <div className="ml-auto hidden md:flex items-center gap-2 w-[40ch]">
+            <div className="ml-auto hidden w-[40ch] items-center gap-2 md:flex">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-60" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search logistics"
-                  className="pl-9"
+                  className="border-froto-blue/15 bg-froto-ice/70 pl-9 focus-visible:ring-froto-blue"
                 />
               </div>
             </div>
           )}
 
-          <Button asChild variant="outline" className="ml-auto gap-2 md:ml-2">
+          <Button
+            asChild
+            variant="outline"
+            className="ml-auto gap-2 border-froto-blue/15 bg-white text-froto-navy md:ml-2"
+          >
             <Link href="/platform/dashboard">
-              <LayoutDashboard className="h-4 w-4" />
+              <LayoutDashboard className="h-4 w-4 text-froto-blue" />
               Dashboard
             </Link>
           </Button>
 
-          <Button asChild variant="outline" className="gap-2">
+          <Button
+            asChild
+            variant="outline"
+            className="gap-2 border-froto-teal/20 bg-white text-froto-navy"
+          >
             <Link href="/platform/listings/new">
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 text-froto-teal" />
               Create Listing
             </Link>
           </Button>
 
-          <Button asChild className="gap-2">
+          <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]">
             <Link href="/platform/onboarding">
               <UserPlus className="h-4 w-4" />
               Company Profile
@@ -221,13 +226,13 @@ export default function PlatformPage() {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 pt-6">
-        <div className="mb-6 flex items-center gap-2 rounded-full bg-neutral-100 p-1 w-fit">
+      <div className="mx-auto max-w-6xl px-4 pt-7">
+        <div className="mb-7 flex w-fit items-center gap-1 rounded-full border border-froto-blue/10 bg-white p-1 shadow-sm">
           <button
-            className={`px-4 py-1 text-sm rounded-full ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               activeTab === "marketplace"
-                ? "bg-white shadow-sm font-medium"
-                : "text-neutral-500"
+                ? "bg-froto-navy text-white shadow-sm"
+                : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"
             }`}
             onClick={() => setActiveTab("marketplace")}
           >
@@ -235,10 +240,10 @@ export default function PlatformPage() {
           </button>
 
           <button
-            className={`px-4 py-1 text-sm rounded-full ${
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               activeTab === "tenders"
-                ? "bg-white shadow-sm font-medium"
-                : "text-neutral-500"
+                ? "bg-gradient-to-r from-froto-teal to-froto-green text-white shadow-sm"
+                : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"
             }`}
             onClick={() => setActiveTab("tenders")}
           >
@@ -248,20 +253,20 @@ export default function PlatformPage() {
 
         {activeTab === "marketplace" && (
           <>
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-7 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">
                   Live marketplace
                 </p>
-                <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">
                   Available logistics capacity
                 </h1>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Open a listing to view live bid history and place an authenticated company bid.
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Open a listing to view live bid history, bidding close time and authenticated company activity.
                 </p>
               </div>
 
-              <Button asChild className="gap-2">
+              <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]">
                 <Link href="/platform/listings/new">
                   <Plus className="h-4 w-4" />
                   List capacity
@@ -270,72 +275,72 @@ export default function PlatformPage() {
             </div>
 
             {listingsLoading ? (
-              <Card className="rounded-2xl p-6 text-sm text-neutral-500 shadow-sm">
+              <Card className="rounded-[1.6rem] border-froto-blue/10 bg-white p-6 text-sm text-slate-500 shadow-sm">
                 Loading live marketplace listings...
               </Card>
             ) : listingsError ? (
-              <Card className="rounded-2xl border-red-100 p-6 text-sm text-red-700 shadow-sm">
+              <Card className="rounded-[1.6rem] border-red-100 bg-red-50/70 p-6 text-sm text-red-700 shadow-sm">
                 {listingsError}
               </Card>
             ) : filteredListings.length === 0 ? (
-              <Card className="rounded-2xl p-8 text-center shadow-sm">
-                <CardTitle className="text-lg">No live capacity found</CardTitle>
-                <p className="mt-2 text-sm text-neutral-500">
+              <Card className="rounded-[1.6rem] border-froto-blue/10 bg-white p-8 text-center shadow-sm">
+                <CardTitle className="text-lg text-froto-navy">No live capacity found</CardTitle>
+                <p className="mt-2 text-sm text-slate-500">
                   Create the first Froto listing or change your search.
                 </p>
-                <Button asChild className="mt-4">
+                <Button asChild className="mt-4 rounded-xl bg-froto-navy hover:bg-[#0a356f]">
                   <Link href="/platform/listings/new">Create Listing</Link>
                 </Button>
               </Card>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredListings.map((listing) => (
                   <Card
                     key={listing.id}
-                    className="overflow-hidden rounded-2xl shadow-sm"
+                    className="group overflow-hidden rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
                   >
-                    <div className="relative">
+                    <div className="relative overflow-hidden">
                       <Image
                         src={listingImage(listing)}
                         alt={listing.title}
                         width={1200}
                         height={800}
-                        className="h-48 w-full object-cover"
+                        className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                       />
+                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-froto-navy/30 to-transparent" />
                       <div className="absolute left-3 top-3 flex gap-2">
-                        <Badge className="bg-white/90 text-black border">
+                        <Badge className="border border-white/50 bg-white/92 text-froto-navy shadow-sm">
                           {listing.listingType}
                         </Badge>
                         <Badge
                           className={
                             listing.auctionState === "CLOSED"
-                              ? "bg-neutral-900 text-white"
-                              : "bg-sky-600 text-white"
+                              ? "bg-froto-navy text-white"
+                              : "bg-froto-green text-white"
                           }
                         >
-                          {listing.auctionState === "CLOSED"
-                            ? "Bidding closed"
-                            : "Bidding open"}
+                          {listing.auctionState === "CLOSED" ? "Bidding closed" : "Bidding open"}
                         </Badge>
                       </div>
                     </div>
 
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{listing.title}</CardTitle>
-                      <p className="text-xs text-neutral-500">
-                        Listed by {listing.companyName}
-                        {listing.companyVerified ? " · Verified" : ""}
-                      </p>
-                    </CardHeader>
+                    <CardContent className="space-y-4 p-5">
+                      <div>
+                        <h2 className="text-xl font-semibold text-froto-navy">{listing.title}</h2>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Listed by {listing.companyName}
+                          {listing.companyVerified ? " · Verified" : ""}
+                        </p>
+                      </div>
 
-                    <CardContent className="space-y-3 text-sm">
-                      <p className="text-neutral-700">
-                        {listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}
-                      </p>
-                      <p className="text-neutral-500">
-                        {listingLocation(listing)}
-                      </p>
-                      <p className="text-xs text-neutral-500">
+                      <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm">
+                        <p className="font-medium text-slate-700">
+                          {listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}
+                        </p>
+                        <p className="mt-1 text-slate-500">{listingLocation(listing)}</p>
+                      </div>
+
+                      <p className="text-xs font-medium text-slate-500">
                         {listing.biddingClosesAt
                           ? `${listing.auctionState === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(
                               listing.biddingClosesAt
@@ -343,28 +348,33 @@ export default function PlatformPage() {
                           : "No bidding close time set"}
                       </p>
 
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
                         <div>
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-xs text-slate-500">
                             {listing.bidCount > 0
                               ? listing.auctionState === "CLOSED"
                                 ? "Final bid"
                                 : "Current bid"
                               : "Starting bid"}
                           </p>
-                          <span className="font-semibold text-lg">
+                          <span className="mt-1 block text-2xl font-semibold text-froto-navy">
                             {formatAUD(listing.currentBid)}
                           </span>
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-xs text-froto-teal">
                             {listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}
                           </p>
                         </div>
+
                         <Button
                           asChild
-                          className="rounded-2xl flex items-center gap-1"
+                          className={`flex items-center gap-1 rounded-xl ${
+                            listing.auctionState === "CLOSED"
+                              ? "bg-froto-navy hover:bg-[#0a356f]"
+                              : "bg-froto-blue hover:bg-[#0969ba]"
+                          }`}
                         >
                           <Link href={`/platform/listing/${listing.id}`}>
-                            {listing.auctionState === "CLOSED" ? "View" : "Bid"}{" "}
+                            {listing.auctionState === "CLOSED" ? "View" : "Bid"}
                             <ArrowUpRight className="h-4 w-4" />
                           </Link>
                         </Button>
@@ -378,9 +388,18 @@ export default function PlatformPage() {
         )}
 
         {activeTab === "tenders" && (
-          <div id="tenders" className="space-y-4">
-            <div className="flex justify-end">
-              <Button asChild className="gap-2">
+          <div id="tenders" className="space-y-5">
+            <div className="flex flex-col gap-4 rounded-[1.75rem] border border-emerald-100 bg-gradient-to-r from-cyan-50/70 to-emerald-50/70 p-6 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-teal">
+                  Structured sourcing
+                </p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Tenders</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Compare product and logistics offers in a single sourcing view.
+                </p>
+              </div>
+              <Button asChild className="gap-2 rounded-xl bg-froto-teal hover:bg-[#0c8d82]">
                 <Link href="/platform/tenders/new">
                   <Plus className="h-4 w-4" />
                   Create Tender
@@ -392,23 +411,24 @@ export default function PlatformPage() {
               const total = tender.productCost + tender.logisticsCost;
 
               return (
-                <Card key={tender.id} className="rounded-2xl p-4 shadow-sm">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <Card
+                  key={tender.id}
+                  className="overflow-hidden rounded-[1.6rem] border-emerald-100 bg-white shadow-sm"
+                >
+                  <div className="h-1 bg-gradient-to-r from-froto-teal to-froto-green" />
+                  <div className="flex flex-col items-start justify-between gap-4 p-5 sm:flex-row sm:items-center">
                     <div>
-                      <p className="font-semibold text-neutral-900">
-                        {tender.title}
-                      </p>
-                      <p className="text-sm text-neutral-600 mt-1">
-                        Product: {formatAUD(tender.productCost)} | Logistics:{" "}
-                        {formatAUD(tender.logisticsCost)}
+                      <p className="font-semibold text-froto-navy">{tender.title}</p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Product: {formatAUD(tender.productCost)} | Logistics: {formatAUD(tender.logisticsCost)}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="font-semibold text-lg">
-                        {formatAUD(total)}
-                      </span>
-                      <Button variant="outline">View</Button>
+                      <span className="text-lg font-semibold text-froto-navy">{formatAUD(total)}</span>
+                      <Button variant="outline" className="border-emerald-200 text-froto-navy">
+                        View
+                      </Button>
                     </div>
                   </div>
                 </Card>
