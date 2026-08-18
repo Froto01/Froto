@@ -75,6 +75,7 @@ export async function POST(
     );
   }
 
+  const nextStatus: JobStatus = body.status;
   const note = typeof body.note === "string" ? body.note.trim().slice(0, 500) : "";
 
   const user = await prisma.user.findUnique({
@@ -126,14 +127,14 @@ export async function POST(
       const currentStatus = job.status as JobStatus;
       const rule = TRANSITIONS.find(
         (transition) =>
-          transition.from === currentStatus && transition.to === body.status
+          transition.from === currentStatus && transition.to === nextStatus
       );
 
       if (!rule) {
         return {
           ok: false as const,
           status: 409,
-          error: `Job cannot move from ${currentStatus} to ${body.status}.`,
+          error: `Job cannot move from ${currentStatus} to ${nextStatus}.`,
         };
       }
 
@@ -169,28 +170,28 @@ export async function POST(
 
       const now = new Date();
       const timestampUpdate =
-        body.status === "ACCEPTED"
+        nextStatus === "ACCEPTED"
           ? { acceptedAt: now }
-          : body.status === "IN_PROGRESS"
+          : nextStatus === "IN_PROGRESS"
             ? { startedAt: now }
-            : body.status === "COMPLETED"
+            : nextStatus === "COMPLETED"
               ? { completedAt: now }
               : {};
 
       const updatedJob = await tx.job.update({
         where: { id: job.id },
         data: {
-          status: body.status,
+          status: nextStatus,
           ...timestampUpdate,
           events: {
             create: {
-              eventType: body.status,
+              eventType: nextStatus,
               actorUserId: user.id,
               actorCompanyId: membership.companyId,
               note: note || null,
               metadata: {
                 fromStatus: currentStatus,
-                toStatus: body.status,
+                toStatus: nextStatus,
                 buyerCompanyName: job.buyerCompany.name,
                 providerCompanyName: job.providerCompany.name,
               },
