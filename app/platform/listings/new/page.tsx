@@ -28,6 +28,7 @@ type CreateListingForm = {
   availableTo: string;
   startingBid: string;
   minimumBidIncrement: string;
+  biddingClosesAt: string;
   notes: string;
 };
 
@@ -44,8 +45,29 @@ const emptyListing: CreateListingForm = {
   availableTo: "",
   startingBid: "",
   minimumBidIncrement: "",
+  biddingClosesAt: "",
   notes: "",
 };
+
+function displayCloseTime(value: string) {
+  if (!value) {
+    return "Not supplied";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
 
 export default function CreateListingPage() {
   const [form, setForm] = useState<CreateListingForm>(emptyListing);
@@ -67,7 +89,16 @@ export default function CreateListingPage() {
     setIsSaving(true);
 
     try {
-      await createListing(form);
+      const localCloseTime = new Date(form.biddingClosesAt);
+
+      if (Number.isNaN(localCloseTime.getTime())) {
+        throw new Error("Please provide a valid bidding close time.");
+      }
+
+      await createListing({
+        ...form,
+        biddingClosesAt: localCloseTime.toISOString(),
+      });
       setSubmittedListing(form);
     } catch (caughtError) {
       setError(
@@ -137,6 +168,9 @@ export default function CreateListingPage() {
                   "Starting bid": submittedListing.startingBid,
                   "Minimum bid increment":
                     submittedListing.minimumBidIncrement,
+                  "Bidding closes": displayCloseTime(
+                    submittedListing.biddingClosesAt
+                  ),
                   Notes: submittedListing.notes,
                 }).map(([label, value]) => (
                   <div key={label} className="rounded-2xl bg-neutral-50 p-4">
@@ -343,6 +377,21 @@ export default function CreateListingPage() {
                       }
                       placeholder="10"
                     />
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-neutral-700 sm:col-span-2">
+                    Bidding closes
+                    <Input
+                      required
+                      type="datetime-local"
+                      value={form.biddingClosesAt}
+                      onChange={(event) =>
+                        updateField("biddingClosesAt", event.target.value)
+                      }
+                    />
+                    <span className="block text-xs font-normal text-neutral-500">
+                      Froto will stop accepting bids automatically at this time.
+                    </span>
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-neutral-700 sm:col-span-2">
