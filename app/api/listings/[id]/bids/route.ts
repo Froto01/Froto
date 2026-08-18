@@ -108,11 +108,22 @@ export async function POST(
             };
           }
 
-          if (listing.status !== "ACTIVE") {
+          if (listing.status !== "ACTIVE" || listing.awardedBidId) {
             return {
               ok: false,
               status: 409,
               error: "This listing is no longer accepting bids.",
+            };
+          }
+
+          if (
+            listing.biddingClosesAt &&
+            listing.biddingClosesAt.getTime() <= Date.now()
+          ) {
+            return {
+              ok: false,
+              status: 409,
+              error: "Bidding has closed for this listing.",
             };
           }
 
