@@ -14,6 +14,7 @@ type AwardResult =
       awardedAt: string;
       winnerCompanyName: string;
       amount: number;
+      jobId: string;
     }
   | {
       ok: false;
@@ -165,12 +166,37 @@ export async function POST(
         },
       });
 
+      const job = await tx.job.create({
+        data: {
+          listingId: listing.id,
+          awardedBidId: bid.id,
+          buyerCompanyId: bid.bidderCompanyId,
+          providerCompanyId: listing.companyId,
+          amount: bid.amount,
+          status: "AWARDED",
+          events: {
+            create: {
+              eventType: "AWARDED",
+              actorUserId: user.id,
+              actorCompanyId: membership.companyId,
+              note: `Awarded to ${bid.bidderCompany.name}`,
+              metadata: {
+                awardedBidId: bid.id,
+                amount: Number(bid.amount),
+                winnerCompanyName: bid.bidderCompany.name,
+              },
+            },
+          },
+        },
+      });
+
       return {
         ok: true,
         awardedBidId: bid.id,
         awardedAt: awardedAt.toISOString(),
         winnerCompanyName: bid.bidderCompany.name,
         amount: Number(bid.amount),
+        jobId: job.id,
       };
     },
     {
