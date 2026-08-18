@@ -16,6 +16,7 @@ model User {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   companies CompanyMember[]
+  bidsPlaced Bid[]           @relation("BidPlacedByUser")
 }
 
 model Company {
@@ -30,6 +31,7 @@ model Company {
   updatedAt   DateTime        @updatedAt
   members     CompanyMember[]
   listings    Listing[]
+  bids        Bid[]           @relation("BidderCompany")
 }
 
 model CompanyMember {
@@ -63,10 +65,27 @@ model Listing {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bids                Bid[]
 
   @@index([companyId])
   @@index([status])
   @@index([listingType])
+}
+
+model Bid {
+  id              String   @id @default(cuid())
+  listingId       String
+  bidderCompanyId String
+  placedByUserId  String
+  amount          Decimal  @db.Decimal(12, 2)
+  createdAt       DateTime @default(now())
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  bidderCompany   Company  @relation("BidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
+  placedByUser    User     @relation("BidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([listingId, createdAt])
+  @@index([bidderCompanyId])
+  @@index([placedByUserId])
 }
 
 enum CompanyRole {
