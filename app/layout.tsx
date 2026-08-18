@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 
+import { PublicBrandHeader } from "@/components/public-brand-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Froto",
-  description: "From to, made simple.",
+  description: "Connect. Match. Move.",
+  icons: {
+    icon: "/brand/froto-mark.svg",
+  },
 };
 
 export default function RootLayout({
@@ -16,7 +20,10 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body>{children}</body>
+        <body>
+          <PublicBrandHeader />
+          {children}
+        </body>
       </html>
     </ClerkProvider>
   );
