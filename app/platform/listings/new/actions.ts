@@ -23,6 +23,7 @@ type CreateListingInput = {
   availableTo: string;
   startingBid: string;
   minimumBidIncrement: string;
+  biddingClosesAt: string;
   notes: string;
 };
 
@@ -57,6 +58,7 @@ export async function createListing(input: CreateListingInput) {
   const minimumBidIncrement = Number(input.minimumBidIncrement);
   const availableFrom = new Date(`${input.availableFrom}T00:00:00.000Z`);
   const availableTo = new Date(`${input.availableTo}T00:00:00.000Z`);
+  const biddingClosesAt = new Date(input.biddingClosesAt);
 
   if (!input.title.trim()) {
     throw new Error("A listing title is required.");
@@ -80,6 +82,13 @@ export async function createListing(input: CreateListingInput) {
     availableTo < availableFrom
   ) {
     throw new Error("Please provide a valid availability date range.");
+  }
+
+  if (
+    Number.isNaN(biddingClosesAt.getTime()) ||
+    biddingClosesAt.getTime() <= Date.now()
+  ) {
+    throw new Error("Bidding close time must be in the future.");
   }
 
   if (
@@ -113,6 +122,7 @@ export async function createListing(input: CreateListingInput) {
       availableTo,
       startingBid: input.startingBid,
       minimumBidIncrement: input.minimumBidIncrement,
+      biddingClosesAt,
       notes: input.notes.trim() || null,
     },
   });
