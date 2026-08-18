@@ -17,10 +17,7 @@ import { Input } from "@/components/ui/input";
 
 type Role = "Shipper" | "Carrier" | "3PL Warehouse" | "Procurement Team";
 
-type OnboardingForm = {
-  name: string;
-  company: string;
-  email: string;
+type CompanyProfileForm = {
   role: Role;
   locations: string;
   notes: string;
@@ -57,38 +54,41 @@ const roles: {
   },
 ];
 
-const emptyForm: OnboardingForm = {
-  name: "",
-  company: "",
-  email: "",
+const emptyForm: CompanyProfileForm = {
   role: "Shipper",
   locations: "",
   notes: "",
 };
 
 export default function OnboardingPage() {
-  const [form, setForm] = useState<OnboardingForm>(emptyForm);
+  const [form, setForm] = useState<CompanyProfileForm>(emptyForm);
   const [submittedProfile, setSubmittedProfile] =
-    useState<OnboardingForm | null>(null);
+    useState<CompanyProfileForm | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  function updateField(field: keyof OnboardingForm, value: string) {
+  function updateField(field: keyof CompanyProfileForm, value: string) {
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
   }
 
- async function submitProfile(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+  async function submitProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSaving(true);
 
-  await updateCompanyProfile({
-    companyType: form.role,
-    locations: form.locations,
-    notes: form.notes,
-  });
+    try {
+      await updateCompanyProfile({
+        companyType: form.role,
+        locations: form.locations,
+        notes: form.notes,
+      });
 
-  setSubmittedProfile(form);
-}
+      setSubmittedProfile(form);
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-neutral-50 pb-16">
@@ -96,17 +96,17 @@ export default function OnboardingPage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-sky-600">
-              Froto onboarding
+              Froto company profile
             </p>
             <h1 className="mt-1 text-2xl font-semibold text-neutral-900">
-              Choose how you use Froto
+              Tell Froto how your company operates
             </h1>
           </div>
 
           <Button asChild variant="outline" className="gap-2">
-            <Link href="/platform">
+            <Link href="/platform/dashboard">
               <ArrowLeft className="h-4 w-4" />
-              Back to platform
+              Back to dashboard
             </Link>
           </Button>
         </div>
@@ -151,9 +151,9 @@ export default function OnboardingPage() {
                   <CheckCircle2 className="h-5 w-5 text-emerald-700" />
                 </span>
                 <div>
-                  <CardTitle>Onboarding profile saved in demo mode</CardTitle>
+                  <CardTitle>Company profile saved</CardTitle>
                   <p className="mt-1 text-sm text-neutral-500">
-                    No account, auth, or database has been created yet.
+                    These details are now saved to your Froto company profile.
                   </p>
                 </div>
               </div>
@@ -162,10 +162,7 @@ export default function OnboardingPage() {
             <CardContent className="space-y-4">
               <dl className="grid gap-3 sm:grid-cols-2">
                 {Object.entries({
-                  Name: submittedProfile.name,
-                  Company: submittedProfile.company,
-                  Email: submittedProfile.email,
-                  Role: submittedProfile.role,
+                  "Company type": submittedProfile.role,
                   "Primary locations / lanes": submittedProfile.locations,
                   Notes: submittedProfile.notes,
                 }).map(([label, value]) => (
@@ -187,12 +184,9 @@ export default function OnboardingPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    setForm(emptyForm);
-                    setSubmittedProfile(null);
-                  }}
+                  onClick={() => setSubmittedProfile(null)}
                 >
-                  Start another profile
+                  Edit profile
                 </Button>
               </div>
             </CardContent>
@@ -200,51 +194,14 @@ export default function OnboardingPage() {
         ) : (
           <Card className="rounded-3xl shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Your profile</CardTitle>
+              <CardTitle className="text-lg">Company profile</CardTitle>
             </CardHeader>
 
             <CardContent>
               <form onSubmit={submitProfile} className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="space-y-2 text-sm font-medium text-neutral-700">
-                    Name
-                    <Input
-                      required
-                      value={form.name}
-                      onChange={(event) =>
-                        updateField("name", event.target.value)
-                      }
-                      placeholder="Alex Smith"
-                    />
-                  </label>
-
-                  <label className="space-y-2 text-sm font-medium text-neutral-700">
-                    Company
-                    <Input
-                      required
-                      value={form.company}
-                      onChange={(event) =>
-                        updateField("company", event.target.value)
-                      }
-                      placeholder="Acme Logistics"
-                    />
-                  </label>
-
-                  <label className="space-y-2 text-sm font-medium text-neutral-700">
-                    Email
-                    <Input
-                      required
-                      type="email"
-                      value={form.email}
-                      onChange={(event) =>
-                        updateField("email", event.target.value)
-                      }
-                      placeholder="alex@company.com"
-                    />
-                  </label>
-
-                  <label className="space-y-2 text-sm font-medium text-neutral-700">
-                    Role
+                    Company type
                     <select
                       value={form.role}
                       onChange={(event) =>
@@ -260,7 +217,7 @@ export default function OnboardingPage() {
                     </select>
                   </label>
 
-                  <label className="space-y-2 text-sm font-medium text-neutral-700 sm:col-span-2">
+                  <label className="space-y-2 text-sm font-medium text-neutral-700">
                     Primary locations / lanes
                     <Input
                       required
@@ -286,9 +243,11 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="submit">Complete onboarding</Button>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save company profile"}
+                  </Button>
                   <Button asChild type="button" variant="outline">
-                    <Link href="/platform">Cancel</Link>
+                    <Link href="/platform/dashboard">Cancel</Link>
                   </Button>
                 </div>
               </form>
