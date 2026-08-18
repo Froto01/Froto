@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { createListing } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,8 @@ export default function CreateListingPage() {
   const [form, setForm] = useState<CreateListingForm>(emptyListing);
   const [submittedListing, setSubmittedListing] =
     useState<CreateListingForm | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function updateField(field: keyof CreateListingForm, value: string) {
     setForm((current) => ({
@@ -58,9 +61,23 @@ export default function CreateListingPage() {
     }));
   }
 
-  function submitListing(event: FormEvent<HTMLFormElement>) {
+  async function submitListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmittedListing(form);
+    setError(null);
+    setIsSaving(true);
+
+    try {
+      await createListing(form);
+      setSubmittedListing(form);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Froto could not save this listing. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const isTransportLane = form.listingType === "Transport Lane";
@@ -96,9 +113,9 @@ export default function CreateListingPage() {
                   <CheckCircle2 className="h-5 w-5 text-emerald-700" />
                 </span>
                 <div>
-                  <CardTitle>Listing created in demo mode</CardTitle>
+                  <CardTitle>Listing created</CardTitle>
                   <p className="mt-1 text-sm text-neutral-500">
-                    No database has been updated yet.
+                    This capacity is now stored in Froto and available to the marketplace.
                   </p>
                 </div>
               </div>
@@ -135,7 +152,7 @@ export default function CreateListingPage() {
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button asChild>
-                  <Link href="/platform">Return to platform</Link>
+                  <Link href="/platform">View marketplace</Link>
                 </Button>
                 <Button
                   type="button"
@@ -143,6 +160,7 @@ export default function CreateListingPage() {
                   onClick={() => {
                     setForm(emptyListing);
                     setSubmittedListing(null);
+                    setError(null);
                   }}
                 >
                   Create another listing
@@ -230,7 +248,8 @@ export default function CreateListingPage() {
                     <Input
                       required
                       type="number"
-                      min="0"
+                      min="1"
+                      step="1"
                       value={form.capacityAmount}
                       onChange={(event) =>
                         updateField("capacityAmount", event.target.value)
@@ -302,6 +321,7 @@ export default function CreateListingPage() {
                       required
                       type="number"
                       min="0"
+                      step="0.01"
                       value={form.startingBid}
                       onChange={(event) =>
                         updateField("startingBid", event.target.value)
@@ -315,7 +335,8 @@ export default function CreateListingPage() {
                     <Input
                       required
                       type="number"
-                      min="0"
+                      min="0.01"
+                      step="0.01"
                       value={form.minimumBidIncrement}
                       onChange={(event) =>
                         updateField("minimumBidIncrement", event.target.value)
@@ -337,8 +358,16 @@ export default function CreateListingPage() {
                   </label>
                 </div>
 
+                {error ? (
+                  <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </p>
+                ) : null}
+
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="submit">Create Listing</Button>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Creating listing..." : "Create Listing"}
+                  </Button>
                   <Button asChild type="button" variant="outline">
                     <Link href="/platform">Cancel</Link>
                   </Button>
