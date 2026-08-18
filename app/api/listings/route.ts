@@ -42,6 +42,9 @@ export async function GET() {
         listing.bids.length > 0
           ? Number(listing.bids[0].amount)
           : Number(listing.startingBid);
+      const biddingClosed = Boolean(
+        listing.biddingClosesAt && listing.biddingClosesAt.getTime() <= Date.now()
+      );
 
       return {
         id: listing.id,
@@ -57,6 +60,8 @@ export async function GET() {
         availableTo: listing.availableTo.toISOString(),
         startingBid: Number(listing.startingBid),
         minimumBidIncrement: Number(listing.minimumBidIncrement),
+        biddingClosesAt: listing.biddingClosesAt?.toISOString() ?? null,
+        auctionState: biddingClosed ? "CLOSED" : "OPEN",
         currentBid,
         bidCount: listing._count.bids,
         notes: listing.notes,
