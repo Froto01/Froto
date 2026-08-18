@@ -3,13 +3,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DEMO_BIDS, LOGISTICS_LISTINGS } from "@/lib/mock-data";
+
+type LiveBid = {
+  id: string;
+  amount: number;
+  createdAt: string;
+  bidderCompanyName: string;
+  bidderCompanyVerified: boolean;
+};
 
 type DatabaseListing = {
   id: string;
@@ -25,6 +32,10 @@ type DatabaseListing = {
   availableTo: string;
   startingBid: number;
   minimumBidIncrement: number;
+  currentBid: number;
+  minimumNextBid: number;
+  bidCount: number;
+  bids: LiveBid[];
   notes: string | null;
   status: string;
   companyName: string;
@@ -32,35 +43,14 @@ type DatabaseListing = {
   createdAt: string;
 };
 
-type ListingView = {
-  id: string;
-  title: string;
-  listingType: string;
-  location: string;
-  capacity: string;
-  temperatureClass?: string;
-  availableFrom?: string;
-  availableTo?: string;
-  startingBid: number;
-  minimumBidIncrement: number;
-  notes?: string | null;
-  companyName?: string;
-  image: string;
-  isDemo: boolean;
-};
-
-function formatAUD(v: number) {
+function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency: "AUD",
-  }).format(v);
+  }).format(value);
 }
 
-function formatDate(value?: string) {
-  if (!value) {
-    return "Not supplied";
-  }
-
+function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-AU", {
     day: "numeric",
     month: "short",
@@ -69,7 +59,16 @@ function formatDate(value?: string) {
   }).format(new Date(value));
 }
 
-function databaseListingImage(listingType: string) {
+function formatBidTime(value: string) {
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function listingImage(listingType: string) {
   return listingType === "Warehouse Space"
     ? "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80"
     : "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80";
@@ -77,132 +76,87 @@ function databaseListingImage(listingType: string) {
 
 export default function ListingDetailPage() {
   const params = useParams<{ id: string }>();
-  const demoListing = LOGISTICS_LISTINGS.find((item) => item.id === params.id);
-  const [databaseListing, setDatabaseListing] =
-    useState<DatabaseListing | null>(null);
-  const [isLoading, setIsLoading] = useState(!demoListing);
+  const [listing, setListing] = useState<DatabaseListing | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState("");
-  const [demoBids, setDemoBids] = useState(DEMO_BIDS);
+  const [bidError, setBidError] = useState<string | null>(null);
+  const [bidSuccess, setBidSuccess] = useState<string | null>(null);
+  const [isSubmittingBid, setIsSubmittingBid] = useState(false);
+
+  const loadListing = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/listings/${params.id}`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Listing not found");
+      }
+
+      const data = (await response.json()) as DatabaseListing;
+      setListing(data);
+      setLoadError(null);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Listing not found");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params.id]);
 
   useEffect(() => {
-    if (demoListing) {
-      setDatabaseListing(null);
-      setDemoBids(DEMO_BIDS);
-      setIsLoading(false);
-      setLoadError(null);
+    void loadListing();
+  }, [loadListing]);
+
+  async function submitBid() {
+    if (!listing) {
       return;
     }
 
-    let cancelled = false;
-    setIsLoading(true);
-    setDemoBids([]);
-
-    async function loadListing() {
-      try {
-        const response = await fetch(`/api/listings/${params.id}`, {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          throw new Error("Listing not found");
-        }
-
-        const data = (await response.json()) as DatabaseListing;
-
-        if (!cancelled) {
-          setDatabaseListing(data);
-          setLoadError(null);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setLoadError(
-            error instanceof Error ? error.message : "Listing not found"
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadListing();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [demoListing, params.id]);
-
-  const listing = useMemo<ListingView | null>(() => {
-    if (demoListing) {
-      return {
-        id: demoListing.id,
-        title: demoListing.name,
-        listingType: demoListing.type,
-        location: demoListing.location,
-        capacity: demoListing.capacity,
-        startingBid: demoListing.currentBid,
-        minimumBidIncrement: 10,
-        image: demoListing.image,
-        isDemo: true,
-      };
-    }
-
-    if (!databaseListing) {
-      return null;
-    }
-
-    const location =
-      databaseListing.listingType === "Transport Lane"
-        ? `${databaseListing.origin ?? "Origin"} to ${
-            databaseListing.destination ?? "Destination"
-          }`
-        : databaseListing.location ?? "Location not supplied";
-
-    return {
-      id: databaseListing.id,
-      title: databaseListing.title,
-      listingType: databaseListing.listingType,
-      location,
-      capacity: `${databaseListing.capacityAmount} ${databaseListing.capacityUnit}`,
-      temperatureClass: databaseListing.temperatureClass,
-      availableFrom: databaseListing.availableFrom,
-      availableTo: databaseListing.availableTo,
-      startingBid: databaseListing.startingBid,
-      minimumBidIncrement: databaseListing.minimumBidIncrement,
-      notes: databaseListing.notes,
-      companyName: databaseListing.companyName,
-      image: databaseListingImage(databaseListing.listingType),
-      isDemo: false,
-    };
-  }, [databaseListing, demoListing]);
-
-  const highestBid = useMemo(() => {
-    if (!listing) {
-      return 0;
-    }
-
-    return Math.max(
-      listing.startingBid,
-      ...demoBids.map((bid) => bid.amount)
-    );
-  }, [demoBids, listing]);
-
-  const minimumBid = listing
-    ? highestBid + listing.minimumBidIncrement
-    : highestBid + 10;
-
-  function submitDemoBid() {
     const amount = Number(bidAmount);
 
-    if (!amount || amount < minimumBid) {
-      alert(`Minimum bid is ${formatAUD(minimumBid)}`);
+    if (!Number.isFinite(amount) || amount < listing.minimumNextBid) {
+      setBidError(`Minimum next bid is ${formatAUD(listing.minimumNextBid)}.`);
+      setBidSuccess(null);
       return;
     }
 
-    setDemoBids([{ bidder: "You", amount, time: "Just now" }, ...demoBids]);
-    setBidAmount("");
+    setIsSubmittingBid(true);
+    setBidError(null);
+    setBidSuccess(null);
+
+    try {
+      const response = await fetch(`/api/listings/${listing.id}/bids`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = (await response.json()) as {
+        error?: string;
+        currentBid?: number;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "The bid could not be placed.");
+      }
+
+      setBidAmount("");
+      setBidSuccess(
+        `Bid placed at ${formatAUD(data.currentBid ?? amount)} and saved to Froto.`
+      );
+      await loadListing();
+    } catch (error) {
+      setBidError(
+        error instanceof Error ? error.message : "The bid could not be placed."
+      );
+    } finally {
+      setIsSubmittingBid(false);
+    }
   }
 
   if (isLoading) {
@@ -224,7 +178,7 @@ export default function ListingDetailPage() {
           <Button asChild variant="outline" className="mb-6 gap-2">
             <Link href="/platform">
               <ArrowLeft className="h-4 w-4" />
-              Back to platform
+              Back to marketplace
             </Link>
           </Button>
 
@@ -241,13 +195,18 @@ export default function ListingDetailPage() {
     );
   }
 
+  const location =
+    listing.listingType === "Transport Lane"
+      ? `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}`
+      : listing.location ?? "Location not supplied";
+
   return (
     <main className="min-h-screen bg-neutral-50 pb-16">
       <div className="max-w-6xl mx-auto px-4 py-6">
         <Button asChild variant="outline" className="mb-6 gap-2">
           <Link href="/platform">
             <ArrowLeft className="h-4 w-4" />
-            Back to platform
+            Back to marketplace
           </Link>
         </Button>
 
@@ -256,7 +215,7 @@ export default function ListingDetailPage() {
             <Card className="overflow-hidden rounded-3xl shadow-sm">
               <div className="relative">
                 <Image
-                  src={listing.image}
+                  src={listingImage(listing.listingType)}
                   alt={listing.title}
                   width={1200}
                   height={800}
@@ -270,12 +229,11 @@ export default function ListingDetailPage() {
 
               <CardHeader>
                 <CardTitle className="text-2xl">{listing.title}</CardTitle>
-                <p className="text-sm text-neutral-500">{listing.location}</p>
-                {listing.companyName ? (
-                  <p className="text-sm text-neutral-500">
-                    Listed by {listing.companyName}
-                  </p>
-                ) : null}
+                <p className="text-sm text-neutral-500">{location}</p>
+                <p className="text-sm text-neutral-500">
+                  Listed by {listing.companyName}
+                  {listing.companyVerified ? " · Verified" : ""}
+                </p>
               </CardHeader>
 
               <CardContent>
@@ -285,7 +243,7 @@ export default function ListingDetailPage() {
                       Capacity
                     </dt>
                     <dd className="mt-1 font-medium text-neutral-900">
-                      {listing.capacity}
+                      {listing.capacityAmount} {listing.capacityUnit}
                     </dd>
                   </div>
 
@@ -300,43 +258,21 @@ export default function ListingDetailPage() {
 
                   <div className="rounded-2xl bg-neutral-50 p-4">
                     <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Type
+                      Temperature class
                     </dt>
-                    <dd className="mt-1 font-medium text-neutral-900">
-                      {listing.listingType}
+                    <dd className="mt-1 font-medium capitalize text-neutral-900">
+                      {listing.temperatureClass}
                     </dd>
                   </div>
 
                   <div className="rounded-2xl bg-neutral-50 p-4">
                     <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Location
+                      Availability
                     </dt>
                     <dd className="mt-1 font-medium text-neutral-900">
-                      {listing.location}
+                      {formatDate(listing.availableFrom)} to {formatDate(listing.availableTo)}
                     </dd>
                   </div>
-
-                  {!listing.isDemo ? (
-                    <>
-                      <div className="rounded-2xl bg-neutral-50 p-4">
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Temperature class
-                        </dt>
-                        <dd className="mt-1 font-medium text-neutral-900">
-                          {listing.temperatureClass}
-                        </dd>
-                      </div>
-
-                      <div className="rounded-2xl bg-neutral-50 p-4">
-                        <dt className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Availability
-                        </dt>
-                        <dd className="mt-1 font-medium text-neutral-900">
-                          {formatDate(listing.availableFrom)} to {formatDate(listing.availableTo)}
-                        </dd>
-                      </div>
-                    </>
-                  ) : null}
                 </dl>
 
                 {listing.notes ? (
@@ -354,9 +290,9 @@ export default function ListingDetailPage() {
           <section>
             <Card className="rounded-3xl border-sky-100 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg">Bid room</CardTitle>
+                <CardTitle className="text-lg">Live bid room</CardTitle>
                 <p className="text-sm text-neutral-500">
-                  Listing data is live. Bids on this screen are still temporary until the bidding layer is connected next.
+                  Bids are authenticated, tied to your Froto company, and saved to the marketplace.
                 </p>
               </CardHeader>
 
@@ -366,41 +302,72 @@ export default function ListingDetailPage() {
                     Current bid
                   </p>
                   <p className="mt-1 text-3xl font-semibold text-neutral-900">
-                    {formatAUD(highestBid)}
+                    {formatAUD(listing.currentBid)}
                   </p>
                   <p className="text-sm text-neutral-500">
-                    Minimum next bid: {formatAUD(minimumBid)}
+                    Minimum next bid: {formatAUD(listing.minimumNextBid)}
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {listing.bidCount === 0
+                      ? "No bids placed yet"
+                      : `${listing.bidCount} ${listing.bidCount === 1 ? "bid" : "bids"} placed`}
                   </p>
                 </div>
 
                 <div className="flex gap-2">
                   <Input
                     type="number"
+                    min={listing.minimumNextBid}
+                    step="0.01"
                     value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    placeholder={`Enter ${minimumBid} or higher`}
+                    onChange={(event) => setBidAmount(event.target.value)}
+                    placeholder={`Enter ${listing.minimumNextBid} or higher`}
+                    disabled={isSubmittingBid || listing.status !== "ACTIVE"}
                   />
-                  <Button onClick={submitDemoBid}>Place demo bid</Button>
+                  <Button
+                    onClick={submitBid}
+                    disabled={isSubmittingBid || listing.status !== "ACTIVE"}
+                  >
+                    {isSubmittingBid ? "Placing..." : "Place bid"}
+                  </Button>
                 </div>
+
+                {bidError ? (
+                  <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {bidError}
+                  </p>
+                ) : null}
+
+                {bidSuccess ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {bidSuccess}
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-neutral-900">
-                    Temporary bid history
+                    Bid history
                   </p>
 
-                  {demoBids.length === 0 ? (
+                  {listing.bids.length === 0 ? (
                     <p className="rounded-xl border bg-white px-3 py-3 text-sm text-neutral-500">
-                      No bids yet. Real persistent bidding is the next build step.
+                      No bids yet. The next valid bid will become the first live market bid.
                     </p>
                   ) : (
-                    demoBids.map((bid, index) => (
+                    listing.bids.map((bid) => (
                       <div
-                        key={`${bid.bidder}-${bid.amount}-${index}`}
+                        key={bid.id}
                         className="flex items-center justify-between rounded-xl border bg-white px-3 py-2 text-sm"
                       >
                         <div>
-                          <p className="font-medium">{bid.bidder}</p>
-                          <p className="text-xs text-neutral-500">{bid.time}</p>
+                          <p className="font-medium">
+                            {bid.bidderCompanyName}
+                            {bid.bidderCompanyVerified ? " · Verified" : ""}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {formatBidTime(bid.createdAt)}
+                          </p>
                         </div>
                         <p className="font-semibold">{formatAUD(bid.amount)}</p>
                       </div>
