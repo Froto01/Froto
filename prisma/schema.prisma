@@ -19,17 +19,17 @@ model User {
 }
 
 model Company {
-  id        String          @id @default(cuid())
-  name      String
-  abn       String?         @unique
-  verified  Boolean         @default(false)
-companyType String?
-locations   String?
-notes       String?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  
-  members   CompanyMember[]
+  id          String          @id @default(cuid())
+  name        String
+  abn         String?         @unique
+  verified    Boolean         @default(false)
+  companyType String?
+  locations   String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  members     CompanyMember[]
+  listings    Listing[]
 }
 
 model CompanyMember {
@@ -41,6 +41,32 @@ model CompanyMember {
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, companyId])
+}
+
+model Listing {
+  id                  String   @id @default(cuid())
+  companyId           String
+  listingType         String
+  title               String
+  location            String?
+  origin              String?
+  destination         String?
+  capacityAmount      Int
+  capacityUnit        String
+  temperatureClass    String
+  availableFrom       DateTime
+  availableTo         DateTime
+  startingBid         Decimal  @db.Decimal(12, 2)
+  minimumBidIncrement Decimal  @db.Decimal(12, 2)
+  notes               String?
+  status              String   @default("ACTIVE")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+  @@index([listingType])
 }
 
 enum CompanyRole {
