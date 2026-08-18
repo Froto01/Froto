@@ -5,10 +5,15 @@ import { PublicBrandHeader } from "@/components/public-brand-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Froto",
+  applicationName: "Froto",
+  title: {
+    default: "Froto | Connect. Match. Move.",
+    template: "%s | Froto",
+  },
   description: "Connect. Match. Move.",
   icons: {
     icon: "/brand/froto-mark.svg",
+    shortcut: "/brand/froto-mark.svg",
   },
 };
 
