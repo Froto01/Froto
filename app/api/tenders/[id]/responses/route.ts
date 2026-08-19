@@ -34,6 +34,7 @@ export async function POST(
     where: { id },
     select: {
       id: true,
+      title: true,
       companyId: true,
       status: true,
       responseClosesAt: true,
@@ -70,16 +71,36 @@ export async function POST(
   }
 
   try {
-    const response = await prisma.tenderResponse.create({
-      data: {
-        tenderId: tender.id,
-        companyId: membership.companyId,
-        submittedByUserId: user.id,
-        amount,
-        serviceDescription: body.serviceDescription?.trim() || null,
-        leadTime: body.leadTime?.trim() || null,
-        notes: body.notes?.trim() || null,
-      },
+    const response = await prisma.$transaction(async (tx) => {
+      const created = await tx.tenderResponse.create({
+        data: {
+          tenderId: tender.id,
+          companyId: membership.companyId,
+          submittedByUserId: user.id,
+          amount,
+          serviceDescription: body.serviceDescription?.trim() || null,
+          leadTime: body.leadTime?.trim() || null,
+          notes: body.notes?.trim() || null,
+        },
+      });
+
+      await tx.notification.create({
+        data: {
+          companyId: tender.companyId,
+          type: "TENDER_RESPONSE_RECEIVED",
+          title: "New tender response",
+          message: `${membership.companyId === tender.companyId ? "A company" : "A supplier"} responded to ${tender.title}.`,
+          href: `/platform/tenders/${tender.id}`,
+          metadata: {
+            tenderId: tender.id,
+            responseId: created.id,
+            respondingCompanyId: membership.companyId,
+            amount,
+          },
+        },
+      });
+
+      return created;
     });
 
     return NextResponse.json(
