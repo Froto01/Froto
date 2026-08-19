@@ -161,6 +161,12 @@ export async function POST(
         };
       }
 
+      const bidderCompanies = await tx.bid.findMany({
+        where: { listingId: listing.id },
+        select: { bidderCompanyId: true },
+        distinct: ["bidderCompanyId"],
+      });
+
       const awardedAt = new Date();
 
       await tx.listing.update({
@@ -197,6 +203,34 @@ export async function POST(
           },
         },
       });
+
+      await tx.notification.create({
+        data: {
+          companyId: bid.bidderCompanyId,
+          type: "MARKETPLACE_AWARD_WON",
+          title: "You won a marketplace award",
+          message: `Your company won ${listing.title} for ${Number(bid.amount).toLocaleString("en-AU", { style: "currency", currency: "AUD" })}. Accept the job to continue.`,
+          href: `/platform/jobs/${job.id}`,
+          metadata: { listingId: listing.id, bidId: bid.id, jobId: job.id },
+        },
+      });
+
+      const losingCompanyIds = bidderCompanies
+        .map((item) => item.bidderCompanyId)
+        .filter((companyId) => companyId !== bid.bidderCompanyId);
+
+      for (const companyId of losingCompanyIds) {
+        await tx.notification.create({
+          data: {
+            companyId,
+            type: "MARKETPLACE_AWARD_UNSUCCESSFUL",
+            title: "Marketplace award result",
+            message: `Another bidder was selected for ${listing.title}.`,
+            href: `/platform/listing/${listing.id}`,
+            metadata: { listingId: listing.id, awardedBidId: bid.id },
+          },
+        });
+      }
 
       return {
         ok: true,
