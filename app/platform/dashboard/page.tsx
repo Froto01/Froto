@@ -184,7 +184,13 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+            <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
+              <Link href="/platform/activity">
+                <BarChart3 className="h-4 w-4 text-froto-teal" />
+                My Business
+              </Link>
+            </Button>
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
               <Link href="/platform/listings/new">
                 <Plus className="h-4 w-4 text-froto-blue" />
