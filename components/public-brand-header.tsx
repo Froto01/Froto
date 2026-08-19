@@ -36,7 +36,7 @@ export function PublicBrandHeader() {
             href="/auth-test"
             className="rounded-xl bg-[#062856] px-4 py-2 text-white transition-colors hover:bg-[#0a356f]"
           >
-            Sign in
+            Join / Sign in
           </Link>
         </nav>
       </div>
