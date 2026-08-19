@@ -144,6 +144,7 @@ export async function POST(
             },
             select: {
               amount: true,
+              bidderCompanyId: true,
             },
           });
 
@@ -169,6 +170,26 @@ export async function POST(
               amount,
             },
           });
+
+          if (
+            highestBid &&
+            highestBid.bidderCompanyId !== membership.companyId
+          ) {
+            await tx.notification.create({
+              data: {
+                companyId: highestBid.bidderCompanyId,
+                type: "OUTBID",
+                title: "You have been outbid",
+                message: `${listing.title} now has a higher bid.`,
+                href: `/platform/listing/${listing.id}`,
+                metadata: {
+                  listingId: listing.id,
+                  previousAmount: Number(highestBid.amount),
+                  newAmount: Number(bid.amount),
+                },
+              },
+            });
+          }
 
           return {
             ok: true,
