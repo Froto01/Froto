@@ -43,6 +43,7 @@ export async function GET() {
     orderBy: { updatedAt: "desc" },
     include: {
       listing: true,
+      tender: true,
       buyerCompany: { select: { id: true, name: true, verified: true } },
       providerCompany: { select: { id: true, name: true, verified: true } },
       _count: { select: { events: true } },
@@ -50,29 +51,44 @@ export async function GET() {
   });
 
   return NextResponse.json(
-    jobs.map((job) => ({
-      id: job.id,
-      listingId: job.listingId,
-      title: job.listing.title,
-      listingType: job.listing.listingType,
-      location:
-        job.listing.listingType === "Transport Lane"
-          ? `${job.listing.origin ?? "Origin"} to ${job.listing.destination ?? "Destination"}`
-          : job.listing.location ?? "Location not supplied",
-      capacityAmount: job.listing.capacityAmount,
-      capacityUnit: job.listing.capacityUnit,
-      amount: Number(job.amount),
-      status: job.status,
-      viewerSide:
-        membership.companyId === job.buyerCompanyId ? "BUYER" : "PROVIDER",
-      buyerCompany: job.buyerCompany,
-      providerCompany: job.providerCompany,
-      acceptedAt: job.acceptedAt?.toISOString() ?? null,
-      startedAt: job.startedAt?.toISOString() ?? null,
-      completedAt: job.completedAt?.toISOString() ?? null,
-      createdAt: job.createdAt.toISOString(),
-      updatedAt: job.updatedAt.toISOString(),
-      eventCount: job._count.events,
-    }))
+    jobs.map((job) => {
+      const source = job.listing
+        ? {
+            type: "MARKETPLACE" as const,
+            id: job.listing.id,
+            title: job.listing.title,
+            location:
+              job.listing.listingType === "Transport Lane"
+                ? `${job.listing.origin ?? "Origin"} to ${job.listing.destination ?? "Destination"}`
+                : job.listing.location ?? "Location not supplied",
+            capacity: `${job.listing.capacityAmount} ${job.listing.capacityUnit}`,
+          }
+        : job.tender
+          ? {
+              type: "TENDER" as const,
+              id: job.tender.id,
+              title: job.tender.title,
+              location: `${job.tender.origin} to ${job.tender.destination}`,
+              capacity: job.tender.volume,
+            }
+          : null;
+
+      return {
+        id: job.id,
+        source,
+        amount: Number(job.amount),
+        status: job.status,
+        viewerSide:
+          membership.companyId === job.buyerCompanyId ? "BUYER" : "PROVIDER",
+        buyerCompany: job.buyerCompany,
+        providerCompany: job.providerCompany,
+        acceptedAt: job.acceptedAt?.toISOString() ?? null,
+        startedAt: job.startedAt?.toISOString() ?? null,
+        completedAt: job.completedAt?.toISOString() ?? null,
+        createdAt: job.createdAt.toISOString(),
+        updatedAt: job.updatedAt.toISOString(),
+        eventCount: job._count.events,
+      };
+    })
   );
 }
