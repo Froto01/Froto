@@ -76,6 +76,11 @@ export async function POST(
   const awardedAt = new Date();
 
   const job = await prisma.$transaction(async (tx) => {
+    const allResponses = await tx.tenderResponse.findMany({
+      where: { tenderId: tender.id },
+      select: { id: true, companyId: true },
+    });
+
     await tx.tender.update({
       where: { id: tender.id },
       data: {
@@ -122,6 +127,31 @@ export async function POST(
         },
       },
     });
+
+    await tx.notification.create({
+      data: {
+        companyId: response.companyId,
+        type: "TENDER_AWARD_WON",
+        title: "You won a tender",
+        message: `Your company was selected for ${tender.title}. Open the job to continue.`,
+        href: `/platform/jobs/${createdJob.id}`,
+        metadata: { tenderId: tender.id, responseId: response.id, jobId: createdJob.id },
+      },
+    });
+
+    for (const item of allResponses) {
+      if (item.companyId === response.companyId) continue;
+      await tx.notification.create({
+        data: {
+          companyId: item.companyId,
+          type: "TENDER_AWARD_UNSUCCESSFUL",
+          title: "Tender award result",
+          message: `Another supplier was selected for ${tender.title}.`,
+          href: `/platform/tenders/${tender.id}`,
+          metadata: { tenderId: tender.id, responseId: item.id, awardedResponseId: response.id },
+        },
+      });
+    }
 
     return createdJob;
   });
