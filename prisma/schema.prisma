@@ -8,34 +8,38 @@ datasource db {
 }
 
 model User {
-  id         String          @id @default(cuid())
-  clerkId    String          @unique
-  email      String          @unique
-  firstName  String?
-  lastName   String?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  companies  CompanyMember[]
-  bidsPlaced Bid[]           @relation("BidPlacedByUser")
-  jobEvents  JobEvent[]      @relation("JobEventActorUser")
+  id              String           @id @default(cuid())
+  clerkId         String           @unique
+  email           String           @unique
+  firstName       String?
+  lastName        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  companies       CompanyMember[]
+  bidsPlaced      Bid[]            @relation("BidPlacedByUser")
+  jobEvents       JobEvent[]       @relation("JobEventActorUser")
+  tendersCreated  Tender[]         @relation("TenderCreatedByUser")
+  tenderResponses TenderResponse[] @relation("TenderResponseSubmittedByUser")
 }
 
 model Company {
-  id           String          @id @default(cuid())
-  name         String
-  abn          String?         @unique
-  verified     Boolean         @default(false)
-  companyType  String?
-  locations    String?
-  notes        String?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  members      CompanyMember[]
-  listings     Listing[]
-  bids         Bid[]           @relation("BidderCompany")
-  buyerJobs    Job[]           @relation("JobBuyerCompany")
-  providerJobs Job[]           @relation("JobProviderCompany")
-  jobEvents    JobEvent[]      @relation("JobEventActorCompany")
+  id                 String           @id @default(cuid())
+  name               String
+  abn                String?          @unique
+  verified           Boolean          @default(false)
+  companyType        String?
+  locations          String?
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  members            CompanyMember[]
+  listings           Listing[]
+  bids               Bid[]            @relation("BidderCompany")
+  buyerJobs          Job[]            @relation("JobBuyerCompany")
+  providerJobs       Job[]            @relation("JobProviderCompany")
+  jobEvents          JobEvent[]       @relation("JobEventActorCompany")
+  tenders            Tender[]         @relation("TenderOwnerCompany")
+  tenderResponses    TenderResponse[] @relation("TenderRespondingCompany")
 }
 
 model CompanyMember {
@@ -141,6 +145,59 @@ model JobEvent {
   @@index([jobId, createdAt])
   @@index([actorUserId])
   @@index([actorCompanyId])
+}
+
+model Tender {
+  id                    String           @id @default(cuid())
+  companyId             String
+  createdByUserId       String
+  title                 String
+  productDescription    String
+  volume                String
+  origin                String
+  destination           String
+  storageRequired       Boolean          @default(false)
+  temperatureRequirement String?
+  deliveryDate          DateTime
+  responseClosesAt      DateTime
+  notes                 String?
+  status                String           @default("OPEN")
+  awardedResponseId     String?          @unique
+  awardedAt             DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  company               Company          @relation("TenderOwnerCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser         User             @relation("TenderCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  responses             TenderResponse[] @relation("TenderResponses")
+  awardedResponse       TenderResponse?  @relation("AwardedTenderResponse", fields: [awardedResponseId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([status])
+  @@index([responseClosesAt])
+  @@index([createdAt])
+}
+
+model TenderResponse {
+  id                String   @id @default(cuid())
+  tenderId          String
+  companyId         String
+  submittedByUserId String
+  amount            Decimal  @db.Decimal(12, 2)
+  serviceDescription String?
+  leadTime          String?
+  notes             String?
+  status            String   @default("SUBMITTED")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tender             Tender   @relation("TenderResponses", fields: [tenderId], references: [id], onDelete: Cascade)
+  company            Company  @relation("TenderRespondingCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  submittedByUser    User     @relation("TenderResponseSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  awardedTender      Tender?  @relation("AwardedTenderResponse")
+
+  @@unique([tenderId, companyId])
+  @@index([tenderId, createdAt])
+  @@index([companyId])
+  @@index([status])
 }
 
 enum CompanyRole {
