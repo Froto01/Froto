@@ -18,9 +18,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type JobStatus = "AWARDED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED";
 
+type JobSource =
+  | {
+      type: "MARKETPLACE";
+      id: string;
+      title: string;
+      location: string;
+      capacity: string;
+      detail: string | null;
+      notes: string | null;
+      href: string;
+    }
+  | {
+      type: "TENDER";
+      id: string;
+      title: string;
+      location: string;
+      capacity: string;
+      detail: string | null;
+      notes: string | null;
+      href: string;
+    };
+
 type JobDetail = {
   id: string;
-  listingId: string;
   amount: number;
   status: JobStatus;
   acceptedAt: string | null;
@@ -31,20 +52,7 @@ type JobDetail = {
   viewerRole: string;
   buyerCompany: { id: string; name: string; verified: boolean };
   providerCompany: { id: string; name: string; verified: boolean };
-  listing: {
-    id: string;
-    listingType: string;
-    title: string;
-    location: string | null;
-    origin: string | null;
-    destination: string | null;
-    capacityAmount: number;
-    capacityUnit: string;
-    temperatureClass: string;
-    availableFrom: string;
-    availableTo: string;
-    notes: string | null;
-  };
+  source: JobSource;
   events: Array<{
     id: string;
     eventType: string;
@@ -72,7 +80,7 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-function statusLabel(status: JobStatus) {
+function statusLabel(status: string) {
   if (status === "IN_PROGRESS") return "In progress";
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
@@ -176,20 +184,14 @@ export default function JobDetailPage() {
     );
   }
 
-  const location =
-    job.listing.listingType === "Transport Lane"
-      ? `${job.listing.origin ?? "Origin"} to ${job.listing.destination ?? "Destination"}`
-      : job.listing.location ?? "Location not supplied";
   const action = nextAction(job);
+  const sourceLabel = job.source.type === "TENDER" ? "Tender job" : "Marketplace job";
+  const sourceButton = job.source.type === "TENDER" ? "View original tender" : "View original listing";
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
       <div className="mx-auto max-w-5xl px-4 py-7">
-        <Button
-          asChild
-          variant="outline"
-          className="mb-6 gap-2 border-froto-blue/15 bg-white text-froto-navy"
-        >
+        <Button asChild variant="outline" className="mb-6 gap-2 border-froto-blue/15 bg-white text-froto-navy">
           <Link href="/platform/dashboard">
             <ArrowLeft className="h-4 w-4 text-froto-blue" />
             Back to dashboard
@@ -202,16 +204,12 @@ export default function JobDetailPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">
-                    Froto job
+                    {sourceLabel}
                   </p>
-                  <CardTitle className="mt-2 text-3xl tracking-tight text-froto-navy">
-                    {job.listing.title}
-                  </CardTitle>
-                  <p className="mt-2 text-sm font-medium text-froto-teal">{location}</p>
+                  <CardTitle className="mt-2 text-3xl tracking-tight text-froto-navy">{job.source.title}</CardTitle>
+                  <p className="mt-2 text-sm font-medium text-froto-teal">{job.source.location}</p>
                 </div>
-                <Badge className="bg-froto-navy px-3 py-1 text-white">
-                  {statusLabel(job.status)}
-                </Badge>
+                <Badge className="bg-froto-navy px-3 py-1 text-white">{statusLabel(job.status)}</Badge>
               </div>
             </CardHeader>
 
@@ -222,34 +220,34 @@ export default function JobDetailPage() {
                   <p className="mt-1 text-2xl font-semibold text-froto-navy">{formatAUD(job.amount)}</p>
                 </div>
                 <div className="rounded-2xl bg-teal-50/60 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-froto-teal">Capacity</p>
-                  <p className="mt-1 font-semibold text-froto-navy">
-                    {job.listing.capacityAmount} {job.listing.capacityUnit}
+                  <p className="text-xs font-semibold uppercase tracking-wide text-froto-teal">
+                    {job.source.type === "TENDER" ? "Tender requirement" : "Capacity"}
                   </p>
-                  <p className="text-sm capitalize text-slate-500">{job.listing.temperatureClass}</p>
+                  <p className="mt-1 font-semibold text-froto-navy">{job.source.capacity}</p>
+                  {job.source.detail ? <p className="text-sm text-slate-500">{job.source.detail}</p> : null}
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Buyer / winner</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Buyer</p>
                   <p className="mt-1 font-semibold text-froto-navy">{job.buyerCompany.name}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Capacity provider</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Provider</p>
                   <p className="mt-1 font-semibold text-froto-navy">{job.providerCompany.name}</p>
                 </div>
               </div>
 
-              {job.listing.notes ? (
+              {job.source.notes ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Job notes</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{job.listing.notes}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{job.source.notes}</p>
                 </div>
               ) : null}
 
               <Button asChild variant="outline" className="border-froto-blue/15 text-froto-navy">
-                <Link href={`/platform/listing/${job.listingId}`}>View original listing</Link>
+                <Link href={job.source.href}>{sourceButton}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -260,7 +258,7 @@ export default function JobDetailPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Workflow</p>
                 <h2 className="mt-1 text-xl font-semibold">Job status</h2>
                 <p className="mt-1 text-sm text-white/75">
-                  You are viewing this job as the {job.viewerSide === "BUYER" ? "buyer" : "capacity provider"}.
+                  You are viewing this job as the {job.viewerSide === "BUYER" ? "buyer" : "provider"}.
                 </p>
               </div>
               <CardContent className="space-y-4 p-6">
@@ -270,11 +268,7 @@ export default function JobDetailPage() {
                 </div>
 
                 {action ? (
-                  <Button
-                    className="w-full gap-2 bg-froto-navy hover:bg-[#0a356f]"
-                    disabled={updating}
-                    onClick={() => void updateStatus(action.status)}
-                  >
+                  <Button className="w-full gap-2 bg-froto-navy hover:bg-[#0a356f]" disabled={updating} onClick={() => void updateStatus(action.status)}>
                     <action.icon className="h-4 w-4" />
                     {updating ? "Updating..." : action.label}
                   </Button>
@@ -295,9 +289,7 @@ export default function JobDetailPage() {
                     {actionSuccess}
                   </div>
                 ) : null}
-                {actionError ? (
-                  <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>
-                ) : null}
+                {actionError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p> : null}
               </CardContent>
             </Card>
 
@@ -313,10 +305,9 @@ export default function JobDetailPage() {
                   <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-froto-navy">{statusLabel(event.eventType as JobStatus)}</p>
+                        <p className="font-semibold text-froto-navy">{statusLabel(event.eventType)}</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {event.actorCompanyName ?? "Froto"}
-                          {event.actorUserName ? ` · ${event.actorUserName}` : ""}
+                          {event.actorCompanyName ?? "Froto"}{event.actorUserName ? ` · ${event.actorUserName}` : ""}
                         </p>
                       </div>
                       <p className="text-xs text-slate-500">{formatDateTime(event.createdAt)}</p>
