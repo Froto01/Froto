@@ -105,23 +105,27 @@ model Bid {
 }
 
 model Job {
-  id                String     @id @default(cuid())
-  listingId         String     @unique
-  awardedBidId      String     @unique
-  buyerCompanyId    String
-  providerCompanyId String
-  amount            Decimal    @db.Decimal(12, 2)
-  status            String     @default("AWARDED")
-  acceptedAt        DateTime?
-  startedAt         DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  listing           Listing    @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  awardedBid        Bid        @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
-  buyerCompany      Company    @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
-  providerCompany   Company    @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
-  events            JobEvent[]
+  id                      String          @id @default(cuid())
+  listingId               String?         @unique
+  awardedBidId            String?         @unique
+  tenderId                String?         @unique
+  awardedTenderResponseId String?         @unique
+  buyerCompanyId          String
+  providerCompanyId       String
+  amount                   Decimal         @db.Decimal(12, 2)
+  status                   String          @default("AWARDED")
+  acceptedAt               DateTime?
+  startedAt                DateTime?
+  completedAt              DateTime?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+  listing                  Listing?        @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  awardedBid               Bid?            @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
+  tender                   Tender?         @relation(fields: [tenderId], references: [id], onDelete: Restrict)
+  awardedTenderResponse    TenderResponse? @relation(fields: [awardedTenderResponseId], references: [id], onDelete: Restrict)
+  buyerCompany             Company         @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
+  providerCompany          Company         @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
+  events                   JobEvent[]
 
   @@index([buyerCompanyId])
   @@index([providerCompanyId])
@@ -148,28 +152,29 @@ model JobEvent {
 }
 
 model Tender {
-  id                    String           @id @default(cuid())
-  companyId             String
-  createdByUserId       String
-  title                 String
-  productDescription    String
-  volume                String
-  origin                String
-  destination           String
-  storageRequired       Boolean          @default(false)
+  id                     String           @id @default(cuid())
+  companyId              String
+  createdByUserId        String
+  title                  String
+  productDescription     String
+  volume                 String
+  origin                 String
+  destination            String
+  storageRequired        Boolean          @default(false)
   temperatureRequirement String?
-  deliveryDate          DateTime
-  responseClosesAt      DateTime
-  notes                 String?
-  status                String           @default("OPEN")
-  awardedResponseId     String?          @unique
-  awardedAt             DateTime?
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  company               Company          @relation("TenderOwnerCompany", fields: [companyId], references: [id], onDelete: Cascade)
-  createdByUser         User             @relation("TenderCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  responses             TenderResponse[] @relation("TenderResponses")
-  awardedResponse       TenderResponse?  @relation("AwardedTenderResponse", fields: [awardedResponseId], references: [id], onDelete: SetNull)
+  deliveryDate           DateTime
+  responseClosesAt       DateTime
+  notes                  String?
+  status                 String           @default("OPEN")
+  awardedResponseId      String?          @unique
+  awardedAt              DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+  company                Company          @relation("TenderOwnerCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser          User             @relation("TenderCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  responses              TenderResponse[] @relation("TenderResponses")
+  awardedResponse        TenderResponse?  @relation("AwardedTenderResponse", fields: [awardedResponseId], references: [id], onDelete: SetNull)
+  job                    Job?
 
   @@index([companyId])
   @@index([status])
@@ -193,6 +198,7 @@ model TenderResponse {
   company            Company  @relation("TenderRespondingCompany", fields: [companyId], references: [id], onDelete: Restrict)
   submittedByUser    User     @relation("TenderResponseSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
   awardedTender      Tender?  @relation("AwardedTenderResponse")
+  job                Job?
 
   @@unique([tenderId, companyId])
   @@index([tenderId, createdAt])
