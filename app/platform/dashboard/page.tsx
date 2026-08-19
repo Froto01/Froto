@@ -244,7 +244,7 @@ export default async function DashboardPage() {
                 </p>
               ) : (
                 jobs.map((job) => {
-                  const viewerSide = job.buyerCompanyId === company.id ? "Buyer" : "Provider";
+                  const counterpartyRole = job.buyerCompanyId === company.id ? "Provider" : "Buyer";
                   const counterparty =
                     job.buyerCompanyId === company.id ? job.providerCompany.name : job.buyerCompany.name;
                   return (
@@ -257,7 +257,7 @@ export default async function DashboardPage() {
                         <div>
                           <p className="font-semibold text-froto-navy">{job.listing.title}</p>
                           <p className="mt-1 text-sm text-slate-500">
-                            {viewerSide} · {counterparty}
+                            {counterpartyRole} · {counterparty}
                           </p>
                         </div>
                         <Badge className="bg-froto-navy text-white">{statusLabel(job.status)}</Badge>
