@@ -204,6 +204,41 @@ export async function POST(
         },
       });
 
+      if (nextStatus === "ACCEPTED") {
+        await tx.notification.create({
+          data: {
+            companyId: job.providerCompanyId,
+            type: "JOB_ACTION_REQUIRED",
+            title: "Job accepted · ready to start",
+            message: `${job.buyerCompany.name} accepted the awarded job. Your company can now move it into progress.`,
+            href: `/platform/jobs/${job.id}`,
+            metadata: { jobId: job.id, requiredAction: "IN_PROGRESS" },
+          },
+        });
+      } else if (nextStatus === "IN_PROGRESS") {
+        await tx.notification.create({
+          data: {
+            companyId: job.buyerCompanyId,
+            type: "JOB_STATUS_UPDATED",
+            title: "Job is in progress",
+            message: `${job.providerCompany.name} has started the job.`,
+            href: `/platform/jobs/${job.id}`,
+            metadata: { jobId: job.id, status: "IN_PROGRESS" },
+          },
+        });
+      } else if (nextStatus === "COMPLETED") {
+        await tx.notification.create({
+          data: {
+            companyId: job.buyerCompanyId,
+            type: "JOB_COMPLETED",
+            title: "Job completed",
+            message: `${job.providerCompany.name} marked the job as completed.`,
+            href: `/platform/jobs/${job.id}`,
+            metadata: { jobId: job.id, status: "COMPLETED" },
+          },
+        });
+      }
+
       return {
         ok: true as const,
         job: {
