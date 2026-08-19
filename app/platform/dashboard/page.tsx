@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   ClipboardList,
   PackageCheck,
+  Pencil,
   Plus,
   RadioTower,
   UserPlus,
@@ -63,9 +64,12 @@ export default async function DashboardPage() {
 
   const company = membership.company;
 
-  const [activeListingCount, activeBidCount, jobs, recentJobEvents] = await Promise.all([
-    prisma.listing.count({
+  const [activeListings, activeBidCount, jobs, recentJobEvents] = await Promise.all([
+    prisma.listing.findMany({
       where: { companyId: company.id, status: "ACTIVE" },
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { bids: true } } },
+      take: 8,
     }),
     prisma.bid.count({
       where: {
@@ -109,7 +113,7 @@ export default async function DashboardPage() {
   const metrics = [
     {
       label: "Active listings",
-      value: activeListingCount,
+      value: activeListings.length,
       detail: "Your live capacity",
       icon: PackageCheck,
       tone: "blue",
@@ -225,6 +229,59 @@ export default async function DashboardPage() {
             );
           })}
         </section>
+
+        <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Capacity controls</p>
+                <CardTitle className="mt-1 text-xl text-froto-navy">My active listings</CardTitle>
+              </div>
+              <PackageCheck className="h-5 w-5 text-froto-blue" />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {activeListings.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">
+                No active listings. Create capacity when you are ready to go to market.
+              </div>
+            ) : (
+              activeListings.map((listing) => (
+                <div key={listing.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-froto-navy">{listing.title}</p>
+                      <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue hover:bg-blue-50">
+                        {listing._count.bids} bid{listing._count.bids === 1 ? "" : "s"}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {listing.listingType === "Transport Lane"
+                        ? `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}`
+                        : listing.location ?? "Warehouse space"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {listing._count.bids === 0
+                        ? "Editable until the first bid is placed"
+                        : "Editing locked after bidding started · cancellation still available until award"}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
+                      <Link href={`/platform/listing/${listing.id}`}>View</Link>
+                    </Button>
+                    <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]">
+                      <Link href={`/platform/listings/${listing.id}/edit`}>
+                        <Pencil className="h-4 w-4" />
+                        Manage
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
         <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
