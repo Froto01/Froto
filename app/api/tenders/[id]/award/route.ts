@@ -60,6 +60,10 @@ export async function POST(
     return NextResponse.json({ error: "This tender has already been awarded." }, { status: 409 });
   }
 
+  if (tender.status !== "OPEN") {
+    return NextResponse.json({ error: "This tender is no longer available to award." }, { status: 409 });
+  }
+
   if (tender.responseClosesAt.getTime() > Date.now()) {
     return NextResponse.json({ error: "Wait until the response window closes before awarding." }, { status: 409 });
   }
