@@ -40,6 +40,7 @@ export async function POST(
   const tender = await prisma.tender.findUnique({
     where: { id },
     include: {
+      company: { select: { name: true } },
       responses: {
         where: { id: body.responseId },
         include: { company: { select: { name: true } } },
@@ -70,7 +71,7 @@ export async function POST(
 
   const awardedAt = new Date();
 
-  await prisma.$transaction(async (tx) => {
+  const job = await prisma.$transaction(async (tx) => {
     await tx.tender.update({
       where: { id: tender.id },
       data: {
@@ -89,6 +90,36 @@ export async function POST(
       where: { id: response.id },
       data: { status: "AWARDED" },
     });
+
+    const createdJob = await tx.job.create({
+      data: {
+        tenderId: tender.id,
+        awardedTenderResponseId: response.id,
+        buyerCompanyId: tender.companyId,
+        providerCompanyId: response.companyId,
+        amount: response.amount,
+        status: "AWARDED",
+      },
+    });
+
+    await tx.jobEvent.create({
+      data: {
+        jobId: createdJob.id,
+        eventType: "AWARDED",
+        actorUserId: user.id,
+        actorCompanyId: membership.companyId,
+        metadata: {
+          sourceType: "TENDER",
+          tenderId: tender.id,
+          tenderTitle: tender.title,
+          buyerCompanyName: tender.company.name,
+          providerCompanyName: response.company.name,
+          amount: Number(response.amount),
+        },
+      },
+    });
+
+    return createdJob;
   });
 
   return NextResponse.json({
@@ -97,5 +128,6 @@ export async function POST(
     winnerCompanyName: response.company.name,
     amount: Number(response.amount),
     awardedAt: awardedAt.toISOString(),
+    jobId: job.id,
   });
 }
