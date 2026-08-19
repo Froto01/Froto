@@ -20,6 +20,7 @@ model User {
   jobEvents       JobEvent[]       @relation("JobEventActorUser")
   tendersCreated  Tender[]         @relation("TenderCreatedByUser")
   tenderResponses TenderResponse[] @relation("TenderResponseSubmittedByUser")
+  notifications   Notification[]   @relation("NotificationRecipientUser")
 }
 
 model Company {
@@ -40,6 +41,7 @@ model Company {
   jobEvents          JobEvent[]       @relation("JobEventActorCompany")
   tenders            Tender[]         @relation("TenderOwnerCompany")
   tenderResponses    TenderResponse[] @relation("TenderRespondingCompany")
+  notifications      Notification[]   @relation("NotificationCompany")
 }
 
 model CompanyMember {
@@ -183,27 +185,47 @@ model Tender {
 }
 
 model TenderResponse {
-  id                String   @id @default(cuid())
-  tenderId          String
-  companyId         String
-  submittedByUserId String
-  amount            Decimal  @db.Decimal(12, 2)
+  id                 String   @id @default(cuid())
+  tenderId           String
+  companyId          String
+  submittedByUserId  String
+  amount             Decimal  @db.Decimal(12, 2)
   serviceDescription String?
-  leadTime          String?
-  notes             String?
-  status            String   @default("SUBMITTED")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  tender             Tender   @relation("TenderResponses", fields: [tenderId], references: [id], onDelete: Cascade)
-  company            Company  @relation("TenderRespondingCompany", fields: [companyId], references: [id], onDelete: Restrict)
-  submittedByUser    User     @relation("TenderResponseSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
-  awardedTender      Tender?  @relation("AwardedTenderResponse")
-  job                Job?
+  leadTime           String?
+  notes              String?
+  status             String   @default("SUBMITTED")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tender              Tender   @relation("TenderResponses", fields: [tenderId], references: [id], onDelete: Cascade)
+  company             Company  @relation("TenderRespondingCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  submittedByUser     User     @relation("TenderResponseSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  awardedTender       Tender?  @relation("AwardedTenderResponse")
+  job                 Job?
 
   @@unique([tenderId, companyId])
   @@index([tenderId, createdAt])
   @@index([companyId])
   @@index([status])
+}
+
+model Notification {
+  id              String   @id @default(cuid())
+  companyId       String
+  recipientUserId String?
+  type            String
+  title           String
+  message         String
+  href            String?
+  metadata        Json?
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+  company         Company  @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  recipientUser   User?    @relation("NotificationRecipientUser", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([companyId, readAt])
+  @@index([recipientUserId, createdAt])
+  @@index([type])
 }
 
 enum CompanyRole {
