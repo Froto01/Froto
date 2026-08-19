@@ -28,6 +28,26 @@ export default async function StartPage() {
     redirect("/platform/dashboard");
   }
 
+  if (user.accountType === "PERSONAL") {
+    redirect("/platform");
+  }
+
+  async function continueAsPersonal() {
+    "use server";
+
+    const { userId: activeUserId } = await auth();
+    if (!activeUserId) {
+      redirect("/auth-test");
+    }
+
+    await prisma.user.update({
+      where: { clerkId: activeUserId },
+      data: { accountType: "PERSONAL" },
+    });
+
+    redirect("/platform");
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white px-4 py-12">
       <div className="mx-auto max-w-4xl">
@@ -86,12 +106,12 @@ export default async function StartPage() {
                 Browse marketplace capacity and open tenders first. If you later want to transact,
                 Froto will prompt you to create or join a company.
               </p>
-              <Button asChild variant="outline" className="w-full gap-2 border-froto-teal/20 text-froto-navy">
-                <Link href="/platform">
+              <form action={continueAsPersonal}>
+                <Button type="submit" variant="outline" className="w-full gap-2 border-froto-teal/20 text-froto-navy">
                   <Store className="h-4 w-4 text-froto-teal" />
                   Browse Froto
-                </Link>
-              </Button>
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>
