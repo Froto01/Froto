@@ -121,6 +121,14 @@ export async function POST(
         };
       }
 
+      if (listing.status !== "ACTIVE") {
+        return {
+          ok: false,
+          status: 409,
+          error: "This listing is no longer available to award.",
+        };
+      }
+
       if (
         !listing.biddingClosesAt ||
         listing.biddingClosesAt.getTime() > Date.now()
