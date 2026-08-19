@@ -30,13 +30,13 @@ export default function AuthTestPage() {
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Show when="signed-out">
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" forceRedirectUrl="/start">
               <button className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 font-medium text-slate-800 transition-colors hover:bg-slate-50">
                 Sign in
               </button>
             </SignInButton>
 
-            <SignUpButton mode="modal">
+            <SignUpButton mode="modal" forceRedirectUrl="/start">
               <button className="rounded-xl bg-[#062856] px-5 py-2.5 font-medium text-white transition-colors hover:bg-[#0a356f]">
                 Create account
               </button>
