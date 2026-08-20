@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BadgeCheck, CircleAlert, Clock3, ShieldCheck } from "lucide-react";
 
@@ -45,6 +44,13 @@ export function VerificationCard() {
 
   useEffect(() => {
     void refreshStatus();
+
+    const handleProfileUpdate = () => {
+      void refreshStatus();
+    };
+
+    window.addEventListener("froto:company-profile-updated", handleProfileUpdate);
+    return () => window.removeEventListener("froto:company-profile-updated", handleProfileUpdate);
   }, []);
 
   async function submitVerification() {
@@ -119,6 +125,7 @@ export function VerificationCard() {
 
   const canSubmit =
     verification.canRequestVerification &&
+    Boolean(verification.abn) &&
     status !== "VERIFIED" &&
     status !== "SUBMITTED";
 
@@ -178,7 +185,7 @@ export function VerificationCard() {
 
         {message ? <p className="text-sm font-medium text-froto-navy">{message}</p> : null}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {canSubmit ? (
             <Button
               type="button"
@@ -191,13 +198,13 @@ export function VerificationCard() {
           ) : null}
 
           {!verification.abn && status !== "VERIFIED" ? (
-            <Button asChild variant="outline" className="border-froto-blue/15 bg-white text-froto-navy">
-              <Link href="/company/new">ABN required before submission</Link>
-            </Button>
+            <p className="text-sm font-medium text-amber-700">
+              Add your ABN in Company details below before requesting verification.
+            </p>
           ) : null}
 
           {!verification.canRequestVerification && status !== "VERIFIED" ? (
-            <p className="self-center text-sm text-slate-500">Only a company owner or admin can submit verification.</p>
+            <p className="text-sm text-slate-500">Only a company owner or admin can submit verification.</p>
           ) : null}
         </div>
       </CardContent>
