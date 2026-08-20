@@ -9,6 +9,7 @@ type CompanyProfileInput = {
   companyType: string;
   locations: string;
   notes: string;
+  abn?: string;
 };
 
 async function getCurrentMembership() {
@@ -46,6 +47,7 @@ async function getCurrentMembership() {
 
 export async function updateCompanyProfile(input: CompanyProfileInput) {
   const membership = await getCurrentMembership();
+  const abn = input.abn?.trim();
 
   await prisma.company.update({
     where: {
@@ -55,6 +57,7 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
       companyType: input.companyType,
       locations: input.locations,
       notes: input.notes,
+      ...(abn ? { abn } : {}),
     },
   });
 
@@ -138,7 +141,7 @@ export async function requestCompanyVerification() {
   if (!company.abn?.trim()) {
     return {
       success: false,
-      error: "Add your ABN before requesting company verification.",
+      error: "Add your ABN in Company details before requesting verification.",
     };
   }
 
