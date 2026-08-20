@@ -49,6 +49,9 @@ export async function GET(
   const viewerResponse = viewerCompanyId
     ? tender.responses.find((response) => response.companyId === viewerCompanyId)
     : undefined;
+  const awardedResponse = tender.awardedResponseId
+    ? tender.responses.find((response) => response.id === tender.awardedResponseId)
+    : undefined;
   const tenderState = tender.awardedResponseId
     ? "AWARDED"
     : tender.status !== "OPEN"
@@ -70,6 +73,13 @@ export async function GET(
     canManage &&
     tenderState === "CLOSED" &&
     tender.responses.length > 0;
+
+  const visibleResponses = isOwner
+    ? tender.responses
+    : viewerResponse
+      ? [viewerResponse]
+      : [];
+  const canSeeAwardResult = Boolean(tender.awardedResponseId && (isOwner || viewerResponse));
 
   return NextResponse.json({
     id: tender.id,
@@ -96,10 +106,19 @@ export async function GET(
     hasResponded: Boolean(viewerResponse),
     viewerResponseId: viewerResponse?.id ?? null,
     viewerResponseAmount: viewerResponse ? Number(viewerResponse.amount) : null,
+    viewerResponseStatus: viewerResponse
+      ? tender.awardedResponseId === viewerResponse.id
+        ? "AWARDED"
+        : tender.awardedResponseId
+          ? "UNSUCCESSFUL"
+          : viewerResponse.status
+      : null,
     awardedResponseId: tender.awardedResponseId,
+    awardedCompanyName: canSeeAwardResult ? awardedResponse?.company.name ?? null : null,
+    awardedAmount: canSeeAwardResult && awardedResponse ? Number(awardedResponse.amount) : null,
     awardedAt: tender.awardedAt?.toISOString() ?? null,
     responseCount: tender.responses.length,
-    responses: tender.responses.map((response) => ({
+    responses: visibleResponses.map((response) => ({
       id: response.id,
       companyId: response.companyId,
       companyName: response.company.name,
