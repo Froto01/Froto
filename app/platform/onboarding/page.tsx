@@ -11,6 +11,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import { updateCompanyProfile } from "./actions";
+import { VerificationCard } from "./verification-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ type CompanyProfileForm = {
   role: Role;
   locations: string;
   notes: string;
+  abn: string;
 };
 
 const roles: {
@@ -63,6 +65,7 @@ const emptyForm: CompanyProfileForm = {
   role: "Shipper",
   locations: "",
   notes: "",
+  abn: "",
 };
 
 const roleToneClasses: Record<string, string> = {
@@ -94,9 +97,11 @@ export default function OnboardingPage() {
         companyType: form.role,
         locations: form.locations,
         notes: form.notes,
+        abn: form.abn,
       });
 
       setSubmittedProfile(form);
+      window.dispatchEvent(new Event("froto:company-profile-updated"));
     } finally {
       setIsSaving(false);
     }
@@ -134,6 +139,8 @@ export default function OnboardingPage() {
       </header>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
+        <VerificationCard />
+
         <section>
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">
@@ -200,6 +207,7 @@ export default function OnboardingPage() {
                 {Object.entries({
                   "Company type": submittedProfile.role,
                   "Primary locations / lanes": submittedProfile.locations,
+                  ABN: submittedProfile.abn || "Existing ABN retained if already saved",
                   Notes: submittedProfile.notes,
                 }).map(([label, value]) => (
                   <div
@@ -237,7 +245,7 @@ export default function OnboardingPage() {
             <CardHeader className="border-b border-froto-blue/10 bg-froto-ice/55">
               <CardTitle className="text-xl text-froto-navy">Company details</CardTitle>
               <p className="text-sm text-slate-500">
-                Give Froto enough context to match your company with the right marketplace activity.
+                Give Froto enough context to match your company with the right marketplace activity and prepare for verification.
               </p>
             </CardHeader>
 
@@ -268,6 +276,19 @@ export default function OnboardingPage() {
                       placeholder="Sydney to Melbourne, Brisbane chilled storage"
                       className="border-froto-blue/15 bg-white focus-visible:border-froto-blue focus-visible:ring-froto-blue/20"
                     />
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-froto-navy sm:col-span-2">
+                    ABN
+                    <Input
+                      value={form.abn}
+                      onChange={(event) => updateField("abn", event.target.value)}
+                      placeholder="Enter ABN to request company verification"
+                      className="border-froto-blue/15 bg-white focus-visible:border-froto-blue focus-visible:ring-froto-blue/20"
+                    />
+                    <span className="block text-xs font-normal text-slate-500">
+                      Required before a company verification request can be submitted. Leave blank to retain an existing saved ABN.
+                    </span>
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy sm:col-span-2">
