@@ -60,7 +60,6 @@ type MarketplaceTender = {
   companyName: string;
   companyVerified: boolean;
   responseCount: number;
-  bestResponseAmount: number | null;
   isOwner: boolean;
   hasResponded: boolean;
   viewerResponseAmount: number | null;
@@ -307,7 +306,7 @@ export default function PlatformPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-teal">Structured sourcing</p>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live tenders</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Publish requirements, receive company quotes and award the best fit after the response window closes.</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Publish requirements, receive sealed company quotes and award the best fit after the response window closes.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-teal hover:bg-[#0c8d82]"><Link href="/platform/tenders/new"><Plus className="h-4 w-4" />Create Tender</Link></Button>
             </div>
@@ -341,12 +340,12 @@ export default function PlatformPage() {
                         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
                           <span>Delivery {formatDate(tender.deliveryDate)}</span>
                           <span>{tender.responseClosed ? "Closed" : "Closes"} {formatDateTime(tender.responseClosesAt)}</span>
-                          <span>{tender.responseCount} {tender.responseCount === 1 ? "response" : "responses"}</span>
+                          <span>{tender.responseCount} sealed {tender.responseCount === 1 ? "response" : "responses"}</span>
                         </div>
                       </div>
 
                       <div className="flex min-w-44 flex-col items-stretch gap-2 md:items-end">
-                        {tender.bestResponseAmount !== null ? <div className="text-right"><p className="text-xs text-slate-500">Best response</p><p className="text-2xl font-semibold text-froto-navy">{formatAUD(tender.bestResponseAmount)}</p></div> : <p className="text-sm text-slate-500">No responses yet</p>}
+                        {tender.responseCount > 0 ? <p className="text-sm font-medium text-slate-500">Supplier pricing sealed</p> : <p className="text-sm text-slate-500">No responses yet</p>}
                         {tender.viewerResponseAmount !== null ? <p className="text-xs font-medium text-froto-teal">Your response: {formatAUD(tender.viewerResponseAmount)}</p> : null}
                         <Button asChild className={tender.status === "OPEN" && !tender.isOwner && !tender.hasResponded ? "bg-froto-teal hover:bg-[#0c8d82]" : "bg-froto-navy hover:bg-[#0a356f]"}><Link href={`/platform/tenders/${tender.id}`}>{tender.status === "OPEN" && !tender.isOwner && !tender.hasResponded ? "Respond" : "View tender"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button>
                       </div>
