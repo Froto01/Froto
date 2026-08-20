@@ -12,6 +12,21 @@ type CompanyProfileInput = {
   abn?: string;
 };
 
+function normalizeAbn(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function isValidAbn(value: string) {
+  const digits = normalizeAbn(value).split("").map(Number);
+
+  if (digits.length !== 11) return false;
+
+  const weights = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+  digits[0] -= 1;
+
+  return digits.reduce((sum, digit, index) => sum + digit * weights[index], 0) % 89 === 0;
+}
+
 async function getCurrentMembership() {
   const { userId } = await auth();
 
@@ -47,7 +62,31 @@ async function getCurrentMembership() {
 
 export async function updateCompanyProfile(input: CompanyProfileInput) {
   const membership = await getCurrentMembership();
-  const abn = input.abn?.trim();
+  const suppliedAbn = input.abn?.trim();
+  const abn = suppliedAbn ? normalizeAbn(suppliedAbn) : null;
+
+  if (abn && !isValidAbn(abn)) {
+    return {
+      success: false,
+      error: "Enter a valid 11-digit Australian Business Number (ABN).",
+    } as const;
+  }
+
+  if (abn && abn !== membership.company.abn) {
+    const existingCompany = await prisma.company.findUnique({
+      where: { abn },
+      select: { id: true },
+    });
+
+    if (existingCompany && existingCompany.id !== membership.companyId) {
+      return {
+        success: false,
+        error: "That ABN is already connected to another Froto company.",
+      } as const;
+    }
+  }
+
+  const abnChanged = Boolean(abn && abn !== membership.company.abn);
 
   await prisma.company.update({
     where: {
@@ -58,12 +97,22 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
       locations: input.locations,
       notes: input.notes,
       ...(abn ? { abn } : {}),
+      ...(abnChanged
+        ? {
+            verified: false,
+            verificationStatus: "UNVERIFIED",
+            verificationSubmittedAt: null,
+            verificationReviewedAt: null,
+            verificationReviewedByUserId: null,
+            verificationNotes: null,
+          }
+        : {}),
     },
   });
 
   return {
     success: true,
-  };
+  } as const;
 }
 
 export async function getCompanyVerificationStatus() {
@@ -142,6 +191,13 @@ export async function requestCompanyVerification() {
     return {
       success: false,
       error: "Add your ABN in Company details before requesting verification.",
+    };
+  }
+
+  if (!isValidAbn(company.abn)) {
+    return {
+      success: false,
+      error: "Add a valid 11-digit Australian Business Number (ABN) before requesting verification.",
     };
   }
 
