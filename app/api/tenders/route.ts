@@ -28,7 +28,7 @@ export async function GET() {
       company: { select: { name: true, verified: true } },
       responses: {
         select: { id: true, companyId: true, amount: true },
-        orderBy: { amount: "asc" },
+        orderBy: { createdAt: "asc" },
       },
     },
   });
@@ -59,8 +59,6 @@ export async function GET() {
         companyName: tender.company.name,
         companyVerified: tender.company.verified,
         responseCount: tender.responses.length,
-        bestResponseAmount:
-          tender.responses.length > 0 ? Number(tender.responses[0].amount) : null,
         isOwner: viewerCompanyId === tender.companyId,
         hasResponded: Boolean(viewerResponse),
         viewerResponseAmount: viewerResponse ? Number(viewerResponse.amount) : null,
