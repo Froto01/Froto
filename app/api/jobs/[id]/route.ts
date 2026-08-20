@@ -77,36 +77,31 @@ export async function GET(
         type: "MARKETPLACE" as const,
         id: job.listing.id,
         title: job.listing.title,
-        subtitle:
+        location:
           job.listing.listingType === "Transport Lane"
             ? `${job.listing.origin ?? "Origin"} to ${job.listing.destination ?? "Destination"}`
             : job.listing.location ?? "Warehouse space",
-        details: {
-          listingType: job.listing.listingType,
-          capacityAmount: job.listing.capacityAmount,
-          capacityUnit: job.listing.capacityUnit,
-          temperatureClass: job.listing.temperatureClass,
-          availableFrom: job.listing.availableFrom.toISOString(),
-          availableTo: job.listing.availableTo.toISOString(),
-          notes: job.listing.notes,
-        },
+        capacity: `${job.listing.capacityAmount} ${job.listing.capacityUnit}`,
+        detail: job.listing.temperatureClass,
+        notes: job.listing.notes,
+        href: `/platform/listing/${job.listing.id}`,
       }
     : job.tender
       ? {
           type: "TENDER" as const,
           id: job.tender.id,
           title: job.tender.title,
-          subtitle: `${job.tender.origin} to ${job.tender.destination}`,
-          details: {
-            productDescription: job.tender.productDescription,
-            volume: job.tender.volume,
-            storageRequired: job.tender.storageRequired,
-            temperatureRequirement: job.tender.temperatureRequirement,
-            deliveryDate: job.tender.deliveryDate.toISOString(),
-            notes: job.tender.notes,
-          },
+          location: `${job.tender.origin} to ${job.tender.destination}`,
+          capacity: job.tender.volume,
+          detail: job.tender.productDescription,
+          notes: job.tender.notes,
+          href: `/platform/tenders/${job.tender.id}`,
         }
       : null;
+
+  if (!source) {
+    return NextResponse.json({ error: "This job has no transaction source." }, { status: 409 });
+  }
 
   return NextResponse.json({
     id: job.id,
@@ -126,36 +121,6 @@ export async function GET(
     buyerCompany: job.buyerCompany,
     providerCompany: job.providerCompany,
     source,
-    listing: job.listing
-      ? {
-          id: job.listing.id,
-          listingType: job.listing.listingType,
-          title: job.listing.title,
-          location: job.listing.location,
-          origin: job.listing.origin,
-          destination: job.listing.destination,
-          capacityAmount: job.listing.capacityAmount,
-          capacityUnit: job.listing.capacityUnit,
-          temperatureClass: job.listing.temperatureClass,
-          availableFrom: job.listing.availableFrom.toISOString(),
-          availableTo: job.listing.availableTo.toISOString(),
-          notes: job.listing.notes,
-        }
-      : null,
-    tender: job.tender
-      ? {
-          id: job.tender.id,
-          title: job.tender.title,
-          productDescription: job.tender.productDescription,
-          volume: job.tender.volume,
-          origin: job.tender.origin,
-          destination: job.tender.destination,
-          storageRequired: job.tender.storageRequired,
-          temperatureRequirement: job.tender.temperatureRequirement,
-          deliveryDate: job.tender.deliveryDate.toISOString(),
-          notes: job.tender.notes,
-        }
-      : null,
     events: job.events.map((event) => ({
       id: event.id,
       eventType: event.eventType,
