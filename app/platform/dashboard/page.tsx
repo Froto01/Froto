@@ -127,7 +127,7 @@ export default async function DashboardPage() {
       where: {
         companyId: company.id,
         readAt: null,
-        OR: [{ userId: null }, { userId: user.id }],
+        OR: [{ recipientUserId: null }, { recipientUserId: user.id }],
       },
     }),
   ]);
