@@ -145,7 +145,7 @@ export async function POST(
         return {
           ok: false as const,
           status: 403,
-          error: "The winning company must accept this awarded job.",
+          error: "The buyer company must accept this awarded job first.",
         };
       }
 
@@ -153,7 +153,7 @@ export async function POST(
         return {
           ok: false as const,
           status: 403,
-          error: "The capacity provider controls this operational status.",
+          error: "The provider company controls this operational status.",
         };
       }
 
