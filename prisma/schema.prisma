@@ -25,24 +25,28 @@ model User {
 }
 
 model Company {
-  id                 String           @id @default(cuid())
-  name               String
-  abn                String?          @unique
-  verified           Boolean          @default(false)
-  companyType        String?
-  locations          String?
-  notes              String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  members            CompanyMember[]
-  listings           Listing[]
-  bids               Bid[]            @relation("BidderCompany")
-  buyerJobs          Job[]            @relation("JobBuyerCompany")
-  providerJobs       Job[]            @relation("JobProviderCompany")
-  jobEvents          JobEvent[]       @relation("JobEventActorCompany")
-  tenders            Tender[]         @relation("TenderOwnerCompany")
-  tenderResponses    TenderResponse[] @relation("TenderRespondingCompany")
-  notifications      Notification[]   @relation("NotificationCompany")
+  id                      String           @id @default(cuid())
+  name                    String
+  abn                     String?          @unique
+  verified                Boolean          @default(false)
+  verificationStatus      String           @default("UNVERIFIED")
+  verificationSubmittedAt DateTime?
+  verificationReviewedAt  DateTime?
+  verificationNotes       String?
+  companyType             String?
+  locations               String?
+  notes                   String?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  members                 CompanyMember[]
+  listings                Listing[]
+  bids                    Bid[]            @relation("BidderCompany")
+  buyerJobs               Job[]            @relation("JobBuyerCompany")
+  providerJobs            Job[]            @relation("JobProviderCompany")
+  jobEvents               JobEvent[]       @relation("JobEventActorCompany")
+  tenders                 Tender[]         @relation("TenderOwnerCompany")
+  tenderResponses         TenderResponse[] @relation("TenderRespondingCompany")
+  notifications           Notification[]   @relation("NotificationCompany")
 }
 
 model CompanyMember {
