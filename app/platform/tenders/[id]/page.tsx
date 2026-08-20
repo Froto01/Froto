@@ -45,7 +45,10 @@ type Tender = {
   hasResponded: boolean;
   viewerResponseId: string | null;
   viewerResponseAmount: number | null;
+  viewerResponseStatus: string | null;
   awardedResponseId: string | null;
+  awardedCompanyName: string | null;
+  awardedAmount: number | null;
   awardedAt: string | null;
   responseCount: number;
   responses: TenderResponse[];
@@ -79,6 +82,7 @@ function formatDateTime(value: string) {
 
 function stateLabel(state: string) {
   if (state === "AWARDED") return "Awarded";
+  if (state === "CANCELLED") return "Cancelled";
   if (state === "CLOSED") return "Responses closed";
   return "Open for responses";
 }
@@ -121,8 +125,8 @@ export default function TenderDetailPage() {
   async function submitResponse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const numericAmount = Number(amount);
-    if (!Number.isFinite(numericAmount) || numericAmount < 0) {
-      setActionError("Enter a valid quote amount.");
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setActionError("Enter a quote amount greater than zero.");
       return;
     }
 
@@ -199,7 +203,6 @@ export default function TenderDetailPage() {
   }
 
   const canRespond = !tender.isOwner && tender.tenderState === "OPEN" && !tender.hasResponded && Boolean(tender.viewerCompanyId);
-  const winner = tender.responses.find((response) => response.id === tender.awardedResponseId);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -216,7 +219,7 @@ export default function TenderDetailPage() {
                   <CardTitle className="mt-2 text-3xl text-froto-navy">{tender.title}</CardTitle>
                   <p className="mt-2 text-sm text-slate-500">Issued by {tender.companyName}{tender.companyVerified ? " · Verified" : ""}</p>
                 </div>
-                <Badge className={tender.tenderState === "AWARDED" ? "bg-froto-green text-white" : tender.tenderState === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-teal text-white"}>{stateLabel(tender.tenderState)}</Badge>
+                <Badge className={tender.tenderState === "AWARDED" ? "bg-froto-green text-white" : tender.tenderState === "CLOSED" || tender.tenderState === "CANCELLED" ? "bg-froto-navy text-white" : "bg-froto-teal text-white"}>{stateLabel(tender.tenderState)}</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-5 p-6">
@@ -235,17 +238,17 @@ export default function TenderDetailPage() {
                 <p className="flex items-center gap-2 text-sm font-medium text-froto-navy"><Clock3 className="h-4 w-4 text-froto-blue" />Responses close {formatDateTime(tender.responseClosesAt)}</p>
               </div>
               {tender.notes ? <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Special requirements</p><p className="mt-2 text-sm leading-6 text-slate-700">{tender.notes}</p></div> : null}
-              {winner ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="flex items-center gap-2 font-semibold text-froto-green"><Trophy className="h-4 w-4" />Awarded to {winner.companyName}</p><p className="mt-1 text-sm text-slate-600">Agreed value {formatAUD(winner.amount)}</p></div> : null}
+              {tender.awardedCompanyName ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="flex items-center gap-2 font-semibold text-froto-green"><Trophy className="h-4 w-4" />Awarded to {tender.awardedCompanyName}</p>{tender.awardedAmount !== null ? <p className="mt-1 text-sm text-slate-600">Agreed value {formatAUD(tender.awardedAmount)}</p> : null}</div> : null}
             </CardContent>
           </Card>
 
           <div className="space-y-6">
             {canRespond ? (
               <Card className="rounded-[1.8rem] border-froto-teal/10 bg-white shadow-lg shadow-froto-navy/5">
-                <CardHeader><CardTitle className="flex items-center gap-2 text-xl text-froto-navy"><Send className="h-5 w-5 text-froto-teal" />Submit response</CardTitle><p className="text-sm text-slate-500">One response per company for this MVP.</p></CardHeader>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-xl text-froto-navy"><Send className="h-5 w-5 text-froto-teal" />Submit sealed response</CardTitle><p className="text-sm text-slate-500">Your pricing is visible to the tender owner, not competing suppliers.</p></CardHeader>
                 <CardContent>
                   <form onSubmit={submitResponse} className="space-y-4">
-                    <label className="space-y-2 text-sm font-medium text-froto-navy">Total quote (AUD)<Input required type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="12500" /></label>
+                    <label className="space-y-2 text-sm font-medium text-froto-navy">Total quote (AUD)<Input required type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="12500" /></label>
                     <label className="space-y-2 text-sm font-medium text-froto-navy">Service description<textarea value={serviceDescription} onChange={(e) => setServiceDescription(e.target.value)} className="min-h-24 w-full rounded-md border border-froto-teal/15 bg-white px-3 py-2 text-sm" placeholder="What is included in your offer..." /></label>
                     <label className="space-y-2 text-sm font-medium text-froto-navy">Lead time / service timing<Input value={leadTime} onChange={(e) => setLeadTime(e.target.value)} placeholder="Pickup within 48 hours" /></label>
                     <label className="space-y-2 text-sm font-medium text-froto-navy">Notes<textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-20 w-full rounded-md border border-froto-teal/15 bg-white px-3 py-2 text-sm" /></label>
@@ -255,10 +258,10 @@ export default function TenderDetailPage() {
               </Card>
             ) : null}
 
-            {tender.hasResponded && !tender.isOwner ? <Card className="rounded-[1.6rem] border-froto-teal/10 bg-white"><CardContent className="p-5"><p className="flex items-center gap-2 font-semibold text-froto-navy"><CheckCircle2 className="h-4 w-4 text-froto-green" />Your company has responded</p><p className="mt-2 text-sm text-slate-600">Submitted value: {formatAUD(tender.viewerResponseAmount ?? 0)}</p></CardContent></Card> : null}
+            {tender.hasResponded && !tender.isOwner ? <Card className="rounded-[1.6rem] border-froto-teal/10 bg-white"><CardContent className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="flex items-center gap-2 font-semibold text-froto-navy"><CheckCircle2 className="h-4 w-4 text-froto-green" />Your sealed response</p><p className="mt-2 text-sm text-slate-600">Submitted value: {formatAUD(tender.viewerResponseAmount ?? 0)}</p></div>{tender.viewerResponseStatus === "AWARDED" ? <Badge className="bg-froto-green text-white">Winner</Badge> : tender.viewerResponseStatus === "UNSUCCESSFUL" ? <Badge className="bg-slate-500 text-white">Unsuccessful</Badge> : <Badge className="bg-froto-teal text-white">Submitted</Badge>}</div><p className="mt-3 text-xs text-slate-500">Competitor pricing remains sealed.</p></CardContent></Card> : null}
 
-            <Card className="rounded-[1.8rem] border-froto-blue/10 bg-white shadow-lg shadow-froto-navy/5">
-              <CardHeader><CardTitle className="flex items-center gap-2 text-xl text-froto-navy"><ClipboardList className="h-5 w-5 text-froto-blue" />Responses ({tender.responseCount})</CardTitle></CardHeader>
+            {tender.isOwner ? <Card className="rounded-[1.8rem] border-froto-blue/10 bg-white shadow-lg shadow-froto-navy/5">
+              <CardHeader><CardTitle className="flex items-center gap-2 text-xl text-froto-navy"><ClipboardList className="h-5 w-5 text-froto-blue" />Responses ({tender.responseCount})</CardTitle><p className="text-sm text-slate-500">Visible only to your company as the tender owner.</p></CardHeader>
               <CardContent className="space-y-3">
                 {tender.responses.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No supplier responses yet.</p> : tender.responses.map((responseItem) => (
                   <div key={responseItem.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
@@ -272,7 +275,7 @@ export default function TenderDetailPage() {
                   </div>
                 ))}
               </CardContent>
-            </Card>
+            </Card> : null}
 
             {actionError ? <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</p> : null}
             {actionSuccess ? <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{actionSuccess}</p> : null}
