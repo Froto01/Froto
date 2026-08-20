@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import {
   ArrowLeft,
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   CheckCircle2,
   ClipboardList,
@@ -67,6 +68,7 @@ export default async function DashboardPage() {
     recentJobEvents,
     companyTenders,
     responseCount,
+    unreadNotificationCount,
   ] = await Promise.all([
     prisma.listing.count({ where: { companyId: company.id, status: "ACTIVE" } }),
     prisma.listing.findMany({
@@ -121,6 +123,13 @@ export default async function DashboardPage() {
       take: 4,
     }),
     prisma.tenderResponse.count({ where: { companyId: company.id } }),
+    prisma.notification.count({
+      where: {
+        companyId: company.id,
+        readAt: null,
+        OR: [{ userId: null }, { userId: user.id }],
+      },
+    }),
   ]);
 
   const metrics = [
@@ -152,6 +161,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+            <Button asChild variant="outline" className="relative gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/notifications"><Bell className="h-4 w-4 text-froto-blue" />Notifications{unreadNotificationCount > 0 ? <Badge className="ml-1 min-w-6 justify-center bg-froto-green px-1.5 text-white">{unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}</Badge> : null}</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/activity"><BarChart3 className="h-4 w-4 text-froto-teal" />My Business</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/listings/new"><Plus className="h-4 w-4 text-froto-blue" />Create Listing</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-green/15 bg-white text-froto-navy"><Link href="/platform/tenders/new"><ClipboardList className="h-4 w-4 text-froto-green" />Create Tender</Link></Button>
