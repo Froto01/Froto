@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 150" role="img" aria-labelledby="title">
+  <title id="title">Froto mark</title>
+  <defs>
+    <linearGradient id="blue" x1="0" x2="1"><stop offset="0" stop-color="#1497ff"/><stop offset="1" stop-color="#075dff"/></linearGradient>
+    <linearGradient id="teal" x1="0" x2="1"><stop offset="0" stop-color="#12b8c9"/><stop offset="1" stop-color="#0495ae"/></linearGradient>
+  </defs>
+  <g transform="translate(8 10)">
+    <circle cx="12" cy="38" r="5" fill="#1687ff"/><rect x="25" y="33" width="31" height="10" rx="5" fill="#1687ff"/>
+    <circle cx="2" cy="66" r="5" fill="#1785ff"/><rect x="15" y="61" width="15" height="10" rx="5" fill="#1785ff"/><rect x="35" y="61" width="24" height="10" rx="5" fill="#1785ff"/>
+    <rect x="18" y="87" width="30" height="10" rx="5" fill="url(#teal)"/>
+    <path d="M55 49 C67 20 80 12 106 12 H151 L147 2 L171 21 L147 40 L151 30 H105 C89 30 80 35 74 49 Z" fill="url(#blue)"/>
+    <path d="M64 56 H148 C145 70 136 76 122 76 H88 C78 76 70 81 61 92 C62 77 62 66 64 56 Z" fill="#062856"/>
+    <path d="M61 89 H84 C81 105 74 116 57 116 H48 C51 104 54 96 61 89 Z" fill="url(#teal)"/>
+  </g>
+</svg>
