@@ -66,8 +66,8 @@ export async function POST(
   };
 
   const amount = Number(body.amount);
-  if (!Number.isFinite(amount) || amount < 0) {
-    return NextResponse.json({ error: "Provide a valid response amount." }, { status: 400 });
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return NextResponse.json({ error: "Provide a response amount greater than zero." }, { status: 400 });
   }
 
   try {
