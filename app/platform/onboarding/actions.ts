@@ -139,6 +139,7 @@ export async function getCompanyVerificationStatus() {
 
   return {
     ...company,
+    abnValid: Boolean(company.abn && isValidAbn(company.abn)),
     verificationSubmittedAt: company.verificationSubmittedAt?.toISOString() ?? null,
     verificationReviewedAt: company.verificationReviewedAt?.toISOString() ?? null,
     canRequestVerification: membership.role === "OWNER" || membership.role === "ADMIN",
