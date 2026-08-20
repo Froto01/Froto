@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, ClipboardList, Clock3, Send, Trophy } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CheckCircle2, ClipboardList, Clock3, Send, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +52,9 @@ type Tender = {
   awardedAt: string | null;
   responseCount: number;
   responses: TenderResponse[];
+  jobId: string | null;
+  jobStatus: string | null;
+  canOpenJob: boolean;
 };
 
 function formatAUD(value: number) {
@@ -85,6 +88,12 @@ function stateLabel(state: string) {
   if (state === "CANCELLED") return "Cancelled";
   if (state === "CLOSED") return "Responses closed";
   return "Open for responses";
+}
+
+function jobStatusLabel(status: string | null) {
+  if (!status) return "Job created";
+  if (status === "IN_PROGRESS") return "In progress";
+  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 export default function TenderDetailPage() {
@@ -137,12 +146,7 @@ export default function TenderDetailPage() {
       const response = await fetch(`/api/tenders/${params.id}/responses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: numericAmount,
-          serviceDescription,
-          leadTime,
-          notes,
-        }),
+        body: JSON.stringify({ amount: numericAmount, serviceDescription, leadTime, notes }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Your response could not be submitted.");
@@ -243,6 +247,22 @@ export default function TenderDetailPage() {
           </Card>
 
           <div className="space-y-6">
+            {tender.canOpenJob && tender.jobId ? (
+              <Card className="rounded-[1.6rem] border-froto-green/20 bg-emerald-50/70 shadow-sm">
+                <CardContent className="p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-froto-navy">Awarded work is ready</p>
+                      <p className="mt-1 text-sm text-slate-600">Job status: {jobStatusLabel(tender.jobStatus)}. Open the Job to continue the fulfilment workflow.</p>
+                    </div>
+                    <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]">
+                      <Link href={`/platform/jobs/${tender.jobId}`}>Open Job<ArrowUpRight className="h-4 w-4" /></Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
             {canRespond ? (
               <Card className="rounded-[1.8rem] border-froto-teal/10 bg-white shadow-lg shadow-froto-navy/5">
                 <CardHeader><CardTitle className="flex items-center gap-2 text-xl text-froto-navy"><Send className="h-5 w-5 text-froto-teal" />Submit sealed response</CardTitle><p className="text-sm text-slate-500">Your pricing is visible to the tender owner, not competing suppliers.</p></CardHeader>
