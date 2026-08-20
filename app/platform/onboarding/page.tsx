@@ -11,6 +11,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import { updateCompanyProfile } from "./actions";
+import { VerificationCard } from "./verification-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ type CompanyProfileForm = {
   role: Role;
   locations: string;
   notes: string;
+  abn: string;
 };
 
 const roles: {
@@ -63,6 +65,7 @@ const emptyForm: CompanyProfileForm = {
   role: "Shipper",
   locations: "",
   notes: "",
+  abn: "",
 };
 
 const roleToneClasses: Record<string, string> = {
@@ -77,6 +80,7 @@ export default function OnboardingPage() {
   const [submittedProfile, setSubmittedProfile] =
     useState<CompanyProfileForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function updateField(field: keyof CompanyProfileForm, value: string) {
     setForm((current) => ({
@@ -88,15 +92,23 @@ export default function OnboardingPage() {
   async function submitProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
+    setSaveError(null);
 
     try {
-      await updateCompanyProfile({
+      const result = await updateCompanyProfile({
         companyType: form.role,
         locations: form.locations,
         notes: form.notes,
+        abn: form.abn,
       });
 
+      if (!result.success) {
+        setSaveError(result.error);
+        return;
+      }
+
       setSubmittedProfile(form);
+      window.dispatchEvent(new Event("froto:company-profile-updated"));
     } finally {
       setIsSaving(false);
     }
@@ -134,6 +146,8 @@ export default function OnboardingPage() {
       </header>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
+        <VerificationCard />
+
         <section>
           <div className="mb-4">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">
@@ -200,6 +214,7 @@ export default function OnboardingPage() {
                 {Object.entries({
                   "Company type": submittedProfile.role,
                   "Primary locations / lanes": submittedProfile.locations,
+                  ABN: submittedProfile.abn || "Existing ABN retained if already saved",
                   Notes: submittedProfile.notes,
                 }).map(([label, value]) => (
                   <div
@@ -237,7 +252,7 @@ export default function OnboardingPage() {
             <CardHeader className="border-b border-froto-blue/10 bg-froto-ice/55">
               <CardTitle className="text-xl text-froto-navy">Company details</CardTitle>
               <p className="text-sm text-slate-500">
-                Give Froto enough context to match your company with the right marketplace activity.
+                Give Froto enough context to match your company with the right marketplace activity and prepare for verification.
               </p>
             </CardHeader>
 
@@ -271,6 +286,21 @@ export default function OnboardingPage() {
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy sm:col-span-2">
+                    ABN
+                    <Input
+                      value={form.abn}
+                      onChange={(event) => updateField("abn", event.target.value)}
+                      placeholder="Enter ABN to request company verification"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      className="border-froto-blue/15 bg-white focus-visible:border-froto-blue focus-visible:ring-froto-blue/20"
+                    />
+                    <span className="block text-xs font-normal text-slate-500">
+                      Enter a valid 11-digit Australian Business Number. Leave blank to retain an existing saved ABN.
+                    </span>
+                  </label>
+
+                  <label className="space-y-2 text-sm font-medium text-froto-navy sm:col-span-2">
                     Notes
                     <textarea
                       value={form.notes}
@@ -282,6 +312,14 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 border-t border-froto-blue/10 pt-5 sm:flex-row">
+                  {saveError ? (
+                    <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 sm:w-full">
+                      {saveError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     type="submit"
                     disabled={isSaving}

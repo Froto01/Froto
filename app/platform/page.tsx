@@ -5,10 +5,12 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
+  Filter,
   LayoutDashboard,
   Plus,
   Search,
   UserPlus,
+  X,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +108,21 @@ function listingImage(listing: MarketplaceListing) {
     : "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80";
 }
 
+function FilterSelect({ value, onChange, label, children }: { value: string; onChange: (value: string) => void; label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex min-w-[155px] flex-1 flex-col gap-1.5 sm:flex-none">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-10 rounded-xl border border-froto-blue/15 bg-white px-3 text-sm text-froto-navy outline-none transition focus:border-froto-blue/40 focus:ring-2 focus:ring-froto-blue/10"
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
 export default function PlatformPage() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"marketplace" | "tenders">("marketplace");
@@ -115,6 +132,13 @@ export default function PlatformPage() {
   const [marketplaceTenders, setMarketplaceTenders] = useState<MarketplaceTender[]>([]);
   const [tendersLoading, setTendersLoading] = useState(true);
   const [tendersError, setTendersError] = useState<string | null>(null);
+
+  const [listingType, setListingType] = useState("all");
+  const [listingTemperature, setListingTemperature] = useState("all");
+  const [listingAuctionState, setListingAuctionState] = useState("all");
+  const [tenderStatus, setTenderStatus] = useState("all");
+  const [tenderTemperature, setTenderTemperature] = useState("all");
+  const [tenderStorage, setTenderStorage] = useState("all");
 
   useEffect(() => {
     const openTenderHash = () => {
@@ -186,6 +210,16 @@ export default function PlatformPage() {
     };
   }, []);
 
+  const listingTemperatures = useMemo(
+    () => Array.from(new Set(marketplaceListings.map((listing) => listing.temperatureClass).filter(Boolean))).sort(),
+    [marketplaceListings],
+  );
+
+  const tenderTemperatures = useMemo(
+    () => Array.from(new Set(marketplaceTenders.map((tender) => tender.temperatureRequirement).filter((value): value is string => Boolean(value)))).sort(),
+    [marketplaceTenders],
+  );
+
   const filteredListings = useMemo(() => {
     const q = query.trim().toLowerCase();
     return marketplaceListings.filter((listing) => {
@@ -193,12 +227,22 @@ export default function PlatformPage() {
         listing.title,
         listing.listingType,
         listingLocation(listing),
+        listing.origin ?? "",
+        listing.destination ?? "",
+        listing.location ?? "",
         listing.companyName,
         listing.temperatureClass,
+        listing.capacityUnit,
       ].join(" ").toLowerCase();
-      return searchable.includes(q);
+
+      return (
+        searchable.includes(q) &&
+        (listingType === "all" || listing.listingType === listingType) &&
+        (listingTemperature === "all" || listing.temperatureClass === listingTemperature) &&
+        (listingAuctionState === "all" || listing.auctionState === listingAuctionState)
+      );
     });
-  }, [marketplaceListings, query]);
+  }, [marketplaceListings, query, listingType, listingTemperature, listingAuctionState]);
 
   const filteredTenders = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -212,9 +256,32 @@ export default function PlatformPage() {
         tender.companyName,
         tender.temperatureRequirement ?? "",
       ].join(" ").toLowerCase();
-      return searchable.includes(q);
+
+      return (
+        searchable.includes(q) &&
+        (tenderStatus === "all" || tender.status === tenderStatus) &&
+        (tenderTemperature === "all" || tender.temperatureRequirement === tenderTemperature) &&
+        (tenderStorage === "all" || (tenderStorage === "required" ? tender.storageRequired : !tender.storageRequired))
+      );
     });
-  }, [marketplaceTenders, query]);
+  }, [marketplaceTenders, query, tenderStatus, tenderTemperature, tenderStorage]);
+
+  const marketplaceFiltersActive = query.trim() !== "" || listingType !== "all" || listingTemperature !== "all" || listingAuctionState !== "all";
+  const tenderFiltersActive = query.trim() !== "" || tenderStatus !== "all" || tenderTemperature !== "all" || tenderStorage !== "all";
+
+  function clearMarketplaceFilters() {
+    setQuery("");
+    setListingType("all");
+    setListingTemperature("all");
+    setListingAuctionState("all");
+  }
+
+  function clearTenderFilters() {
+    setQuery("");
+    setTenderStatus("all");
+    setTenderTemperature("all");
+    setTenderStorage("all");
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-20">
@@ -228,7 +295,7 @@ export default function PlatformPage() {
             <div className="ml-auto hidden w-[40ch] items-center gap-2 md:flex">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search logistics"} className="border-froto-blue/15 bg-froto-ice/70 pl-9 focus-visible:ring-froto-blue" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders, routes, products" : "Search routes, locations, capacity"} className="border-froto-blue/15 bg-froto-ice/70 pl-9 focus-visible:ring-froto-blue" />
               </div>
             </div>
           )}
@@ -246,20 +313,51 @@ export default function PlatformPage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-4 pt-7">
-        <div className="mb-7 flex w-fit items-center gap-1 rounded-full border border-froto-blue/10 bg-white p-1 shadow-sm">
+        <div className="mb-5 flex w-fit items-center gap-1 rounded-full border border-froto-blue/10 bg-white p-1 shadow-sm">
           <button className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "marketplace" ? "bg-froto-navy text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("marketplace")}>Marketplace</button>
           <button className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "tenders" ? "bg-gradient-to-r from-froto-teal to-froto-green text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("tenders")}>Tenders</button>
         </div>
 
+        <div className="mb-7 md:hidden">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search logistics"} className="border-froto-blue/15 bg-white pl-9" />
+          </div>
+        </div>
+
         {activeTab === "marketplace" && (
           <>
-            <div className="mb-7 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="mb-5 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Live marketplace</p>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Available logistics capacity</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Open a listing to view live bid history, bidding close time and authenticated company activity.</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search and filter real capacity by type, temperature and bidding status, then open a listing for the full auction detail.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new"><Plus className="h-4 w-4" />List capacity</Link></Button>
+            </div>
+
+            <div className="mb-7 rounded-[1.4rem] border border-froto-blue/10 bg-white p-4 shadow-sm shadow-froto-navy/5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-froto-navy"><Filter className="h-4 w-4 text-froto-blue" />Refine capacity</div>
+                {marketplaceFiltersActive ? <button onClick={clearMarketplaceFilters} className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-froto-blue"><X className="h-3.5 w-3.5" />Clear filters</button> : null}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <FilterSelect value={listingType} onChange={setListingType} label="Capacity type">
+                  <option value="all">All capacity</option>
+                  <option value="Transport Lane">Transport lanes</option>
+                  <option value="Warehouse Space">Warehouse space</option>
+                </FilterSelect>
+                <FilterSelect value={listingTemperature} onChange={setListingTemperature} label="Temperature">
+                  <option value="all">All temperatures</option>
+                  {listingTemperatures.map((temperature) => <option key={temperature} value={temperature}>{temperature}</option>)}
+                </FilterSelect>
+                <FilterSelect value={listingAuctionState} onChange={setListingAuctionState} label="Bidding">
+                  <option value="all">Open + closed</option>
+                  <option value="OPEN">Bidding open</option>
+                  <option value="CLOSED">Bidding closed</option>
+                </FilterSelect>
+                <div className="ml-auto flex items-end text-xs font-medium text-slate-500">{filteredListings.length} of {marketplaceListings.length} listings</div>
+              </div>
             </div>
 
             {listingsLoading ? (
@@ -268,9 +366,9 @@ export default function PlatformPage() {
               <Card className="rounded-[1.6rem] border-red-100 bg-red-50/70 p-6 text-sm text-red-700 shadow-sm">{listingsError}</Card>
             ) : filteredListings.length === 0 ? (
               <Card className="rounded-[1.6rem] border-froto-blue/10 bg-white p-8 text-center shadow-sm">
-                <CardTitle className="text-lg text-froto-navy">No live capacity found</CardTitle>
-                <p className="mt-2 text-sm text-slate-500">Create the first Froto listing or change your search.</p>
-                <Button asChild className="mt-4 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new">Create Listing</Link></Button>
+                <CardTitle className="text-lg text-froto-navy">No matching capacity found</CardTitle>
+                <p className="mt-2 text-sm text-slate-500">Try widening your search or clearing one of the filters.</p>
+                <Button onClick={clearMarketplaceFilters} className="mt-4 rounded-xl bg-froto-navy hover:bg-[#0a356f]">Clear filters</Button>
               </Card>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -306,9 +404,34 @@ export default function PlatformPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-teal">Structured sourcing</p>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live tenders</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Publish requirements, receive sealed company quotes and award the best fit after the response window closes.</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search requirements by route or product, then refine by status, storage need and temperature. Supplier pricing stays sealed.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-teal hover:bg-[#0c8d82]"><Link href="/platform/tenders/new"><Plus className="h-4 w-4" />Create Tender</Link></Button>
+            </div>
+
+            <div className="rounded-[1.4rem] border border-emerald-100 bg-white p-4 shadow-sm shadow-froto-navy/5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-froto-navy"><Filter className="h-4 w-4 text-froto-teal" />Refine tenders</div>
+                {tenderFiltersActive ? <button onClick={clearTenderFilters} className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-froto-teal"><X className="h-3.5 w-3.5" />Clear filters</button> : null}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <FilterSelect value={tenderStatus} onChange={setTenderStatus} label="Status">
+                  <option value="all">All statuses</option>
+                  <option value="OPEN">Open</option>
+                  <option value="CLOSED">Closed</option>
+                  <option value="AWARDED">Awarded</option>
+                </FilterSelect>
+                <FilterSelect value={tenderStorage} onChange={setTenderStorage} label="Storage">
+                  <option value="all">Any storage need</option>
+                  <option value="required">Storage required</option>
+                  <option value="not-required">No storage required</option>
+                </FilterSelect>
+                <FilterSelect value={tenderTemperature} onChange={setTenderTemperature} label="Temperature">
+                  <option value="all">All temperatures</option>
+                  {tenderTemperatures.map((temperature) => <option key={temperature} value={temperature}>{temperature}</option>)}
+                </FilterSelect>
+                <div className="ml-auto flex items-end text-xs font-medium text-slate-500">{filteredTenders.length} of {marketplaceTenders.length} tenders</div>
+              </div>
             </div>
 
             {tendersLoading ? (
@@ -317,9 +440,9 @@ export default function PlatformPage() {
               <Card className="rounded-[1.6rem] border-red-100 bg-red-50/70 p-6 text-sm text-red-700 shadow-sm">{tendersError}</Card>
             ) : filteredTenders.length === 0 ? (
               <Card className="rounded-[1.6rem] border-emerald-100 bg-white p-8 text-center shadow-sm">
-                <CardTitle className="text-lg text-froto-navy">No tenders found</CardTitle>
-                <p className="mt-2 text-sm text-slate-500">Create the first live tender or change your search.</p>
-                <Button asChild className="mt-4 bg-froto-teal hover:bg-[#0c8d82]"><Link href="/platform/tenders/new">Create Tender</Link></Button>
+                <CardTitle className="text-lg text-froto-navy">No matching tenders found</CardTitle>
+                <p className="mt-2 text-sm text-slate-500">Try a broader search or clear the filters.</p>
+                <Button onClick={clearTenderFilters} className="mt-4 bg-froto-teal hover:bg-[#0c8d82]">Clear filters</Button>
               </Card>
             ) : (
               <div className="space-y-4">
@@ -341,6 +464,8 @@ export default function PlatformPage() {
                           <span>Delivery {formatDate(tender.deliveryDate)}</span>
                           <span>{tender.responseClosed ? "Closed" : "Closes"} {formatDateTime(tender.responseClosesAt)}</span>
                           <span>{tender.responseCount} sealed {tender.responseCount === 1 ? "response" : "responses"}</span>
+                          <span>{tender.storageRequired ? "Storage required" : "No storage required"}</span>
+                          {tender.temperatureRequirement ? <span>{tender.temperatureRequirement}</span> : null}
                         </div>
                       </div>
 

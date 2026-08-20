@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const LIVE_CAPACITY = [
+const MARKETPLACE_EXAMPLES = [
   {
     id: "1",
     type: "Transport",
@@ -94,7 +94,7 @@ export default function LandingPage() {
                 <span className="h-2 w-2 rounded-full bg-froto-teal" />
                 <span className="h-2 w-2 rounded-full bg-froto-green" />
               </span>
-              <span className="text-froto-navy">Connect. Match. Move.</span>
+              <span className="text-froto-navy">Early feedback preview · Connect. Match. Move.</span>
             </div>
 
             <div className="space-y-5">
@@ -129,11 +129,7 @@ export default function LandingPage() {
             </div>
 
             <div className="grid max-w-2xl gap-3 text-sm text-slate-600 sm:grid-cols-3">
-              {[
-                "Transport lanes",
-                "Warehouse capacity",
-                "Live company bidding",
-              ].map((label) => (
+              {["Transport lanes", "Warehouse capacity", "Live company bidding"].map((label) => (
                 <div key={label} className="flex items-center gap-2">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-froto-teal/15">
                     <CheckCircle2 className="h-3.5 w-3.5 text-froto-green" />
@@ -151,9 +147,9 @@ export default function LandingPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
-                      Marketplace pulse
+                      Illustrative marketplace preview
                     </p>
-                    <h2 className="mt-1 text-xl font-semibold">Capacity moving now</h2>
+                    <h2 className="mt-1 text-xl font-semibold">How live capacity can appear</h2>
                   </div>
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
                     <Truck className="h-5 w-5" />
@@ -162,7 +158,10 @@ export default function LandingPage() {
               </div>
 
               <CardContent className="space-y-3 p-5">
-                {LIVE_CAPACITY.slice(0, 3).map((item) => (
+                <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 ring-1 ring-amber-100">
+                  Example data for the feedback preview. Open the Marketplace to see current listings.
+                </p>
+                {MARKETPLACE_EXAMPLES.slice(0, 3).map((item) => (
                   <div
                     key={item.id}
                     className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
@@ -186,7 +185,7 @@ export default function LandingPage() {
                   href="/platform"
                   className="flex items-center justify-center gap-2 rounded-xl bg-froto-ice px-4 py-3 text-sm font-semibold text-froto-navy transition-colors hover:bg-cyan-50"
                 >
-                  View live marketplace
+                  View current marketplace
                   <ArrowUpRight className="h-4 w-4 text-froto-blue" />
                 </Link>
               </CardContent>
@@ -200,20 +199,19 @@ export default function LandingPage() {
           <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-blue">
-                Live capacity
+                Marketplace example
               </p>
               <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">
                 A freight board built for action
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Transport lanes and warehouse space presented as active marketplace opportunities,
-                with price, timing and capacity visible at a glance.
+                These illustrative examples show how transport lanes and warehouse space can be compared at a glance. Current marketplace data lives inside the Marketplace.
               </p>
             </div>
 
             <Button asChild variant="outline" className="gap-1 rounded-xl border-froto-blue/20 text-froto-navy">
               <Link href="/platform">
-                View all live listings
+                View current listings
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -224,11 +222,11 @@ export default function LandingPage() {
               <div className="col-span-5">Lane / listing</div>
               <div className="col-span-3 sm:col-span-2">Type</div>
               <div className="col-span-4 sm:col-span-3">Capacity</div>
-              <div className="hidden text-right sm:col-span-2 sm:block">Current bid</div>
+              <div className="hidden text-right sm:col-span-2 sm:block">Example bid</div>
             </div>
 
             <div className="divide-y divide-slate-100">
-              {LIVE_CAPACITY.map((item) => (
+              {MARKETPLACE_EXAMPLES.map((item) => (
                 <Link
                   key={item.id}
                   href="/platform"
@@ -275,7 +273,7 @@ export default function LandingPage() {
 
                   <div className="col-span-3 text-right sm:col-span-2">
                     <p className="font-semibold text-froto-navy">{item.bid}</p>
-                    <p className="text-[11px] text-slate-400 sm:hidden">Current bid</p>
+                    <p className="text-[11px] text-slate-400 sm:hidden">Example bid</p>
                   </div>
                 </Link>
               ))}
@@ -287,56 +285,34 @@ export default function LandingPage() {
       <section className="border-y border-froto-blue/10 bg-froto-ice py-14">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-teal">
-              Why Froto
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">
-              Built for real logistics decisions
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Less chasing, less disconnected quoting, and a clearer path from available capacity to
-              an awarded outcome.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-teal">Why Froto</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Built for real logistics decisions</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Less chasing, less disconnected quoting, and a clearer path from available capacity to an awarded outcome.</p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-3">
             <Card className="rounded-[1.6rem] border-blue-100 bg-blue-50/65 shadow-sm">
               <CardHeader className="pb-2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <PackageCheck className="h-5 w-5 text-froto-blue" />
-                </span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm"><PackageCheck className="h-5 w-5 text-froto-blue" /></span>
                 <CardTitle className="mt-4 text-lg text-froto-navy">Find capacity faster</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm leading-6 text-slate-600">
-                Search spare pallet, parcel and warehouse space without stitching together endless
-                calls, spreadsheets and emails.
-              </CardContent>
+              <CardContent className="text-sm leading-6 text-slate-600">Search spare pallet, parcel and warehouse space without stitching together endless calls, spreadsheets and emails.</CardContent>
             </Card>
 
             <Card className="rounded-[1.6rem] border-cyan-100 bg-cyan-50/70 shadow-sm">
               <CardHeader className="pb-2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <ClipboardList className="h-5 w-5 text-froto-teal" />
-                </span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm"><ClipboardList className="h-5 w-5 text-froto-teal" /></span>
                 <CardTitle className="mt-4 text-lg text-froto-navy">Make competition visible</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm leading-6 text-slate-600">
-                Use live bids for one-off capacity and structured tenders for larger sourcing events,
-                with each offer easier to compare.
-              </CardContent>
+              <CardContent className="text-sm leading-6 text-slate-600">Use live bids for one-off capacity and structured tenders for larger sourcing events, with each offer easier to compare.</CardContent>
             </Card>
 
             <Card className="rounded-[1.6rem] border-emerald-100 bg-emerald-50/65 shadow-sm">
               <CardHeader className="pb-2">
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <BarChart3 className="h-5 w-5 text-froto-green" />
-                </span>
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm"><BarChart3 className="h-5 w-5 text-froto-green" /></span>
                 <CardTitle className="mt-4 text-lg text-froto-navy">Move from quote to award</CardTitle>
               </CardHeader>
-              <CardContent className="text-sm leading-6 text-slate-600">
-                See price, capacity, timing and company activity in one workflow, then award the best
-                fit and keep the transaction trail together.
-              </CardContent>
+              <CardContent className="text-sm leading-6 text-slate-600">See price, capacity, timing and company activity in one workflow, then award the best fit and keep the transaction trail together.</CardContent>
             </Card>
           </div>
         </div>
@@ -345,28 +321,9 @@ export default function LandingPage() {
       <section className="bg-white py-14">
         <div className="mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              ["/images/truck.jpg", "Linehaul truck"],
-              ["/images/warehouse.jpg", "3PL warehouse"],
-              ["/images/distribution.jpg", "Distribution centre"],
-            ].map(([src, alt], index) => (
-              <div
-                key={src}
-                className={`overflow-hidden rounded-[1.6rem] shadow-md shadow-froto-navy/10 ring-1 ${
-                  index === 0
-                    ? "ring-blue-100"
-                    : index === 1
-                      ? "ring-cyan-100"
-                      : "ring-emerald-100"
-                }`}
-              >
-                <Image
-                  src={src}
-                  alt={alt}
-                  width={900}
-                  height={520}
-                  className="h-56 w-full object-cover transition-transform duration-500 hover:scale-[1.025]"
-                />
+            {[["/images/truck.jpg", "Linehaul truck"], ["/images/warehouse.jpg", "3PL warehouse"], ["/images/distribution.jpg", "Distribution centre"]].map(([src, alt], index) => (
+              <div key={src} className={`overflow-hidden rounded-[1.6rem] shadow-md shadow-froto-navy/10 ring-1 ${index === 0 ? "ring-blue-100" : index === 1 ? "ring-cyan-100" : "ring-emerald-100"}`}>
+                <Image src={src} alt={alt} width={900} height={520} className="h-56 w-full object-cover transition-transform duration-500 hover:scale-[1.025]" />
               </div>
             ))}
           </div>
@@ -376,40 +333,19 @@ export default function LandingPage() {
       <section className="bg-white pb-14">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-blue">
-              How it works
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">
-              Connect the network. Match the need. Move the freight.
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-blue">How it works</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Connect the network. Match the need. Move the freight.</h2>
           </div>
 
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              {
-                number: "1",
-                title: "Connect",
-                text: "Carriers and 3PLs publish capacity. Shippers search by lane, location, temperature and timing.",
-                color: "bg-blue-100 text-froto-blue",
-              },
-              {
-                number: "2",
-                title: "Match",
-                text: "Companies bid on suitable capacity or respond to tenders, making options easier to compare in one place.",
-                color: "bg-cyan-100 text-froto-teal",
-              },
-              {
-                number: "3",
-                title: "Move",
-                text: "Bidding closes, the owner awards the winning offer, and both companies have a clear transaction record.",
-                color: "bg-emerald-100 text-froto-green",
-              },
+              { number: "1", title: "Connect", text: "Carriers and 3PLs publish capacity. Shippers search by lane, location, temperature and timing.", color: "bg-blue-100 text-froto-blue" },
+              { number: "2", title: "Match", text: "Companies bid on suitable capacity or respond to tenders, making options easier to compare in one place.", color: "bg-cyan-100 text-froto-teal" },
+              { number: "3", title: "Move", text: "Bidding closes, the owner awards the winning offer, and both companies have a clear transaction record.", color: "bg-emerald-100 text-froto-green" },
             ].map((step) => (
               <Card key={step.title} className="rounded-[1.6rem] border-slate-200 shadow-sm">
                 <CardHeader className="pb-2">
-                  <span className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${step.color}`}>
-                    {step.number}
-                  </span>
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold ${step.color}`}>{step.number}</span>
                   <CardTitle className="mt-4 text-xl text-froto-navy">{step.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm leading-6 text-slate-600">{step.text}</CardContent>
@@ -424,72 +360,29 @@ export default function LandingPage() {
           <Card className="overflow-hidden rounded-[1.75rem] border-blue-100 shadow-sm">
             <div className="h-1.5 bg-gradient-to-r from-froto-navy to-froto-blue" />
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-lg text-froto-navy">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50">
-                  <Truck className="h-5 w-5 text-froto-blue" />
-                </span>
-                Marketplace capacity
-              </CardTitle>
-              <p className="text-sm leading-6 text-slate-600">
-                Spare transport and warehouse capacity for peaks, projects, urgent moves and unused
-                network space.
-              </p>
+              <CardTitle className="flex items-center gap-3 text-lg text-froto-navy"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50"><Truck className="h-5 w-5 text-froto-blue" /></span>Marketplace capacity</CardTitle>
+              <p className="text-sm leading-6 text-slate-600">Spare transport and warehouse capacity for peaks, projects, urgent moves and unused network space.</p>
             </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="gap-1 rounded-xl border-froto-blue/20 text-froto-navy">
-                <Link href="/platform">
-                  Explore marketplace
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
+            <CardContent><Button asChild variant="outline" className="gap-1 rounded-xl border-froto-blue/20 text-froto-navy"><Link href="/platform">Explore marketplace<ArrowRight className="h-4 w-4" /></Link></Button></CardContent>
           </Card>
 
           <Card className="overflow-hidden rounded-[1.75rem] border-emerald-100 shadow-sm">
             <div className="h-1.5 bg-gradient-to-r from-froto-teal to-froto-green" />
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-lg text-froto-navy">
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50">
-                  <Warehouse className="h-5 w-5 text-froto-green" />
-                </span>
-                Structured tenders
-              </CardTitle>
-              <p className="text-sm leading-6 text-slate-600">
-                Larger sourcing events that bring product, logistics and total landed cost into a
-                more structured comparison.
-              </p>
+              <CardTitle className="flex items-center gap-3 text-lg text-froto-navy"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50"><Warehouse className="h-5 w-5 text-froto-green" /></span>Structured tenders</CardTitle>
+              <p className="text-sm leading-6 text-slate-600">Larger sourcing events that bring product, logistics and total landed cost into a more structured comparison.</p>
             </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="gap-1 rounded-xl border-emerald-200 text-froto-navy">
-                <Link href="/platform#tenders">
-                  View tenders
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
+            <CardContent><Button asChild variant="outline" className="gap-1 rounded-xl border-emerald-200 text-froto-navy"><Link href="/platform#tenders">View tenders<ArrowRight className="h-4 w-4" /></Link></Button></CardContent>
           </Card>
         </div>
       </section>
 
       <section className="bg-white py-12">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Built for operators across the freight network
-          </p>
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Built for operators across the freight network</p>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {OPERATORS.map((label, index) => (
-              <div
-                key={label}
-                className={`rounded-2xl border px-4 py-4 text-center text-sm font-semibold text-froto-navy shadow-sm ${
-                  index % 3 === 0
-                    ? "border-blue-100 bg-blue-50/60"
-                    : index % 3 === 1
-                      ? "border-cyan-100 bg-cyan-50/55"
-                      : "border-emerald-100 bg-emerald-50/55"
-                }`}
-              >
-                {label}
-              </div>
+              <div key={label} className={`rounded-2xl border px-4 py-4 text-center text-sm font-semibold text-froto-navy shadow-sm ${index % 3 === 0 ? "border-blue-100 bg-blue-50/60" : index % 3 === 1 ? "border-cyan-100 bg-cyan-50/55" : "border-emerald-100 bg-emerald-50/55"}`}>{label}</div>
             ))}
           </div>
         </div>
@@ -499,21 +392,11 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-gradient-to-r from-froto-navy via-[#094978] to-froto-teal px-6 py-10 text-white shadow-xl shadow-froto-navy/15 sm:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
-                Connect. Match. Move.
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">Connect. Match. Move.</p>
               <h3 className="mt-2 text-2xl font-semibold">Put your logistics network into motion.</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">
-                Explore the marketplace, create a company profile and see how Froto turns capacity
-                into a live, competitive workflow.
-              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/75">Explore the marketplace, create a company profile and see how Froto turns capacity into a live, competitive workflow.</p>
             </div>
-            <Button asChild size="lg" className="rounded-xl bg-white text-froto-navy hover:bg-cyan-50">
-              <Link href="/auth-test">
-                Join Froto
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
+            <Button asChild size="lg" className="rounded-xl bg-white text-froto-navy hover:bg-cyan-50"><Link href="/auth-test">Try Froto<ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
           </div>
         </div>
       </section>
@@ -521,17 +404,8 @@ export default function LandingPage() {
       <footer className="border-t border-froto-blue/10 bg-froto-ice">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-7 sm:flex-row">
           <div className="flex items-center gap-3">
-            <Image
-              src="/brand/froto-mark.svg"
-              alt="Froto"
-              width={34}
-              height={34}
-              className="h-8 w-8"
-            />
-            <div>
-              <p className="text-sm font-semibold text-froto-navy">Froto</p>
-              <p className="text-xs text-slate-500">Connect. Match. Move.</p>
-            </div>
+            <Image src="/brand/froto-mark.svg" alt="Froto" width={34} height={34} className="h-8 w-8" />
+            <div><p className="text-sm font-semibold text-froto-navy">Froto</p><p className="text-xs text-slate-500">Connect. Match. Move.</p></div>
           </div>
           <div className="flex gap-5 text-xs font-medium text-slate-500">
             <Link href="/platform" className="hover:text-froto-blue">Marketplace</Link>

@@ -8,41 +8,51 @@ datasource db {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  clerkId         String           @unique
-  email           String           @unique
-  firstName       String?
-  lastName        String?
-  accountType     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  companies       CompanyMember[]
-  bidsPlaced      Bid[]            @relation("BidPlacedByUser")
-  jobEvents       JobEvent[]       @relation("JobEventActorUser")
-  tendersCreated  Tender[]         @relation("TenderCreatedByUser")
-  tenderResponses TenderResponse[] @relation("TenderResponseSubmittedByUser")
-  notifications   Notification[]   @relation("NotificationRecipientUser")
+  id                    String           @id @default(cuid())
+  clerkId               String           @unique
+  email                 String           @unique
+  firstName             String?
+  lastName              String?
+  accountType           String?
+  platformRole          String           @default("USER")
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  companies             CompanyMember[]
+  bidsPlaced            Bid[]            @relation("BidPlacedByUser")
+  jobEvents             JobEvent[]       @relation("JobEventActorUser")
+  tendersCreated        Tender[]         @relation("TenderCreatedByUser")
+  tenderResponses       TenderResponse[] @relation("TenderResponseSubmittedByUser")
+  notifications         Notification[]   @relation("NotificationRecipientUser")
+  verificationsReviewed Company[]        @relation("CompanyVerificationReviewer")
 }
 
 model Company {
-  id                 String           @id @default(cuid())
-  name               String
-  abn                String?          @unique
-  verified           Boolean          @default(false)
-  companyType        String?
-  locations          String?
-  notes              String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  members            CompanyMember[]
-  listings           Listing[]
-  bids               Bid[]            @relation("BidderCompany")
-  buyerJobs          Job[]            @relation("JobBuyerCompany")
-  providerJobs       Job[]            @relation("JobProviderCompany")
-  jobEvents          JobEvent[]       @relation("JobEventActorCompany")
-  tenders            Tender[]         @relation("TenderOwnerCompany")
-  tenderResponses    TenderResponse[] @relation("TenderRespondingCompany")
-  notifications      Notification[]   @relation("NotificationCompany")
+  id                           String           @id @default(cuid())
+  name                         String
+  abn                          String?          @unique
+  verified                     Boolean          @default(false)
+  verificationStatus           String           @default("UNVERIFIED")
+  verificationSubmittedAt      DateTime?
+  verificationReviewedAt       DateTime?
+  verificationReviewedByUserId String?
+  verificationNotes            String?
+  companyType                  String?
+  locations                    String?
+  notes                        String?
+  createdAt                    DateTime         @default(now())
+  updatedAt                    DateTime         @updatedAt
+  verificationReviewedBy       User?            @relation("CompanyVerificationReviewer", fields: [verificationReviewedByUserId], references: [id], onDelete: SetNull)
+  members                      CompanyMember[]
+  listings                     Listing[]
+  bids                         Bid[]            @relation("BidderCompany")
+  buyerJobs                    Job[]            @relation("JobBuyerCompany")
+  providerJobs                 Job[]            @relation("JobProviderCompany")
+  jobEvents                    JobEvent[]       @relation("JobEventActorCompany")
+  tenders                      Tender[]         @relation("TenderOwnerCompany")
+  tenderResponses              TenderResponse[] @relation("TenderRespondingCompany")
+  notifications                Notification[]   @relation("NotificationCompany")
+
+  @@index([verificationReviewedByUserId])
 }
 
 model CompanyMember {
