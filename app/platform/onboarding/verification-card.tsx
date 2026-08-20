@@ -125,7 +125,7 @@ export function VerificationCard() {
 
   const canSubmit =
     verification.canRequestVerification &&
-    Boolean(verification.abn) &&
+    verification.abnValid &&
     status !== "VERIFIED" &&
     status !== "SUBMITTED";
 
@@ -197,9 +197,9 @@ export function VerificationCard() {
             </Button>
           ) : null}
 
-          {!verification.abn && status !== "VERIFIED" ? (
+          {!verification.abnValid && status !== "VERIFIED" ? (
             <p className="text-sm font-medium text-amber-700">
-              Add your ABN in Company details below before requesting verification.
+              Add a valid 11-digit ABN in Company details below before requesting verification.
             </p>
           ) : null}
 
