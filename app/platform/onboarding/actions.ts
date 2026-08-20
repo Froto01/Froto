@@ -201,21 +201,56 @@ export async function requestCompanyVerification() {
     };
   }
 
-  const updated = await prisma.company.update({
-    where: {
-      id: membership.companyId,
-    },
-    data: {
-      verified: false,
-      verificationStatus: "SUBMITTED",
-      verificationSubmittedAt: new Date(),
-      verificationReviewedAt: null,
-      verificationNotes: null,
-    },
-    select: {
-      verificationStatus: true,
-      verificationSubmittedAt: true,
-    },
+  const updated = await prisma.$transaction(async (tx) => {
+    const submittedCompany = await tx.company.update({
+      where: {
+        id: membership.companyId,
+      },
+      data: {
+        verified: false,
+        verificationStatus: "SUBMITTED",
+        verificationSubmittedAt: new Date(),
+        verificationReviewedAt: null,
+        verificationNotes: null,
+      },
+      select: {
+        name: true,
+        verificationStatus: true,
+        verificationSubmittedAt: true,
+      },
+    });
+
+    const platformAdmins = await tx.user.findMany({
+      where: { platformRole: "PLATFORM_ADMIN" },
+      select: {
+        id: true,
+        companies: {
+          select: { companyId: true },
+          take: 1,
+        },
+      },
+    });
+
+    const adminNotifications = platformAdmins.flatMap((admin) => {
+      const adminCompanyId = admin.companies[0]?.companyId;
+      if (!adminCompanyId) return [];
+
+      return [{
+        companyId: adminCompanyId,
+        recipientUserId: admin.id,
+        type: "COMPANY_VERIFICATION_SUBMITTED",
+        title: "Company verification awaiting review",
+        message: `${submittedCompany.name} submitted its company details for verification.`,
+        href: "/platform/admin/verifications",
+        metadata: { submittedCompanyId: membership.companyId },
+      }];
+    });
+
+    if (adminNotifications.length > 0) {
+      await tx.notification.createMany({ data: adminNotifications });
+    }
+
+    return submittedCompany;
   });
 
   return {
