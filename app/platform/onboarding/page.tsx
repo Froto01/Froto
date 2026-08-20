@@ -80,6 +80,7 @@ export default function OnboardingPage() {
   const [submittedProfile, setSubmittedProfile] =
     useState<CompanyProfileForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function updateField(field: keyof CompanyProfileForm, value: string) {
     setForm((current) => ({
@@ -91,14 +92,20 @@ export default function OnboardingPage() {
   async function submitProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
+    setSaveError(null);
 
     try {
-      await updateCompanyProfile({
+      const result = await updateCompanyProfile({
         companyType: form.role,
         locations: form.locations,
         notes: form.notes,
         abn: form.abn,
       });
+
+      if (!result.success) {
+        setSaveError(result.error);
+        return;
+      }
 
       setSubmittedProfile(form);
       window.dispatchEvent(new Event("froto:company-profile-updated"));
@@ -284,10 +291,12 @@ export default function OnboardingPage() {
                       value={form.abn}
                       onChange={(event) => updateField("abn", event.target.value)}
                       placeholder="Enter ABN to request company verification"
+                      inputMode="numeric"
+                      autoComplete="off"
                       className="border-froto-blue/15 bg-white focus-visible:border-froto-blue focus-visible:ring-froto-blue/20"
                     />
                     <span className="block text-xs font-normal text-slate-500">
-                      Required before a company verification request can be submitted. Leave blank to retain an existing saved ABN.
+                      Enter a valid 11-digit Australian Business Number. Leave blank to retain an existing saved ABN.
                     </span>
                   </label>
 
@@ -303,6 +312,14 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 border-t border-froto-blue/10 pt-5 sm:flex-row">
+                  {saveError ? (
+                    <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 sm:w-full">
+                      {saveError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     type="submit"
                     disabled={isSaving}
