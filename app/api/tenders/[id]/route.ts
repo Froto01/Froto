@@ -31,6 +31,14 @@ export async function GET(
     where: { id },
     include: {
       company: { select: { name: true, verified: true } },
+      job: {
+        select: {
+          id: true,
+          status: true,
+          buyerCompanyId: true,
+          providerCompanyId: true,
+        },
+      },
       responses: {
         orderBy: [{ amount: "asc" }, { createdAt: "asc" }],
         include: {
@@ -61,18 +69,9 @@ export async function GET(
         : "OPEN";
 
   const canManage = isOwner && MANAGE_ROLES.has(viewerRole ?? "");
-  const canEdit =
-    canManage &&
-    tenderState === "OPEN" &&
-    tender.responses.length === 0;
-  const canCancel =
-    canManage &&
-    !tender.awardedResponseId &&
-    tender.status !== "CANCELLED";
-  const canAward =
-    canManage &&
-    tenderState === "CLOSED" &&
-    tender.responses.length > 0;
+  const canEdit = canManage && tenderState === "OPEN" && tender.responses.length === 0;
+  const canCancel = canManage && !tender.awardedResponseId && tender.status !== "CANCELLED";
+  const canAward = canManage && tenderState === "CLOSED" && tender.responses.length > 0;
 
   const visibleResponses = isOwner
     ? tender.responses
@@ -80,6 +79,15 @@ export async function GET(
       ? [viewerResponse]
       : [];
   const canSeeAwardResult = Boolean(tender.awardedResponseId && (isOwner || viewerResponse));
+  const isWinningSupplier = Boolean(
+    viewerResponse && tender.awardedResponseId === viewerResponse.id
+  );
+  const canOpenJob = Boolean(
+    tender.job &&
+      viewerCompanyId &&
+      (viewerCompanyId === tender.job.buyerCompanyId ||
+        viewerCompanyId === tender.job.providerCompanyId)
+  );
 
   return NextResponse.json({
     id: tender.id,
@@ -135,6 +143,10 @@ export async function GET(
             : response.status,
       createdAt: response.createdAt.toISOString(),
     })),
+    jobId: canOpenJob ? tender.job?.id ?? null : null,
+    jobStatus: canOpenJob ? tender.job?.status ?? null : null,
+    canOpenJob,
+    isWinningSupplier,
     createdAt: tender.createdAt.toISOString(),
   });
 }
@@ -204,25 +216,11 @@ export async function PATCH(
           include: { _count: { select: { responses: true } } },
         });
 
-        if (!current) {
-          throw new Error("NOT_FOUND");
-        }
-
-        if (current.companyId !== membership.companyId) {
-          throw new Error("FORBIDDEN");
-        }
-
-        if (current.status !== "OPEN" || current.awardedResponseId) {
-          throw new Error("LOCKED");
-        }
-
-        if (current.responseClosesAt.getTime() <= Date.now()) {
-          throw new Error("CLOSED");
-        }
-
-        if (current._count.responses > 0) {
-          throw new Error("RESPONSES_EXIST");
-        }
+        if (!current) throw new Error("NOT_FOUND");
+        if (current.companyId !== membership.companyId) throw new Error("FORBIDDEN");
+        if (current.status !== "OPEN" || current.awardedResponseId) throw new Error("LOCKED");
+        if (current.responseClosesAt.getTime() <= Date.now()) throw new Error("CLOSED");
+        if (current._count.responses > 0) throw new Error("RESPONSES_EXIST");
 
         return tx.tender.update({
           where: { id },
