@@ -94,11 +94,11 @@ function nextAction(job: JobDetail) {
     return { status: "IN_PROGRESS" as const, label: "Start job", icon: PlayCircle };
   }
 
-  if (job.status === "IN_PROGRESS" && job.viewerSide === "PROVIDER") {
-    return { status: "DELIVERED" as const, label: "Mark delivered", icon: PackageCheck };
+  if (job.status === "IN_PROGRESS" && job.viewerSide === "BUYER") {
+    return { status: "DELIVERED" as const, label: "Submit completion details", icon: PackageCheck };
   }
 
-  if (job.status === "DELIVERED" && job.viewerSide === "BUYER") {
+  if (job.status === "DELIVERED" && job.viewerSide === "PROVIDER") {
     return { status: "COMPLETED" as const, label: "Confirm completion", icon: CheckCircle2 };
   }
 
@@ -110,8 +110,8 @@ const WORKFLOW_STEPS: JobStatus[] = ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELI
 function actionNotePrompt(status: JobStatus) {
   if (status === "ACCEPTED") return "Optional: add access, timing or contact instructions for the provider.";
   if (status === "IN_PROGRESS") return "Optional: add a vehicle, booking or job reference for the buyer.";
-  if (status === "DELIVERED") return "Optional: add delivery details or completion evidence for the buyer.";
-  return "Optional: add a final confirmation note for the provider.";
+  if (status === "DELIVERED") return "Add completion details or supporting evidence for the seller to review.";
+  return "Optional: add a final confirmation note for the buyer.";
 }
 
 export default function JobDetailPage() {
@@ -293,7 +293,7 @@ export default function JobDetailPage() {
                 {action ? (
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-froto-navy" htmlFor="job-action-note">
-                      Update note
+                      {action.status === "DELIVERED" ? "Completion details" : "Update note"}
                     </label>
                     <textarea
                       id="job-action-note"
@@ -304,10 +304,10 @@ export default function JobDetailPage() {
                       className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-froto-blue focus:ring-2 focus:ring-froto-blue/15"
                     />
                     <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-                      <span>Saved in the job history.</span>
+                      <span>{action.status === "DELIVERED" ? "Required and saved in the job history." : "Saved in the job history."}</span>
                       <span>{actionNote.length}/500</span>
                     </div>
-                    <Button className="w-full gap-2 bg-froto-navy hover:bg-[#0a356f]" disabled={updating} onClick={() => void updateStatus(action.status)}>
+                    <Button className="w-full gap-2 bg-froto-navy hover:bg-[#0a356f]" disabled={updating || (action.status === "DELIVERED" && !actionNote.trim())} onClick={() => void updateStatus(action.status)}>
                       <action.icon className="h-4 w-4" />
                       {updating ? "Updating..." : action.label}
                     </Button>
