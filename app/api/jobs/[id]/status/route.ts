@@ -22,7 +22,7 @@ const PROVIDER_ACTION_ROLES = new Set([
   "WAREHOUSE",
 ]);
 
-type JobStatus = "AWARDED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED";
+type JobStatus = "AWARDED" | "ACCEPTED" | "IN_PROGRESS" | "DELIVERED" | "COMPLETED";
 
 type TransitionRule = {
   from: JobStatus;
@@ -33,7 +33,8 @@ type TransitionRule = {
 const TRANSITIONS: TransitionRule[] = [
   { from: "AWARDED", to: "ACCEPTED", actor: "BUYER" },
   { from: "ACCEPTED", to: "IN_PROGRESS", actor: "PROVIDER" },
-  { from: "IN_PROGRESS", to: "COMPLETED", actor: "PROVIDER" },
+  { from: "IN_PROGRESS", to: "DELIVERED", actor: "BUYER" },
+  { from: "DELIVERED", to: "COMPLETED", actor: "PROVIDER" },
 ];
 
 function isJobStatus(value: unknown): value is JobStatus {
@@ -41,6 +42,7 @@ function isJobStatus(value: unknown): value is JobStatus {
     value === "AWARDED" ||
     value === "ACCEPTED" ||
     value === "IN_PROGRESS" ||
+    value === "DELIVERED" ||
     value === "COMPLETED"
   );
 }
@@ -77,6 +79,13 @@ export async function POST(
 
   const nextStatus: JobStatus = body.status;
   const note = typeof body.note === "string" ? body.note.trim().slice(0, 500) : "";
+
+  if (nextStatus === "DELIVERED" && !note) {
+    return NextResponse.json(
+      { error: "Add completion details for the seller to review." },
+      { status: 400 }
+    );
+  }
 
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
@@ -145,7 +154,7 @@ export async function POST(
         return {
           ok: false as const,
           status: 403,
-          error: "The buyer company must accept this awarded job first.",
+          error: "The buyer company controls this job action.",
         };
       }
 
@@ -226,13 +235,24 @@ export async function POST(
             metadata: { jobId: job.id, status: "IN_PROGRESS" },
           },
         });
+      } else if (nextStatus === "DELIVERED") {
+        await tx.notification.create({
+          data: {
+            companyId: job.providerCompanyId,
+            type: "JOB_ACTION_REQUIRED",
+            title: "Work ready for confirmation",
+            message: `${job.buyerCompany.name} submitted completion details. Confirm the work when you are satisfied.`,
+            href: `/platform/jobs/${job.id}`,
+            metadata: { jobId: job.id, requiredAction: "COMPLETED" },
+          },
+        });
       } else if (nextStatus === "COMPLETED") {
         await tx.notification.create({
           data: {
             companyId: job.buyerCompanyId,
             type: "JOB_COMPLETED",
-            title: "Job completed",
-            message: `${job.providerCompany.name} marked the job as completed.`,
+            title: "Job completion confirmed",
+            message: `${job.providerCompany.name} confirmed the job is completed.`,
             href: `/platform/jobs/${job.id}`,
             metadata: { jobId: job.id, status: "COMPLETED" },
           },
