@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,15 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const { userId } = await auth();
+  const viewer = userId
+    ? await prisma.user.findUnique({
+        where: { clerkId: userId },
+        select: { companies: { take: 1, select: { companyId: true } } },
+      })
+    : null;
+  const viewerCompanyId = viewer?.companies[0]?.companyId ?? null;
+
   const listings = await prisma.listing.findMany({
     where: {
       status: "ACTIVE",
@@ -68,6 +78,7 @@ export async function GET() {
         status: listing.status,
         companyName: listing.company.name,
         companyVerified: listing.company.verified,
+        isOwner: viewerCompanyId === listing.companyId,
         createdAt: listing.createdAt.toISOString(),
       };
     })
