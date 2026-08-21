@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 
+const MANAGE_ROLES = new Set(["OWNER", "ADMIN", "MANAGER"]);
+
 type CreateListingInput = {
   listingType: "Transport Lane" | "Warehouse Space";
   title: string;
@@ -51,6 +53,10 @@ export async function createListing(input: CreateListingInput) {
 
   if (!membership) {
     redirect("/company/new");
+  }
+
+  if (!MANAGE_ROLES.has(membership.role)) {
+    throw new Error("Your company role cannot publish marketplace listings.");
   }
 
   const capacityAmount = Number.parseInt(input.capacityAmount, 10);
