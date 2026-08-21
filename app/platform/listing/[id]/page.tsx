@@ -18,7 +18,7 @@ type LiveBid = {
   createdAt: string;
   bidderCompanyName: string;
   bidderCompanyVerified: boolean;
-  bidderCompanyId: string;
+  bidderCompanyId: string | null;
   outcome: BidOutcome;
 };
 
@@ -52,6 +52,8 @@ type DatabaseListing = {
   isOwner: boolean;
   canAward: boolean;
   viewerCompanyId: string | null;
+  viewerBestBid: number | null;
+  viewerIsLeading: boolean;
   createdAt: string;
 };
 
@@ -488,7 +490,13 @@ export default function ListingDetailPage() {
                 </div>
 
                 {biddingOpen && !listing.isOwner ? (
-                  <div className="rounded-2xl border border-froto-blue/10 bg-froto-ice/70 p-4">
+                  <div className="space-y-3 rounded-2xl border border-froto-blue/10 bg-froto-ice/70 p-4">
+                    {listing.viewerBestBid !== null ? (
+                      <div className={`rounded-xl border px-3 py-2 text-sm ${listing.viewerIsLeading ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+                        <p className="font-semibold">{listing.viewerIsLeading ? "Your company is leading" : "Your company has been outbid"}</p>
+                        <p className="mt-0.5 text-xs">Your best bid: {formatAUD(listing.viewerBestBid)}</p>
+                      </div>
+                    ) : null}
                     <p className="mb-3 text-sm font-semibold text-froto-navy">Place your bid</p>
                     <div className="flex gap-2">
                       <Input
@@ -554,7 +562,9 @@ export default function ListingDetailPage() {
                     </p>
                   ) : (
                     listing.bids.map((bid, index) => {
-                      const isViewerCompany = listing.viewerCompanyId === bid.bidderCompanyId;
+                      const isViewerCompany = Boolean(
+                        bid.bidderCompanyId && listing.viewerCompanyId === bid.bidderCompanyId
+                      );
 
                       return (
                         <div
