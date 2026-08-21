@@ -73,7 +73,7 @@ export async function POST(
       };
     }
 
-    if (listing.status !== "ACTIVE") {
+    if (listing.status !== "ACTIVE" && listing.status !== "PAUSED") {
       return {
         ok: false as const,
         status: 409,
