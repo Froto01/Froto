@@ -8,31 +8,33 @@ datasource db {
 }
 
 model User {
-  id                    String           @id @default(cuid())
-  clerkId               String           @unique
-  email                 String           @unique
-  firstName             String?
-  lastName              String?
-  accountType           String?
-  platformRole          String           @default("USER")
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  companies             CompanyMember[]
-  bidsPlaced            Bid[]            @relation("BidPlacedByUser")
-  jobEvents             JobEvent[]       @relation("JobEventActorUser")
-  tendersCreated        Tender[]         @relation("TenderCreatedByUser")
-  tenderResponses       TenderResponse[] @relation("TenderResponseSubmittedByUser")
-  notifications         Notification[]   @relation("NotificationRecipientUser")
-  reviewsSubmitted      Review[]         @relation("ReviewSubmittedByUser")
-  verificationsReviewed Company[]        @relation("CompanyVerificationReviewer")
+  id                     String            @id @default(cuid())
+  clerkId                String            @unique
+  email                  String            @unique
+  firstName              String?
+  lastName               String?
+  accountType            String?
+  platformRole           String            @default("USER")
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  companies              CompanyMember[]
+  bidsPlaced             Bid[]             @relation("BidPlacedByUser")
+  jobEvents              JobEvent[]        @relation("JobEventActorUser")
+  tendersCreated         Tender[]          @relation("TenderCreatedByUser")
+  tenderResponses        TenderResponse[]  @relation("TenderResponseSubmittedByUser")
+  notifications          Notification[]    @relation("NotificationRecipientUser")
+  reviewsSubmitted       Review[]          @relation("ReviewSubmittedByUser")
+  verificationsReviewed  Company[]         @relation("CompanyVerificationReviewer")
+  guestAuctionsCreated   GuestAuction[]    @relation("GuestAuctionCreatedByUser")
+  guestAuctionBidsPlaced GuestAuctionBid[] @relation("GuestAuctionBidPlacedByUser")
 }
 
 model Company {
-  id                           String           @id @default(cuid())
+  id                           String            @id @default(cuid())
   name                         String
-  abn                          String?          @unique
-  verified                     Boolean          @default(false)
-  verificationStatus           String           @default("UNVERIFIED")
+  abn                          String?           @unique
+  verified                     Boolean           @default(false)
+  verificationStatus           String            @default("UNVERIFIED")
   verificationSubmittedAt      DateTime?
   verificationReviewedAt       DateTime?
   verificationReviewedByUserId String?
@@ -40,20 +42,21 @@ model Company {
   companyType                  String?
   locations                    String?
   notes                        String?
-  createdAt                    DateTime         @default(now())
-  updatedAt                    DateTime         @updatedAt
-  verificationReviewedBy       User?            @relation("CompanyVerificationReviewer", fields: [verificationReviewedByUserId], references: [id], onDelete: SetNull)
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+  verificationReviewedBy       User?             @relation("CompanyVerificationReviewer", fields: [verificationReviewedByUserId], references: [id], onDelete: SetNull)
   members                      CompanyMember[]
   listings                     Listing[]
-  bids                         Bid[]            @relation("BidderCompany")
-  buyerJobs                    Job[]            @relation("JobBuyerCompany")
-  providerJobs                 Job[]            @relation("JobProviderCompany")
-  jobEvents                    JobEvent[]       @relation("JobEventActorCompany")
-  tenders                      Tender[]         @relation("TenderOwnerCompany")
+  bids                         Bid[]             @relation("BidderCompany")
+  buyerJobs                    Job[]             @relation("JobBuyerCompany")
+  providerJobs                 Job[]             @relation("JobProviderCompany")
+  jobEvents                    JobEvent[]        @relation("JobEventActorCompany")
+  tenders                      Tender[]          @relation("TenderOwnerCompany")
   tenderResponses              TenderResponse[] @relation("TenderRespondingCompany")
-  notifications                Notification[]   @relation("NotificationCompany")
-  reviewsGiven                 Review[]         @relation("ReviewAuthorCompany")
-  reviewsReceived              Review[]         @relation("ReviewSubjectCompany")
+  notifications                Notification[]    @relation("NotificationCompany")
+  reviewsGiven                 Review[]          @relation("ReviewAuthorCompany")
+  reviewsReceived              Review[]          @relation("ReviewSubjectCompany")
+  guestAuctionBids             GuestAuctionBid[] @relation("GuestAuctionBidderCompany")
 
   @@index([verificationReviewedByUserId])
 }
@@ -128,21 +131,21 @@ model Job {
   awardedTenderResponseId String?         @unique
   buyerCompanyId          String
   providerCompanyId       String
-  amount                   Decimal         @db.Decimal(12, 2)
-  status                   String          @default("AWARDED")
-  acceptedAt               DateTime?
-  startedAt                DateTime?
-  completedAt              DateTime?
-  createdAt                DateTime        @default(now())
-  updatedAt                DateTime        @updatedAt
-  listing                  Listing?        @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  awardedBid               Bid?            @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
-  tender                   Tender?         @relation(fields: [tenderId], references: [id], onDelete: Restrict)
-  awardedTenderResponse    TenderResponse? @relation(fields: [awardedTenderResponseId], references: [id], onDelete: Restrict)
-  buyerCompany             Company         @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
-  providerCompany          Company         @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
-  events                   JobEvent[]
-  reviews                  Review[]
+  amount                  Decimal         @db.Decimal(12, 2)
+  status                  String          @default("AWARDED")
+  acceptedAt              DateTime?
+  startedAt               DateTime?
+  completedAt             DateTime?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  listing                 Listing?        @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  awardedBid              Bid?            @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
+  tender                  Tender?         @relation(fields: [tenderId], references: [id], onDelete: Restrict)
+  awardedTenderResponse   TenderResponse? @relation(fields: [awardedTenderResponseId], references: [id], onDelete: Restrict)
+  buyerCompany            Company         @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
+  providerCompany         Company         @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
+  events                  JobEvent[]
+  reviews                 Review[]
 
   @@index([buyerCompanyId])
   @@index([providerCompanyId])
@@ -241,6 +244,55 @@ model TenderResponse {
   @@index([tenderId, createdAt])
   @@index([companyId])
   @@index([status])
+}
+
+model GuestAuction {
+  id              String            @id @default(cuid())
+  createdByUserId String
+  title           String
+  itemDescription String
+  pickupLocation  String
+  deliveryLocation String
+  pickupDate      DateTime?
+  deliveryBy      DateTime?
+  auctionClosesAt DateTime
+  notes           String?
+  status          String            @default("OPEN")
+  awardedBidId    String?           @unique
+  awardedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdByUser   User              @relation("GuestAuctionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  bids            GuestAuctionBid[] @relation("GuestAuctionBids")
+  awardedBid      GuestAuctionBid?  @relation("GuestAuctionAwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
+
+  @@index([createdByUserId])
+  @@index([status])
+  @@index([auctionClosesAt])
+  @@index([createdAt])
+}
+
+model GuestAuctionBid {
+  id                 String       @id @default(cuid())
+  guestAuctionId     String
+  bidderCompanyId    String
+  placedByUserId     String
+  amount             Decimal      @db.Decimal(12, 2)
+  serviceDescription String?
+  leadTime           String?
+  notes              String?
+  status             String       @default("SUBMITTED")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  auction            GuestAuction @relation("GuestAuctionBids", fields: [guestAuctionId], references: [id], onDelete: Cascade)
+  bidderCompany      Company      @relation("GuestAuctionBidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
+  placedByUser       User         @relation("GuestAuctionBidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
+  awardedAuction     GuestAuction? @relation("GuestAuctionAwardedBid")
+
+  @@unique([guestAuctionId, bidderCompanyId])
+  @@index([guestAuctionId, createdAt])
+  @@index([bidderCompanyId])
+  @@index([placedByUserId])
 }
 
 model Notification {
