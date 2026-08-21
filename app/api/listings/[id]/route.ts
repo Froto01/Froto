@@ -105,6 +105,19 @@ export async function GET(
     !listing.awardedBidId;
   const canPause = isOwner && listing.status === "ACTIVE" && !listing.awardedBidId;
   const canReopen = isOwner && listing.status === "PAUSED" && !listing.awardedBidId;
+  const leadingBid = listing.bids[0] ?? null;
+  const viewerBids = viewerCompanyId
+    ? listing.bids.filter((bid) => bid.bidderCompanyId === viewerCompanyId)
+    : [];
+  const viewerBestBid = viewerBids.reduce(
+    (best, bid) => Math.max(best, Number(bid.amount)),
+    0
+  );
+  const viewerIsLeading = Boolean(
+    leadingBid && viewerCompanyId && leadingBid.bidderCompanyId === viewerCompanyId
+  );
+  const bidderLabels = new Map<string, number>();
+  let nextBidderLabel = 1;
 
   return NextResponse.json({
     id: listing.id,
@@ -126,19 +139,32 @@ export async function GET(
     currentBid,
     minimumNextBid,
     bidCount: listing.bids.length,
-    bids: listing.bids.map((bid) => ({
-      id: bid.id,
-      amount: Number(bid.amount),
-      createdAt: bid.createdAt.toISOString(),
-      bidderCompanyName: bid.bidderCompany.name,
-      bidderCompanyVerified: bid.bidderCompany.verified,
-      bidderCompanyId: bid.bidderCompanyId,
-      outcome: listing.awardedBidId
-        ? bid.id === listing.awardedBidId
-          ? "WINNER"
-          : "UNSUCCESSFUL"
-        : "ACTIVE",
-    })),
+    bids: listing.bids.map((bid) => {
+      if (!bidderLabels.has(bid.bidderCompanyId)) {
+        bidderLabels.set(bid.bidderCompanyId, nextBidderLabel);
+        nextBidderLabel += 1;
+      }
+
+      const isViewerBid = bid.bidderCompanyId === viewerCompanyId;
+      const isWinningBid = bid.id === listing.awardedBidId;
+      const canSeeIdentity = isOwner || isViewerBid || isWinningBid;
+
+      return {
+        id: bid.id,
+        amount: Number(bid.amount),
+        createdAt: bid.createdAt.toISOString(),
+        bidderCompanyName: canSeeIdentity
+          ? bid.bidderCompany.name
+          : `Bidder ${bidderLabels.get(bid.bidderCompanyId)}`,
+        bidderCompanyVerified: canSeeIdentity && bid.bidderCompany.verified,
+        bidderCompanyId: canSeeIdentity ? bid.bidderCompanyId : null,
+        outcome: listing.awardedBidId
+          ? isWinningBid
+            ? "WINNER"
+            : "UNSUCCESSFUL"
+          : "ACTIVE",
+      };
+    }),
     awardedBidId: listing.awardedBidId,
     awardedAt: listing.awardedAt?.toISOString() ?? null,
     notes: listing.notes,
@@ -152,6 +178,8 @@ export async function GET(
     canPause,
     canReopen,
     viewerCompanyId,
+    viewerBestBid: viewerBestBid || null,
+    viewerIsLeading,
     createdAt: listing.createdAt.toISOString(),
   });
 }
