@@ -23,6 +23,7 @@ model User {
   tendersCreated        Tender[]         @relation("TenderCreatedByUser")
   tenderResponses       TenderResponse[] @relation("TenderResponseSubmittedByUser")
   notifications         Notification[]   @relation("NotificationRecipientUser")
+  reviewsSubmitted      Review[]         @relation("ReviewSubmittedByUser")
   verificationsReviewed Company[]        @relation("CompanyVerificationReviewer")
 }
 
@@ -51,6 +52,8 @@ model Company {
   tenders                      Tender[]         @relation("TenderOwnerCompany")
   tenderResponses              TenderResponse[] @relation("TenderRespondingCompany")
   notifications                Notification[]   @relation("NotificationCompany")
+  reviewsGiven                 Review[]         @relation("ReviewAuthorCompany")
+  reviewsReceived              Review[]         @relation("ReviewSubjectCompany")
 
   @@index([verificationReviewedByUserId])
 }
@@ -139,11 +142,32 @@ model Job {
   buyerCompany             Company         @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
   providerCompany          Company         @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
   events                   JobEvent[]
+  reviews                  Review[]
 
   @@index([buyerCompanyId])
   @@index([providerCompanyId])
   @@index([status])
   @@index([createdAt])
+}
+
+model Review {
+  id                String   @id @default(cuid())
+  jobId             String
+  reviewerCompanyId String
+  reviewedCompanyId String
+  reviewerUserId    String
+  rating            Int
+  comment           String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  job               Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviewerCompany   Company  @relation("ReviewAuthorCompany", fields: [reviewerCompanyId], references: [id], onDelete: Restrict)
+  reviewedCompany   Company  @relation("ReviewSubjectCompany", fields: [reviewedCompanyId], references: [id], onDelete: Restrict)
+  reviewerUser      User     @relation("ReviewSubmittedByUser", fields: [reviewerUserId], references: [id], onDelete: Restrict)
+
+  @@unique([jobId, reviewerCompanyId])
+  @@index([reviewedCompanyId, createdAt])
+  @@index([reviewerUserId])
 }
 
 model JobEvent {
