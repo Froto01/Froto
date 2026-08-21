@@ -9,6 +9,7 @@ import {
   Clock3,
   PackageCheck,
   PlayCircle,
+  Star,
   Trophy,
 } from "lucide-react";
 
@@ -50,8 +51,8 @@ type JobDetail = {
   createdAt: string;
   viewerSide: "BUYER" | "PROVIDER";
   viewerRole: string;
-  buyerCompany: { id: string; name: string; verified: boolean };
-  providerCompany: { id: string; name: string; verified: boolean };
+  buyerCompany: { id: string; name: string; verified: boolean; ratingAverage: number | null; reviewCount: number };
+  providerCompany: { id: string; name: string; verified: boolean; ratingAverage: number | null; reviewCount: number };
   source: JobSource;
   events: Array<{
     id: string;
@@ -60,6 +61,15 @@ type JobDetail = {
     createdAt: string;
     actorCompanyName: string | null;
     actorUserName: string | null;
+  }>;
+  reviews: Array<{
+    id: string;
+    rating: number;
+    comment: string | null;
+    createdAt: string;
+    reviewerCompany: { id: string; name: string; verified: boolean };
+    reviewedCompany: { id: string; name: string; verified: boolean };
+    isViewerReview: boolean;
   }>;
 };
 
@@ -114,6 +124,11 @@ function actionNotePrompt(status: JobStatus) {
   return "Optional: add a final confirmation note for the buyer.";
 }
 
+function reputationLabel(average: number | null, count: number) {
+  if (!count || average === null) return "No verified reviews yet";
+  return `${average.toFixed(1)} from ${count} verified review${count === 1 ? "" : "s"}`;
+}
+
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
   const [job, setJob] = useState<JobDetail | null>(null);
@@ -123,6 +138,11 @@ export default function JobDetailPage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [actionNote, setActionNote] = useState("");
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
   const jobStatus = job?.status;
 
   const loadJob = useCallback(async () => {
@@ -184,6 +204,33 @@ export default function JobDetailPage() {
     }
   }
 
+  async function submitReview() {
+    if (!reviewRating) return;
+
+    setReviewSubmitting(true);
+    setReviewError(null);
+    setReviewSuccess(null);
+
+    try {
+      const response = await fetch(`/api/jobs/${params.id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) throw new Error(data.error ?? "Review could not be submitted.");
+
+      setReviewSuccess("Verified review submitted.");
+      setReviewComment("");
+      await loadJob();
+    } catch (caughtError) {
+      setReviewError(caughtError instanceof Error ? caughtError.message : "Review could not be submitted.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white">
@@ -208,6 +255,11 @@ export default function JobDetailPage() {
   }
 
   const action = nextAction(job);
+  const canReview =
+    job.status === "COMPLETED" &&
+    !job.reviews.some((review) => review.isViewerReview) &&
+    ["OWNER", "ADMIN", "MANAGER"].includes(job.viewerRole);
+  const reviewTarget = job.viewerSide === "BUYER" ? job.providerCompany : job.buyerCompany;
   const sourceLabel = job.source.type === "TENDER" ? "Tender job" : "Marketplace job";
   const sourceButton = job.source.type === "TENDER" ? "View original tender" : "View original listing";
 
@@ -255,10 +307,18 @@ export default function JobDetailPage() {
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Buyer</p>
                   <p className="mt-1 font-semibold text-froto-navy">{job.buyerCompany.name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    {reputationLabel(job.buyerCompany.ratingAverage, job.buyerCompany.reviewCount)}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Provider</p>
                   <p className="mt-1 font-semibold text-froto-navy">{job.providerCompany.name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    {reputationLabel(job.providerCompany.ratingAverage, job.providerCompany.reviewCount)}
+                  </p>
                 </div>
               </div>
 
@@ -332,6 +392,79 @@ export default function JobDetailPage() {
                 {actionError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p> : null}
               </CardContent>
             </Card>
+
+            {job.status === "COMPLETED" ? (
+              <Card className="rounded-[1.8rem] border-amber-200/70 bg-white shadow-md shadow-froto-navy/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg text-froto-navy">
+                    <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                    Verified reviews
+                  </CardTitle>
+                  <p className="text-sm text-slate-500">Only companies that completed this Froto job can review each other.</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {canReview ? (
+                    <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/40 p-4">
+                      <p className="font-semibold text-froto-navy">Review {reviewTarget.name}</p>
+                      <div className="flex gap-1" role="radiogroup" aria-label="Review rating">
+                        {[1, 2, 3, 4, 5].map((rating) => (
+                          <button
+                            key={rating}
+                            type="button"
+                            role="radio"
+                            aria-checked={reviewRating === rating}
+                            aria-label={`${rating} star${rating === 1 ? "" : "s"}`}
+                            onClick={() => setReviewRating(rating)}
+                            className="rounded-lg p-1.5 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                          >
+                            <Star className={`h-7 w-7 ${rating <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                          </button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={reviewComment}
+                        onChange={(event) => setReviewComment(event.target.value.slice(0, 1000))}
+                        placeholder="Optional: describe communication, reliability and the completed service."
+                        rows={4}
+                        className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
+                      />
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span>Published as a verified transaction review.</span>
+                        <span>{reviewComment.length}/1000</span>
+                      </div>
+                      <Button className="w-full bg-froto-navy hover:bg-[#0a356f]" disabled={!reviewRating || reviewSubmitting} onClick={() => void submitReview()}>
+                        {reviewSubmitting ? "Submitting..." : "Submit verified review"}
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {reviewSuccess ? <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{reviewSuccess}</p> : null}
+                  {reviewError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{reviewError}</p> : null}
+
+                  {job.reviews.length === 0 ? (
+                    <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No reviews have been submitted for this job yet.</p>
+                  ) : (
+                    job.reviews.map((review) => (
+                      <div key={review.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-froto-navy">{review.reviewerCompany.name} reviewed {review.reviewedCompany.name}</p>
+                            <div className="mt-1 flex items-center gap-1" aria-label={`${review.rating} out of 5 stars`}>
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star key={star} className={`h-4 w-4 ${star <= review.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                              ))}
+                              <Badge className="ml-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Verified job</Badge>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-500">{formatDateTime(review.createdAt)}</p>
+                        </div>
+                        {review.comment ? <p className="mt-3 text-sm leading-6 text-slate-700">{review.comment}</p> : null}
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
 
             <Card className="rounded-[1.8rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
               <CardHeader>
