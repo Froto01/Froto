@@ -59,7 +59,7 @@ export default async function DashboardPage() {
 
   const [
     activeListingCount,
-    activeListings,
+    companyListings,
     activeBidCount,
     activeJobCount,
     wonJobCount,
@@ -72,10 +72,10 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     prisma.listing.count({ where: { companyId: company.id, status: "ACTIVE" } }),
     prisma.listing.findMany({
-      where: { companyId: company.id, status: "ACTIVE" },
+      where: { companyId: company.id },
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { bids: true } } },
-      take: 8,
+      take: 12,
     }),
     prisma.bid.count({ where: { bidderCompanyId: company.id, listing: { status: "ACTIVE" } } }),
     prisma.job.count({
@@ -139,6 +139,7 @@ export default async function DashboardPage() {
     { label: "Jobs won", value: wonJobCount, detail: "Awards won by your company", icon: RadioTower, tone: "cyan" },
     { label: "Completed", value: completedJobCount, detail: "Finished Froto jobs", icon: CheckCircle2, tone: "navy" },
   ];
+  const dashboardLoadedAt = new Date().getTime();
 
   const toneClasses: Record<string, string> = {
     blue: "bg-blue-50 text-froto-blue ring-blue-100",
@@ -177,9 +178,14 @@ export default async function DashboardPage() {
         </section>
 
         <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
-          <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Capacity controls</p><CardTitle className="mt-1 text-xl text-froto-navy">My active listings</CardTitle></div><PackageCheck className="h-5 w-5 text-froto-blue" /></div></CardHeader>
+          <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Capacity controls</p><CardTitle className="mt-1 text-xl text-froto-navy">My listings</CardTitle></div><PackageCheck className="h-5 w-5 text-froto-blue" /></div></CardHeader>
           <CardContent className="space-y-3">
-            {activeListings.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No active listings. Create capacity when you are ready to go to market.</div> : activeListings.map((listing) => <div key={listing.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{listing.title}</p><Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue hover:bg-blue-50">{listing._count.bids} bid{listing._count.bids === 1 ? "" : "s"}</Badge></div><p className="mt-1 text-sm text-slate-500">{listing.listingType === "Transport Lane" ? `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}` : listing.location ?? "Warehouse space"}</p><p className="mt-1 text-xs text-slate-500">{listing._count.bids === 0 ? "Editable until the first bid is placed" : "Editing locked after bidding started · cancellation still available until award"}</p></div><div className="flex gap-2"><Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href={`/platform/listing/${listing.id}`}>View</Link></Button><Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href={`/platform/listings/${listing.id}/edit`}><Pencil className="h-4 w-4" />Manage</Link></Button></div></div>)}
+            {companyListings.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No listings yet. Create capacity when you are ready to go to market.</div> : companyListings.map((listing) => {
+              const biddingExpired = Boolean(listing.biddingClosesAt && listing.biddingClosesAt.getTime() <= dashboardLoadedAt);
+              const displayStatus = listing.status === "ACTIVE" && biddingExpired ? "CLOSED" : listing.status;
+              const statusClass = displayStatus === "ACTIVE" ? "bg-froto-green text-white" : displayStatus === "PAUSED" ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-700";
+              return <div key={listing.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{listing.title}</p><Badge className={statusClass}>{statusLabel(displayStatus)}</Badge><Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue hover:bg-blue-50">{listing._count.bids} bid{listing._count.bids === 1 ? "" : "s"}</Badge></div><p className="mt-1 text-sm text-slate-500">{listing.listingType === "Transport Lane" ? `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}` : listing.location ?? "Warehouse space"}</p><p className="mt-1 text-xs text-slate-500">{displayStatus === "PAUSED" ? "Hidden from the marketplace until reopened" : listing._count.bids === 0 ? "Editable until the first bid is placed" : "Editing locked after bidding started · cancellation still available until award"}</p></div><div className="flex gap-2"><Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href={`/platform/listing/${listing.id}`}>View</Link></Button><Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href={`/platform/listings/${listing.id}/edit`}><Pencil className="h-4 w-4" />Manage</Link></Button></div></div>;
+            })}
           </CardContent>
         </Card>
 
@@ -212,7 +218,7 @@ export default async function DashboardPage() {
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-green">Structured sourcing</p><CardTitle className="mt-1 text-xl text-froto-navy">Tender activity</CardTitle></div><ClipboardList className="h-5 w-5 text-froto-green" /></div></CardHeader>
           <CardContent className="space-y-3">
             {companyTenders.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No tenders created yet. Your company has submitted {responseCount} tender response{responseCount === 1 ? "" : "s"}.</div> : companyTenders.map((tender) => {
-              const state = tender.awardedResponseId ? "Awarded" : tender.responseClosesAt.getTime() <= Date.now() ? "Closed" : "Open";
+              const state = tender.awardedResponseId ? "Awarded" : tender.responseClosesAt.getTime() <= dashboardLoadedAt ? "Closed" : "Open";
               return <Link key={tender.id} href={`/platform/tenders/${tender.id}`} className="block rounded-2xl border border-froto-green/10 bg-emerald-50/30 p-4 transition-colors hover:bg-emerald-50/60"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{tender.title}</p><Badge className={state === "Open" ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{state}</Badge></div><p className="mt-1 text-sm text-slate-500">{tender._count.responses} response{tender._count.responses === 1 ? "" : "s"}</p></div><span className="text-sm font-medium text-froto-teal">View tender</span></div></Link>;
             })}
             <Button asChild variant="outline" className="border-froto-green/15 text-froto-navy"><Link href="/platform#tenders">Open Tender marketplace</Link></Button>
