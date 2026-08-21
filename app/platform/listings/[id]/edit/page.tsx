@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CirclePause, CirclePlay, Pencil, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,8 @@ type ListingResponse = {
   isOwner: boolean;
   canEdit: boolean;
   canCancel: boolean;
+  canPause: boolean;
+  canReopen: boolean;
   notes: string | null;
 };
 
@@ -74,6 +76,7 @@ export default function EditListingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -167,6 +170,39 @@ export default function EditListingPage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Listing could not be cancelled.");
       setIsCancelling(false);
+    }
+  }
+
+  async function changeStatus(action: "PAUSE" | "REOPEN") {
+    setIsChangingStatus(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`/api/listings/${params.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = (await response.json()) as { error?: string; status?: string };
+      if (!response.ok) throw new Error(data.error ?? "Listing status could not be changed.");
+
+      setListing((current) =>
+        current
+          ? {
+              ...current,
+              status: data.status ?? current.status,
+              canPause: action === "REOPEN",
+              canReopen: action === "PAUSE",
+            }
+          : current
+      );
+      setSuccess(action === "PAUSE" ? "Listing paused and removed from the marketplace." : "Listing reopened in the marketplace.");
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Listing status could not be changed.");
+    } finally {
+      setIsChangingStatus(false);
     }
   }
 
@@ -281,6 +317,16 @@ export default function EditListingPage() {
               <p><span className="font-medium text-froto-navy">Status:</span> {listing.status}</p>
               <p className="mt-1"><span className="font-medium text-froto-navy">Bids:</span> {listing.bidCount}</p>
             </div>
+            {listing.canPause ? (
+              <Button type="button" variant="outline" disabled={isChangingStatus} onClick={() => changeStatus("PAUSE")} className="w-full gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800">
+                <CirclePause className="h-4 w-4" />{isChangingStatus ? "Pausing..." : "Pause listing"}
+              </Button>
+            ) : null}
+            {listing.canReopen ? (
+              <Button type="button" variant="outline" disabled={isChangingStatus} onClick={() => changeStatus("REOPEN")} className="w-full gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800">
+                <CirclePlay className="h-4 w-4" />{isChangingStatus ? "Reopening..." : "Reopen listing"}
+              </Button>
+            ) : null}
             {listing.canCancel ? (
               <Button type="button" variant="outline" disabled={isCancelling} onClick={cancelListing} className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800">
                 <Trash2 className="h-4 w-4" />{isCancelling ? "Cancelling..." : "Cancel listing"}
