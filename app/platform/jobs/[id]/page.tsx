@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-type JobStatus = "AWARDED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED";
+type JobStatus = "AWARDED" | "ACCEPTED" | "IN_PROGRESS" | "DELIVERED" | "COMPLETED";
 
 type JobSource =
   | {
@@ -95,10 +95,23 @@ function nextAction(job: JobDetail) {
   }
 
   if (job.status === "IN_PROGRESS" && job.viewerSide === "PROVIDER") {
-    return { status: "COMPLETED" as const, label: "Mark completed", icon: PackageCheck };
+    return { status: "DELIVERED" as const, label: "Mark delivered", icon: PackageCheck };
+  }
+
+  if (job.status === "DELIVERED" && job.viewerSide === "BUYER") {
+    return { status: "COMPLETED" as const, label: "Confirm completion", icon: CheckCircle2 };
   }
 
   return null;
+}
+
+const WORKFLOW_STEPS: JobStatus[] = ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"];
+
+function actionNotePrompt(status: JobStatus) {
+  if (status === "ACCEPTED") return "Optional: add access, timing or contact instructions for the provider.";
+  if (status === "IN_PROGRESS") return "Optional: add a vehicle, booking or job reference for the buyer.";
+  if (status === "DELIVERED") return "Optional: add delivery details or completion evidence for the buyer.";
+  return "Optional: add a final confirmation note for the provider.";
 }
 
 export default function JobDetailPage() {
@@ -109,6 +122,8 @@ export default function JobDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [actionNote, setActionNote] = useState("");
+  const jobStatus = job?.status;
 
   const loadJob = useCallback(async () => {
     try {
@@ -132,6 +147,13 @@ export default function JobDetailPage() {
     void loadJob();
   }, [loadJob]);
 
+  useEffect(() => {
+    if (!jobStatus || jobStatus === "COMPLETED") return;
+
+    const interval = window.setInterval(() => void loadJob(), 10_000);
+    return () => window.clearInterval(interval);
+  }, [jobStatus, loadJob]);
+
   async function updateStatus(status: JobStatus) {
     setUpdating(true);
     setActionError(null);
@@ -141,7 +163,7 @@ export default function JobDetailPage() {
       const response = await fetch(`/api/jobs/${params.id}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, note: actionNote }),
       });
 
       const data = (await response.json()) as { error?: string };
@@ -151,6 +173,7 @@ export default function JobDetailPage() {
       }
 
       setActionSuccess(`Job moved to ${statusLabel(status)}.`);
+      setActionNote("");
       await loadJob();
     } catch (caughtError) {
       setActionError(
@@ -268,10 +291,27 @@ export default function JobDetailPage() {
                 </div>
 
                 {action ? (
-                  <Button className="w-full gap-2 bg-froto-navy hover:bg-[#0a356f]" disabled={updating} onClick={() => void updateStatus(action.status)}>
-                    <action.icon className="h-4 w-4" />
-                    {updating ? "Updating..." : action.label}
-                  </Button>
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-froto-navy" htmlFor="job-action-note">
+                      Update note
+                    </label>
+                    <textarea
+                      id="job-action-note"
+                      value={actionNote}
+                      onChange={(event) => setActionNote(event.target.value.slice(0, 500))}
+                      placeholder={actionNotePrompt(action.status)}
+                      rows={3}
+                      className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-froto-blue focus:ring-2 focus:ring-froto-blue/15"
+                    />
+                    <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
+                      <span>Saved in the job history.</span>
+                      <span>{actionNote.length}/500</span>
+                    </div>
+                    <Button className="w-full gap-2 bg-froto-navy hover:bg-[#0a356f]" disabled={updating} onClick={() => void updateStatus(action.status)}>
+                      <action.icon className="h-4 w-4" />
+                      {updating ? "Updating..." : action.label}
+                    </Button>
+                  </div>
                 ) : job.status === "COMPLETED" ? (
                   <div className="flex items-center gap-2 rounded-2xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
                     <Trophy className="h-4 w-4" />
@@ -297,10 +337,26 @@ export default function JobDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg text-froto-navy">
                   <Clock3 className="h-5 w-5 text-froto-blue" />
-                  Job history
+                  Job timeline
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div className="grid grid-cols-5 gap-2 pb-2" aria-label="Job workflow progress">
+                  {WORKFLOW_STEPS.map((step, index) => {
+                    const currentIndex = WORKFLOW_STEPS.indexOf(job.status);
+                    const reached = index <= currentIndex;
+                    const current = step === job.status;
+
+                    return (
+                      <div key={step} className="min-w-0 text-center">
+                        <div className={`mx-auto mb-2 h-2.5 w-2.5 rounded-full ${reached ? "bg-froto-green" : "bg-slate-200"}`} />
+                        <p className={`text-[10px] font-semibold sm:text-xs ${current ? "text-froto-navy" : reached ? "text-froto-green" : "text-slate-400"}`}>
+                          {statusLabel(step)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
                 {job.events.map((event) => (
                   <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                     <div className="flex items-start justify-between gap-3">
