@@ -52,6 +52,13 @@ export async function GET(
           actorUser: { select: { firstName: true, lastName: true, email: true } },
         },
       },
+      reviews: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          reviewerCompany: { select: { id: true, name: true, verified: true } },
+          reviewedCompany: { select: { id: true, name: true, verified: true } },
+        },
+      },
     },
   });
 
@@ -103,6 +110,19 @@ export async function GET(
     return NextResponse.json({ error: "This job has no transaction source." }, { status: 409 });
   }
 
+  const [buyerReputation, providerReputation] = await Promise.all([
+    prisma.review.aggregate({
+      where: { reviewedCompanyId: job.buyerCompanyId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    }),
+    prisma.review.aggregate({
+      where: { reviewedCompanyId: job.providerCompanyId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    }),
+  ]);
+
   return NextResponse.json({
     id: job.id,
     listingId: job.listingId,
@@ -118,8 +138,16 @@ export async function GET(
     updatedAt: job.updatedAt.toISOString(),
     viewerSide,
     viewerRole: membership.role,
-    buyerCompany: job.buyerCompany,
-    providerCompany: job.providerCompany,
+    buyerCompany: {
+      ...job.buyerCompany,
+      ratingAverage: buyerReputation._avg.rating,
+      reviewCount: buyerReputation._count.rating,
+    },
+    providerCompany: {
+      ...job.providerCompany,
+      ratingAverage: providerReputation._avg.rating,
+      reviewCount: providerReputation._count.rating,
+    },
     source,
     events: job.events.map((event) => ({
       id: event.id,
@@ -131,7 +159,16 @@ export async function GET(
       actorUserName:
         [event.actorUser?.firstName, event.actorUser?.lastName]
           .filter(Boolean)
-          .join(" ") || event.actorUser?.email || null,
+        .join(" ") || event.actorUser?.email || null,
+    })),
+    reviews: job.reviews.map((review) => ({
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt.toISOString(),
+      reviewerCompany: review.reviewerCompany,
+      reviewedCompany: review.reviewedCompany,
+      isViewerReview: review.reviewerCompanyId === membership.companyId,
     })),
   });
 }
