@@ -63,12 +63,26 @@ export async function POST(
     );
   }
 
+  if (Math.round(amount * 100) !== amount * 100) {
+    return NextResponse.json(
+      { error: "Bid amounts can have no more than two decimal places." },
+      { status: 400 }
+    );
+  }
+
   const user = await prisma.user.findUnique({
     where: {
       clerkId: userId,
     },
     include: {
-      companies: true,
+      companies: {
+        take: 1,
+        include: {
+          company: {
+            select: { name: true, verified: true },
+          },
+        },
+      },
     },
   });
 
@@ -168,6 +182,22 @@ export async function POST(
               bidderCompanyId: membership.companyId,
               placedByUserId: user.id,
               amount,
+            },
+          });
+
+          await tx.notification.create({
+            data: {
+              companyId: listing.companyId,
+              type: "MARKETPLACE_BID_RECEIVED",
+              title: "New bid received",
+              message: `${membership.company.name}${membership.company.verified ? " (Verified)" : ""} bid ${Number(bid.amount).toLocaleString("en-AU", { style: "currency", currency: "AUD" })} on ${listing.title}.`,
+              href: `/platform/listing/${listing.id}`,
+              metadata: {
+                listingId: listing.id,
+                bidId: bid.id,
+                bidderCompanyId: membership.companyId,
+                amount: Number(bid.amount),
+              },
             },
           });
 
