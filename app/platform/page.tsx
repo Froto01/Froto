@@ -42,6 +42,7 @@ type MarketplaceListing = {
   status: string;
   companyName: string;
   companyVerified: boolean;
+  isOwner: boolean;
   createdAt: string;
 };
 
@@ -383,7 +384,7 @@ export default function PlatformPage() {
                       </div>
                     </div>
                     <CardContent className="space-y-4 p-5">
-                      <div><h2 className="text-xl font-semibold text-froto-navy">{listing.title}</h2><p className="mt-1 text-xs text-slate-500">Listed by {listing.companyName}{listing.companyVerified ? " · Verified" : ""}</p></div>
+                      <div><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold text-froto-navy">{listing.title}</h2>{listing.isOwner ? <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue">Your listing</Badge> : null}</div><p className="mt-1 text-xs text-slate-500">Listed by {listing.companyName}{listing.companyVerified ? " · Verified" : ""}</p></div>
                       <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm"><p className="font-medium text-slate-700">{listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}</p><p className="mt-1 text-slate-500">{listingLocation(listing)}</p></div>
                       <p className="text-xs font-medium text-slate-500">{listing.biddingClosesAt ? `${listing.auctionState === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(listing.biddingClosesAt)}` : "No bidding close time set"}</p>
                       <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
