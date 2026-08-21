@@ -95,8 +95,16 @@ export async function GET(
         : "OPEN";
   const isOwner = viewerCompanyId === listing.companyId;
   const canAward = isOwner && auctionState === "CLOSED" && listing.bids.length > 0;
-  const canEdit = isOwner && listing.status === "ACTIVE" && listing.bids.length === 0;
-  const canCancel = isOwner && listing.status === "ACTIVE" && !listing.awardedBidId;
+  const canEdit =
+    isOwner &&
+    (listing.status === "ACTIVE" || listing.status === "PAUSED") &&
+    listing.bids.length === 0;
+  const canCancel =
+    isOwner &&
+    (listing.status === "ACTIVE" || listing.status === "PAUSED") &&
+    !listing.awardedBidId;
+  const canPause = isOwner && listing.status === "ACTIVE" && !listing.awardedBidId;
+  const canReopen = isOwner && listing.status === "PAUSED" && !listing.awardedBidId;
 
   return NextResponse.json({
     id: listing.id,
@@ -141,6 +149,8 @@ export async function GET(
     canAward,
     canEdit,
     canCancel,
+    canPause,
+    canReopen,
     viewerCompanyId,
     createdAt: listing.createdAt.toISOString(),
   });
@@ -185,7 +195,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Only the listing company can edit this listing." }, { status: 403 });
   }
 
-  if (existing.status !== "ACTIVE" || existing.awardedBidId) {
+  if (
+    (existing.status !== "ACTIVE" && existing.status !== "PAUSED") ||
+    existing.awardedBidId
+  ) {
     return NextResponse.json({ error: "This listing can no longer be edited." }, { status: 409 });
   }
 
