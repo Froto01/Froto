@@ -78,6 +78,7 @@ export default function GuestAuctionsPage() {
   }
 
   if (loading) return <main className="min-h-screen bg-froto-ice p-8 text-slate-500">Loading guest auctions...</main>;
+  if (!data) return <main className="min-h-screen bg-froto-ice p-8 text-red-700">{error ?? "Guest auctions could not be loaded."}</main>;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -93,7 +94,7 @@ export default function GuestAuctionsPage() {
 
         {error ? <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
-        {data?.viewerType === "GUEST_OWNER" ? (
+        {data.viewerType === "GUEST_OWNER" ? (
           <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <Card className="rounded-[1.7rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
               <CardHeader><CardTitle className="flex items-center gap-2 text-froto-navy"><PackagePlus className="h-5 w-5 text-froto-blue" />Post a transport job</CardTitle></CardHeader>
