@@ -41,7 +41,7 @@ export async function sendOpportunityEmail(
   input: OpportunityEmailInput
 ): Promise<OpportunityEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+  const from = process.env.FROTO_EMAIL_FROM;
 
   if (!apiKey || !from) {
     return { status: "skipped", reason: "not-configured" };
