@@ -54,11 +54,12 @@ export async function sendOpportunityEmail(
   const locations = input.locations.filter(Boolean);
   const locationText = locations.length > 0 ? locations.join(" → ") : "your saved area";
   const openUrl = absoluteUrl(input.href);
+  const manageAlertsUrl = absoluteUrl("/platform/opportunity-alerts");
   const greeting = input.recipientName?.trim()
     ? `Hi ${input.recipientName.trim()},`
     : "Hi,";
 
-  const text = `${greeting}\n\nFroto found a new opportunity matching your alert “${input.alertName}”.\n\n${input.opportunityTitle}\n${locationText}\n\nOpen opportunity: ${openUrl}\n\nYou are receiving this because email alerts are enabled for this saved Froto opportunity alert.`;
+  const text = `${greeting}\n\nFroto found a new opportunity matching your alert “${input.alertName}”.\n\n${input.opportunityTitle}\n${locationText}\n\nOpen opportunity: ${openUrl}\n\nYou are receiving this because email alerts are enabled for this saved Froto opportunity alert. Manage or stop alerts: ${manageAlertsUrl}`;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#0f172a;line-height:1.6">
@@ -70,7 +71,7 @@ export async function sendOpportunityEmail(
         <p style="margin:0;color:#475569">${escapeHtml(locationText)}</p>
       </div>
       <p><a href="${escapeHtml(openUrl)}" style="display:inline-block;background:#0b2f63;color:#ffffff;text-decoration:none;padding:11px 16px;border-radius:10px;font-weight:600">Open opportunity</a></p>
-      <p style="margin-top:28px;font-size:12px;color:#64748b">You are receiving this because email alerts are enabled for this saved Froto opportunity alert.</p>
+      <p style="margin-top:28px;font-size:12px;color:#64748b">You are receiving this because email alerts are enabled for this saved Froto opportunity alert. <a href="${escapeHtml(manageAlertsUrl)}" style="color:#2563eb">Manage or stop opportunity alerts</a>.</p>
     </div>`;
 
   try {
