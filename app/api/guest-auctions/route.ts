@@ -138,10 +138,23 @@ export async function GET() {
 
   const auctions = await prisma.guestAuction.findMany({
     where: {
-      status: "OPEN",
-      auctionClosesAt: { gt: new Date() },
+      OR: [
+        {
+          status: "OPEN",
+          auctionClosesAt: { gt: new Date() },
+        },
+        {
+          status: { in: ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"] },
+          bids: {
+            some: {
+              bidderCompanyId: membership.companyId,
+              status: "AWARDED",
+            },
+          },
+        },
+      ],
     },
-    orderBy: { auctionClosesAt: "asc" },
+    orderBy: { updatedAt: "desc" },
     include: {
       bids: {
         where: { bidderCompanyId: membership.companyId },
@@ -171,6 +184,8 @@ export async function GET() {
       deliveryBy: auction.deliveryBy?.toISOString() ?? null,
       auctionClosesAt: auction.auctionClosesAt.toISOString(),
       notes: auction.notes,
+      status: auction.status,
+      awardedAt: auction.awardedAt?.toISOString() ?? null,
       ownBid: auction.bids[0]
         ? {
             ...auction.bids[0],
