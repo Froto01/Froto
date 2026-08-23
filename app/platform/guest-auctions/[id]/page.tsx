@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, LockKeyhole, Star } from "lucide-react";
+import { ArrowLeft, CheckCircle2, LockKeyhole, Star, Truck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,14 @@ type OwnerBid = {
   awarded: boolean;
   company: { id: string; name: string; verified: boolean; ratingAverage: number | null; reviewCount: number; completedJobs: number };
 };
+
+function statusLabel(status: string) {
+  return status
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 export default function GuestAuctionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -115,11 +123,38 @@ export default function GuestAuctionDetailPage() {
     } finally { setSaving(false); }
   }
 
+  async function updateJob(action: "ACCEPT" | "START" | "DELIVER" | "COMPLETE") {
+    const prompts: Record<typeof action, string> = {
+      ACCEPT: "Accept this guest transport job?",
+      START: "Confirm that work has started?",
+      DELIVER: "Mark this transport job as delivered? The guest will then be asked to confirm completion.",
+      COMPLETE: "Confirm that the winning company completed this transport job?",
+    };
+    if (!window.confirm(prompts[action])) return;
+
+    setSaving(true); setError(null);
+    try {
+      const response = await fetch(`/api/guest-auctions/${params.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(payload.error ?? "Guest job could not be updated.");
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Guest job could not be updated.");
+    } finally { setSaving(false); }
+  }
+
   if (loading) return <main className="min-h-screen bg-froto-ice p-8 text-slate-500">Loading guest job...</main>;
   if (!detail) return <main className="min-h-screen bg-froto-ice p-8 text-red-700">{error ?? "Guest job not found."}</main>;
 
   const closed = new Date(detail.auction.auctionClosesAt).getTime() <= Date.now();
   const canAward = detail.auction.status === "OPEN";
+  const winningBid = ownerBids.find((bid) => bid.awarded);
+  const viewerWon = detail.viewerType === "COMPANY_BIDDER" && detail.ownBid?.status === "AWARDED";
+  const operational = ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"].includes(detail.auction.status);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -129,7 +164,7 @@ export default function GuestAuctionDetailPage() {
 
         <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <Card className="rounded-[1.8rem] border-froto-blue/10 bg-white shadow-lg shadow-froto-navy/5">
-            <CardHeader><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Guest transport job</p><CardTitle className="mt-1 text-2xl text-froto-navy">{detail.auction.title}</CardTitle></div><Badge className="bg-froto-navy text-white">{detail.auction.status}</Badge></div></CardHeader>
+            <CardHeader><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Guest transport job</p><CardTitle className="mt-1 text-2xl text-froto-navy">{detail.auction.title}</CardTitle></div><Badge className="bg-froto-navy text-white">{statusLabel(detail.auction.status)}</Badge></div></CardHeader>
             <CardContent className="space-y-4 text-sm text-slate-600">
               <div className="rounded-2xl bg-slate-50 p-4"><p className="font-semibold text-froto-navy">{detail.auction.pickupLocation} → {detail.auction.deliveryLocation}</p><p className="mt-2 leading-6">{detail.auction.itemDescription}</p></div>
               <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl border p-3"><span className="text-xs text-slate-500">Pickup</span><p className="mt-1 font-medium text-froto-navy">{detail.auction.pickupDate ? new Date(detail.auction.pickupDate).toLocaleDateString("en-AU") : "Flexible"}</p></div><div className="rounded-xl border p-3"><span className="text-xs text-slate-500">Auction closes</span><p className="mt-1 font-medium text-froto-navy">{new Date(detail.auction.auctionClosesAt).toLocaleString("en-AU")}</p></div></div>
@@ -165,7 +200,7 @@ export default function GuestAuctionDetailPage() {
                     {bid.serviceDescription ? <p className="mt-3 text-sm text-slate-700">{bid.serviceDescription}</p> : null}
                     {bid.leadTime ? <p className="mt-2 text-sm text-slate-500">Timing: {bid.leadTime}</p> : null}
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                      <Badge className={bid.awarded ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}>{bid.awarded ? "Selected winner" : bid.status}</Badge>
+                      <Badge className={bid.awarded ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}>{bid.awarded ? "Selected winner" : statusLabel(bid.status)}</Badge>
                       {canAward ? (
                         <Button disabled={saving} onClick={() => void awardBid(bid.id, !closed)} className="bg-froto-navy hover:bg-[#0a356f]">
                           {saving ? "Working..." : closed ? "Award this company" : "Close bidding & award"}
@@ -177,9 +212,54 @@ export default function GuestAuctionDetailPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="rounded-[1.8rem] border-froto-teal/10 bg-white shadow-lg shadow-froto-navy/5"><CardHeader><CardTitle className="text-froto-navy">Your sealed bid</CardTitle><p className="text-sm text-slate-500">Only the guest customer can compare all bids.</p></CardHeader><CardContent>{detail.ownBid ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5"><p className="text-sm text-slate-500">Your submitted offer</p><p className="mt-1 text-3xl font-semibold text-froto-navy">${detail.ownBid.amount.toLocaleString("en-AU")}</p><Badge className="mt-3 bg-froto-navy text-white">{detail.ownBid.status}</Badge>{detail.ownBid.serviceDescription ? <p className="mt-3 text-sm text-slate-700">{detail.ownBid.serviceDescription}</p> : null}</div> : !closed && detail.auction.status === "OPEN" ? <div className="space-y-4"><Input type="number" min="1" step="0.01" placeholder="Your total price (AUD)" value={amount} onChange={(e) => setAmount(e.target.value)} /><textarea rows={4} placeholder="Describe your service and what's included" value={serviceDescription} onChange={(e) => setServiceDescription(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" /><Input placeholder="Lead time / timing" value={leadTime} onChange={(e) => setLeadTime(e.target.value)} /><textarea rows={3} placeholder="Optional notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" /><Button disabled={saving || !amount} onClick={() => void submitBid()} className="w-full bg-froto-navy hover:bg-[#0a356f]">{saving ? "Submitting..." : "Submit sealed bid"}</Button></div> : <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Bidding is closed for this guest job.</p>}</CardContent></Card>
+            <Card className="rounded-[1.8rem] border-froto-teal/10 bg-white shadow-lg shadow-froto-navy/5">
+              <CardHeader><CardTitle className="text-froto-navy">Your sealed bid</CardTitle><p className="text-sm text-slate-500">Only the guest customer can compare all bids.</p></CardHeader>
+              <CardContent>
+                {detail.ownBid ? (
+                  <div className={`rounded-2xl border p-5 ${detail.ownBid.status === "NOT_SELECTED" ? "border-slate-200 bg-slate-50" : "border-emerald-200 bg-emerald-50/40"}`}>
+                    <p className="text-sm text-slate-500">Your submitted offer</p><p className="mt-1 text-3xl font-semibold text-froto-navy">${detail.ownBid.amount.toLocaleString("en-AU")}</p><Badge className="mt-3 bg-froto-navy text-white">{statusLabel(detail.ownBid.status)}</Badge>{detail.ownBid.serviceDescription ? <p className="mt-3 text-sm text-slate-700">{detail.ownBid.serviceDescription}</p> : null}
+                  </div>
+                ) : !closed && detail.auction.status === "OPEN" ? (
+                  <div className="space-y-4"><Input type="number" min="1" step="0.01" placeholder="Your total price (AUD)" value={amount} onChange={(e) => setAmount(e.target.value)} /><textarea rows={4} placeholder="Describe your service and what's included" value={serviceDescription} onChange={(e) => setServiceDescription(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" /><Input placeholder="Lead time / timing" value={leadTime} onChange={(e) => setLeadTime(e.target.value)} /><textarea rows={3} placeholder="Optional notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" /><Button disabled={saving || !amount} onClick={() => void submitBid()} className="w-full bg-froto-navy hover:bg-[#0a356f]">{saving ? "Submitting..." : "Submit sealed bid"}</Button></div>
+                ) : <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Bidding is closed for this guest job.</p>}
+              </CardContent>
+            </Card>
           )}
         </div>
+
+        {operational ? (
+          <Card className="mt-6 rounded-[1.8rem] border-emerald-100 bg-white shadow-lg shadow-froto-navy/5">
+            <CardHeader>
+              <div className="flex items-center gap-3"><Truck className="h-5 w-5 text-froto-teal" /><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">Post-award transport</p><CardTitle className="mt-1 text-xl text-froto-navy">Job progress · {statusLabel(detail.auction.status)}</CardTitle></div></div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {detail.viewerType === "GUEST_OWNER" ? (
+                <>
+                  <p className="text-sm text-slate-600">
+                    {detail.auction.status === "AWARDED" && `Waiting for ${winningBid?.company.name ?? "the winning company"} to accept the job.`}
+                    {detail.auction.status === "ACCEPTED" && "The winning company has accepted the job. You’ll see the status change when work starts."}
+                    {detail.auction.status === "IN_PROGRESS" && "Your transport job is in progress."}
+                    {detail.auction.status === "DELIVERED" && "The provider has marked the job delivered. Confirm completion only after you are satisfied the work is complete."}
+                    {detail.auction.status === "COMPLETED" && "This guest transport job is complete."}
+                  </p>
+                  {detail.auction.status === "DELIVERED" ? <Button disabled={saving} onClick={() => void updateJob("COMPLETE")} className="bg-froto-green text-white hover:bg-emerald-700">Confirm job complete</Button> : null}
+                  {detail.auction.status === "COMPLETED" ? <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800"><CheckCircle2 className="h-5 w-5" />Completion confirmed by guest customer.</div> : null}
+                </>
+              ) : viewerWon ? (
+                <>
+                  <p className="text-sm text-slate-600">You are the selected provider. Keep the customer updated by progressing the job below.</p>
+                  {detail.auction.status === "AWARDED" ? <Button disabled={saving} onClick={() => void updateJob("ACCEPT")} className="bg-froto-navy hover:bg-[#0a356f]">Accept guest job</Button> : null}
+                  {detail.auction.status === "ACCEPTED" ? <Button disabled={saving} onClick={() => void updateJob("START")} className="bg-froto-blue hover:bg-[#0969ba]">Start job</Button> : null}
+                  {detail.auction.status === "IN_PROGRESS" ? <Button disabled={saving} onClick={() => void updateJob("DELIVER")} className="bg-froto-teal hover:bg-[#0c8d82]">Mark delivered</Button> : null}
+                  {detail.auction.status === "DELIVERED" ? <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Delivered. Waiting for the guest customer to confirm completion.</p> : null}
+                  {detail.auction.status === "COMPLETED" ? <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800"><CheckCircle2 className="h-5 w-5" />Guest customer confirmed completion.</div> : null}
+                </>
+              ) : (
+                <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Another company was selected for this guest job. Your bid remains private.</p>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </main>
   );
