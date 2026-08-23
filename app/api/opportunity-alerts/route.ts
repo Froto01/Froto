@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const ALLOWED_TYPES = new Set(["TRANSPORT_LANE", "WAREHOUSE_SPACE", "TENDER", "GUEST_JOB"]);
+const MAX_ALERTS_PER_USER = 20;
 
 async function currentUser() {
   const { userId } = await auth();
@@ -14,6 +15,21 @@ async function currentUser() {
     where: { clerkId: userId },
     include: { companies: { take: 1, select: { companyId: true } } },
   });
+}
+
+function uniqueAreas(values: unknown[]) {
+  const unique = new Map<string, string>();
+
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    const trimmed = value.trim().slice(0, 80);
+    if (!trimmed) continue;
+    const key = trimmed.toLocaleLowerCase("en-AU");
+    if (!unique.has(key)) unique.set(key, trimmed);
+    if (unique.size >= 20) break;
+  }
+
+  return [...unique.values()];
 }
 
 export async function GET() {
@@ -52,17 +68,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid alert preference." }, { status: 400 });
   }
 
+  const existingCount = await prisma.opportunityAlertPreference.count({ where: { userId: user.id } });
+  if (existingCount >= MAX_ALERTS_PER_USER) {
+    return NextResponse.json(
+      { error: `You can save up to ${MAX_ALERTS_PER_USER} opportunity alerts. Delete an old alert before adding another.` },
+      { status: 409 }
+    );
+  }
+
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 80) : "";
   const rawTypes = Array.isArray(body.opportunityTypes) ? body.opportunityTypes : [];
-  const opportunityTypes = rawTypes.filter((value): value is string => typeof value === "string" && ALLOWED_TYPES.has(value));
+  const opportunityTypes = Array.from(new Set(
+    rawTypes.filter((value): value is string => typeof value === "string" && ALLOWED_TYPES.has(value))
+  ));
   const rawAreas = Array.isArray(body.areaKeywords) ? body.areaKeywords : [];
-  const areaKeywords = Array.from(new Set(rawAreas
-    .filter((value): value is string => typeof value === "string")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .map((value) => value.slice(0, 80)))).slice(0, 20);
-  const inAppEnabled = body.inAppEnabled !== false;
-  const emailEnabled = body.emailEnabled !== false;
+  const areaKeywords = uniqueAreas(rawAreas);
+  const inAppEnabled = typeof body.inAppEnabled === "boolean" ? body.inAppEnabled : true;
+  const emailEnabled = typeof body.emailEnabled === "boolean" ? body.emailEnabled : true;
 
   if (!name) return NextResponse.json({ error: "Give this alert a name." }, { status: 400 });
   if (opportunityTypes.length === 0) return NextResponse.json({ error: "Choose at least one opportunity type." }, { status: 400 });
