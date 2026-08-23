@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { sendOpportunityEmail } from "@/lib/resend-email";
 
 type OpportunityType = "TRANSPORT_LANE" | "WAREHOUSE_SPACE" | "TENDER" | "GUEST_JOB";
 
@@ -22,7 +23,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
     .map(normalise);
 
   if (searchableLocations.length === 0) {
-    return { matched: 0, inAppCreated: 0, emailCandidates: 0 };
+    return { matched: 0, inAppCreated: 0, emailCandidates: 0, emailsSent: 0 };
   }
 
   const preferences = await prisma.opportunityAlertPreference.findMany({
@@ -34,7 +35,9 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
         ? { OR: [{ companyId: null }, { companyId: { not: input.sourceCompanyId } }] }
         : {}),
     },
-    include: { user: { select: { id: true, email: true } } },
+    include: {
+      user: { select: { id: true, email: true, firstName: true } },
+    },
   });
 
   const matched = preferences.filter((preference) => {
@@ -68,9 +71,25 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
     });
   }
 
+  const emailMatches = matched.filter((preference) => preference.emailEnabled);
+  const emailResults = await Promise.all(
+    emailMatches.map((preference) =>
+      sendOpportunityEmail({
+        to: preference.user.email,
+        recipientName: preference.user.firstName,
+        alertName: preference.name,
+        opportunityTitle: input.title,
+        opportunityType: input.type,
+        locations: input.locations.filter((value): value is string => Boolean(value?.trim())),
+        href: input.href,
+      })
+    )
+  );
+
   return {
     matched: matched.length,
     inAppCreated: inAppMatches.length,
-    emailCandidates: matched.filter((preference) => preference.emailEnabled).length,
+    emailCandidates: emailMatches.length,
+    emailsSent: emailResults.filter((result) => result.status === "sent").length,
   };
 }
