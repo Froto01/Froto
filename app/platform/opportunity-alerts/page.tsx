@@ -33,6 +33,7 @@ function labelType(type: string) {
 export default function OpportunityAlertsPage() {
   const [preferences, setPreferences] = useState<Preference[]>([]);
   const [email, setEmail] = useState("");
+  const [homeHref, setHomeHref] = useState("/platform");
   const [name, setName] = useState("My opportunities");
   const [types, setTypes] = useState<string[]>(["TRANSPORT_LANE", "WAREHOUSE_SPACE", "TENDER", "GUEST_JOB"]);
   const [areas, setAreas] = useState("");
@@ -45,10 +46,11 @@ export default function OpportunityAlertsPage() {
   const load = useCallback(async () => {
     try {
       const response = await fetch("/api/opportunity-alerts", { cache: "no-store" });
-      const payload = (await response.json()) as { preferences?: Preference[]; email?: string; error?: string };
+      const payload = (await response.json()) as { preferences?: Preference[]; email?: string; homeHref?: string; error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Alerts could not be loaded.");
       setPreferences(payload.preferences ?? []);
       setEmail(payload.email ?? "");
+      setHomeHref(payload.homeHref ?? "/platform");
       setError(null);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Alerts could not be loaded.");
@@ -121,7 +123,7 @@ export default function OpportunityAlertsPage() {
   }
 
   return <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16"><div className="mx-auto max-w-5xl px-4 py-8">
-    <Button asChild variant="outline" className="mb-6 gap-2"><Link href="/platform/dashboard"><ArrowLeft className="h-4 w-4" />Dashboard</Link></Button>
+    <Button asChild variant="outline" className="mb-6 gap-2"><Link href={homeHref}><ArrowLeft className="h-4 w-4" />Dashboard</Link></Button>
     <div className="flex items-start gap-4"><div className="rounded-2xl bg-froto-navy p-3 text-white"><BellRing className="h-6 w-6" /></div><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Opportunity alerts</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-froto-navy">Tell Froto what to watch for</h1><p className="mt-2 max-w-3xl text-sm text-slate-500">Save the opportunity types and areas that matter to you. Froto can surface matching transport, storage, tender and guest-job opportunities as they appear.</p></div></div>
 
     {error ? <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
@@ -130,7 +132,7 @@ export default function OpportunityAlertsPage() {
       <div><label className="text-sm font-medium text-froto-navy">Alert name</label><Input className="mt-2" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. South East Queensland opportunities" /></div>
       <div><p className="text-sm font-medium text-froto-navy">Opportunity types</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{OPPORTUNITY_TYPES.map(([value, label]) => <label key={value} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={types.includes(value)} onChange={() => toggleType(value)} /><span>{label}</span></label>)}</div></div>
       <div><label className="text-sm font-medium text-froto-navy">Areas of interest</label><Input className="mt-2" value={areas} onChange={(event) => setAreas(event.target.value)} placeholder="Brisbane, Gold Coast, Beenleigh, Sunshine Coast" /><p className="mt-2 text-xs text-slate-500">Use comma-separated suburbs, cities, regions or lane keywords. Matching is intentionally broad for launch so useful opportunities are not missed.</p></div>
-      <div><p className="text-sm font-medium text-froto-navy">Delivery</p><div className="mt-2 grid gap-2 sm:grid-cols-2"><label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={inAppEnabled} onChange={(event) => setInAppEnabled(event.target.checked)} /><BellRing className="h-4 w-4 text-froto-blue" />In-app notification</label><label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={emailEnabled} onChange={(event) => setEmailEnabled(event.target.checked)} /><Mail className="h-4 w-4 text-froto-teal" />Email to {email || "your Froto email"}</label></div><p className="mt-2 text-xs text-slate-500">Email preferences are saved now. External email delivery will be enabled when Froto's transactional email provider is connected.</p></div>
+      <div><p className="text-sm font-medium text-froto-navy">Delivery</p><div className="mt-2 grid gap-2 sm:grid-cols-2"><label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={inAppEnabled} onChange={(event) => setInAppEnabled(event.target.checked)} /><BellRing className="h-4 w-4 text-froto-blue" />In-app notification</label><label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm text-slate-700"><input type="checkbox" checked={emailEnabled} onChange={(event) => setEmailEnabled(event.target.checked)} /><Mail className="h-4 w-4 text-froto-teal" />Email to {email || "your Froto email"}</label></div><p className="mt-2 text-xs text-slate-500">Email delivery is integrated with Resend and will activate once Froto's sending domain is verified.</p></div>
       <Button disabled={saving || loading} onClick={() => void createPreference()} className="bg-froto-navy hover:bg-[#0a356f]">{saving ? "Saving..." : "Save opportunity alert"}</Button>
     </CardContent></Card>
 
