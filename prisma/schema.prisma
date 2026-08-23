@@ -338,7 +338,7 @@ model OpportunityAlertPreference {
 
 model Notification {
   id              String   @id @default(cuid())
-  companyId       String
+  companyId       String?
   recipientUserId String?
   type            String
   title           String
@@ -347,7 +347,7 @@ model Notification {
   metadata        Json?
   readAt          DateTime?
   createdAt       DateTime @default(now())
-  company         Company  @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  company         Company? @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
   recipientUser   User?    @relation("NotificationRecipientUser", fields: [recipientUserId], references: [id], onDelete: Cascade)
 
   @@index([companyId, createdAt])
