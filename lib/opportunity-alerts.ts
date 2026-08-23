@@ -17,10 +17,19 @@ function normalise(value: string) {
   return value.trim().toLocaleLowerCase("en-AU");
 }
 
+function uniqueByUser<T extends { userId: string }>(items: T[]) {
+  const unique = new Map<string, T>();
+  for (const item of items) {
+    if (!unique.has(item.userId)) unique.set(item.userId, item);
+  }
+  return [...unique.values()];
+}
+
 export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
-  const searchableLocations = input.locations
-    .filter((value): value is string => Boolean(value?.trim()))
-    .map(normalise);
+  const cleanLocations = input.locations.filter(
+    (value): value is string => Boolean(value?.trim())
+  );
+  const searchableLocations = cleanLocations.map(normalise);
 
   if (searchableLocations.length === 0) {
     return { matched: 0, inAppCreated: 0, emailCandidates: 0, emailsSent: 0 };
@@ -38,6 +47,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
     include: {
       user: { select: { id: true, email: true, firstName: true } },
     },
+    orderBy: { createdAt: "asc" },
   });
 
   const matched = preferences.filter((preference) => {
@@ -49,29 +59,51 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
     );
   });
 
-  const inAppMatches = matched.filter((preference) => preference.inAppEnabled);
+  const inAppMatches = uniqueByUser(
+    matched.filter((preference) => preference.inAppEnabled)
+  );
 
   if (inAppMatches.length > 0) {
-    await prisma.notification.createMany({
-      data: inAppMatches.map((preference) => ({
-        companyId: preference.companyId,
-        recipientUserId: preference.userId,
+    const recipientIds = inAppMatches.map((preference) => preference.userId);
+    const existing = await prisma.notification.findMany({
+      where: {
         type: "OPPORTUNITY_MATCH",
-        title: `Opportunity match · ${input.title}`,
-        message: `Froto found a new opportunity matching “${preference.name}” in ${input.locations
-          .filter(Boolean)
-          .join(" / ")}.`,
         href: input.href,
-        metadata: {
-          opportunityType: input.type,
-          alertPreferenceId: preference.id,
-          ...(input.metadata ?? {}),
-        },
-      })),
+        recipientUserId: { in: recipientIds },
+      },
+      select: { recipientUserId: true },
     });
+    const alreadyNotified = new Set(
+      existing
+        .map((notification) => notification.recipientUserId)
+        .filter((value): value is string => Boolean(value))
+    );
+    const newInAppMatches = inAppMatches.filter(
+      (preference) => !alreadyNotified.has(preference.userId)
+    );
+
+    if (newInAppMatches.length > 0) {
+      await prisma.notification.createMany({
+        data: newInAppMatches.map((preference) => ({
+          companyId: preference.companyId,
+          recipientUserId: preference.userId,
+          type: "OPPORTUNITY_MATCH",
+          title: `Opportunity match · ${input.title}`,
+          message: `Froto found a new opportunity matching “${preference.name}” in ${cleanLocations.join(" / ")}.`,
+          href: input.href,
+          metadata: {
+            opportunityType: input.type,
+            alertPreferenceId: preference.id,
+            ...(input.metadata ?? {}),
+          },
+        })),
+      });
+    }
   }
 
-  const emailMatches = matched.filter((preference) => preference.emailEnabled);
+  const emailMatches = uniqueByUser(
+    matched.filter((preference) => preference.emailEnabled)
+  );
   const emailResults = await Promise.all(
     emailMatches.map((preference) =>
       sendOpportunityEmail({
@@ -80,7 +112,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
         alertName: preference.name,
         opportunityTitle: input.title,
         opportunityType: input.type,
-        locations: input.locations.filter((value): value is string => Boolean(value?.trim())),
+        locations: cleanLocations,
         href: input.href,
       })
     )
