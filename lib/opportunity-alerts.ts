@@ -17,33 +17,47 @@ function normalise(value: string) {
 }
 
 export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
-  const searchableLocations = input.locations.filter((value): value is string => Boolean(value?.trim())).map(normalise);
-  if (searchableLocations.length === 0) return { matched: 0, inAppCreated: 0, emailCandidates: 0 };
+  const searchableLocations = input.locations
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map(normalise);
+
+  if (searchableLocations.length === 0) {
+    return { matched: 0, inAppCreated: 0, emailCandidates: 0 };
+  }
 
   const preferences = await prisma.opportunityAlertPreference.findMany({
     where: {
       active: true,
       opportunityTypes: { has: input.type },
       ...(input.sourceUserId ? { userId: { not: input.sourceUserId } } : {}),
-      ...(input.sourceCompanyId ? { OR: [{ companyId: null }, { companyId: { not: input.sourceCompanyId } }] } : {}),
+      ...(input.sourceCompanyId
+        ? { OR: [{ companyId: null }, { companyId: { not: input.sourceCompanyId } }] }
+        : {}),
     },
     include: { user: { select: { id: true, email: true } } },
   });
 
   const matched = preferences.filter((preference) => {
     const keywords = preference.areaKeywords.map(normalise).filter(Boolean);
-    return keywords.some((keyword) => searchableLocations.some((location) => location.includes(keyword) || keyword.includes(location)));
+    return keywords.some((keyword) =>
+      searchableLocations.some(
+        (location) => location.includes(keyword) || keyword.includes(location)
+      )
+    );
   });
 
-  const inAppMatches = matched.filter((preference) => preference.inAppEnabled && preference.companyId);
+  const inAppMatches = matched.filter((preference) => preference.inAppEnabled);
+
   if (inAppMatches.length > 0) {
     await prisma.notification.createMany({
       data: inAppMatches.map((preference) => ({
-        companyId: preference.companyId!,
+        companyId: preference.companyId,
         recipientUserId: preference.userId,
         type: "OPPORTUNITY_MATCH",
         title: `Opportunity match · ${input.title}`,
-        message: `Froto found a new opportunity matching “${preference.name}” in ${input.locations.filter(Boolean).join(" / ")}.`,
+        message: `Froto found a new opportunity matching “${preference.name}” in ${input.locations
+          .filter(Boolean)
+          .join(" / ")}.`,
         href: input.href,
         metadata: {
           opportunityType: input.type,
