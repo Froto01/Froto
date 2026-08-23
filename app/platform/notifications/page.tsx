@@ -19,6 +19,7 @@ type NotificationItem = {
 
 type NotificationPayload = {
   unreadCount: number;
+  homeHref?: string;
   notifications: NotificationItem[];
   error?: string;
 };
@@ -95,7 +96,7 @@ export default function NotificationsPage() {
               </Button>
             ) : null}
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 text-froto-navy">
-              <Link href="/platform/dashboard"><ArrowLeft className="h-4 w-4" />Dashboard</Link>
+              <Link href={data.homeHref ?? "/platform"}><ArrowLeft className="h-4 w-4" />Dashboard</Link>
             </Button>
           </div>
         </div>
@@ -110,7 +111,7 @@ export default function NotificationsPage() {
             <CardContent className="p-8 text-center">
               <Bell className="mx-auto h-8 w-8 text-froto-blue" />
               <h2 className="mt-4 text-lg font-semibold text-froto-navy">You’re all caught up</h2>
-              <p className="mt-2 text-sm text-slate-500">Bid, tender and job alerts will appear here as activity happens.</p>
+              <p className="mt-2 text-sm text-slate-500">Bid, tender, job and opportunity alerts will appear here as activity happens.</p>
             </CardContent>
           </Card>
         ) : null}
