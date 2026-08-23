@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { notifyMatchingOpportunity } from "@/lib/opportunity-alerts";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -14,18 +15,14 @@ function parseOptionalDate(value: unknown) {
 export async function POST(request: Request) {
   const { userId } = await auth();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Sign in as a guest to post a job." }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Sign in as a guest to post a job." }, { status: 401 });
 
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: { companies: { select: { companyId: true } } },
   });
 
-  if (!user) {
-    return NextResponse.json({ error: "Complete your Froto user setup first." }, { status: 409 });
-  }
+  if (!user) return NextResponse.json({ error: "Complete your Froto user setup first." }, { status: 409 });
 
   if (user.companies.length > 0) {
     return NextResponse.json(
@@ -35,7 +32,6 @@ export async function POST(request: Request) {
   }
 
   let body: Record<string, unknown>;
-
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
@@ -43,12 +39,9 @@ export async function POST(request: Request) {
   }
 
   const title = typeof body.title === "string" ? body.title.trim().slice(0, 140) : "";
-  const itemDescription =
-    typeof body.itemDescription === "string" ? body.itemDescription.trim().slice(0, 2000) : "";
-  const pickupLocation =
-    typeof body.pickupLocation === "string" ? body.pickupLocation.trim().slice(0, 250) : "";
-  const deliveryLocation =
-    typeof body.deliveryLocation === "string" ? body.deliveryLocation.trim().slice(0, 250) : "";
+  const itemDescription = typeof body.itemDescription === "string" ? body.itemDescription.trim().slice(0, 2000) : "";
+  const pickupLocation = typeof body.pickupLocation === "string" ? body.pickupLocation.trim().slice(0, 250) : "";
+  const deliveryLocation = typeof body.deliveryLocation === "string" ? body.deliveryLocation.trim().slice(0, 250) : "";
   const notes = typeof body.notes === "string" ? body.notes.trim().slice(0, 2000) : "";
   const pickupDate = parseOptionalDate(body.pickupDate);
   const deliveryBy = parseOptionalDate(body.deliveryBy);
@@ -61,13 +54,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (auctionClosesAt.getTime() <= Date.now()) {
-    return NextResponse.json({ error: "Auction closing time must be in the future." }, { status: 400 });
-  }
-
-  if (pickupDate && deliveryBy && deliveryBy.getTime() < pickupDate.getTime()) {
-    return NextResponse.json({ error: "Delivery date cannot be before pickup date." }, { status: 400 });
-  }
+  if (auctionClosesAt.getTime() <= Date.now()) return NextResponse.json({ error: "Auction closing time must be in the future." }, { status: 400 });
+  if (pickupDate && deliveryBy && deliveryBy.getTime() < pickupDate.getTime()) return NextResponse.json({ error: "Delivery date cannot be before pickup date." }, { status: 400 });
 
   const auction = await prisma.guestAuction.create({
     data: {
@@ -82,6 +70,19 @@ export async function POST(request: Request) {
       notes: notes || null,
     },
   });
+
+  try {
+    await notifyMatchingOpportunity({
+      type: "GUEST_JOB",
+      title: auction.title,
+      locations: [auction.pickupLocation, auction.deliveryLocation],
+      href: `/platform/guest-auctions/${auction.id}`,
+      sourceUserId: user.id,
+      metadata: { guestAuctionId: auction.id },
+    });
+  } catch (error) {
+    console.error("Opportunity alert matching failed for guest job", auction.id, error);
+  }
 
   return NextResponse.json(
     {
@@ -98,18 +99,14 @@ export async function POST(request: Request) {
 export async function GET() {
   const { userId } = await auth();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Sign in to view guest auctions." }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Sign in to view guest auctions." }, { status: 401 });
 
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: { companies: { select: { companyId: true } } },
   });
 
-  if (!user) {
-    return NextResponse.json({ error: "Complete your Froto user setup first." }, { status: 409 });
-  }
+  if (!user) return NextResponse.json({ error: "Complete your Froto user setup first." }, { status: 409 });
 
   const membership = user.companies[0];
 
@@ -139,18 +136,10 @@ export async function GET() {
   const auctions = await prisma.guestAuction.findMany({
     where: {
       OR: [
-        {
-          status: "OPEN",
-          auctionClosesAt: { gt: new Date() },
-        },
+        { status: "OPEN", auctionClosesAt: { gt: new Date() } },
         {
           status: { in: ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"] },
-          bids: {
-            some: {
-              bidderCompanyId: membership.companyId,
-              status: "AWARDED",
-            },
-          },
+          bids: { some: { bidderCompanyId: membership.companyId, status: "AWARDED" } },
         },
       ],
     },
