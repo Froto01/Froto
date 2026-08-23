@@ -46,6 +46,7 @@ export async function GET() {
 
   return NextResponse.json({
     unreadCount: notifications.filter((item) => !item.readAt).length,
+    homeHref: viewer.companies.length > 0 ? "/platform/dashboard" : "/platform/guest-dashboard",
     notifications: notifications.map((item) => ({
       id: item.id,
       type: item.type,
