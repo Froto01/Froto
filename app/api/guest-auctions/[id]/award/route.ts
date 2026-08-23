@@ -106,6 +106,21 @@ export async function POST(
       data: { status: "AWARDED" },
     });
 
+    await tx.notification.create({
+      data: {
+        companyId: bid.bidderCompany.id,
+        type: "GUEST_AUCTION_AWARDED",
+        title: "Guest transport job awarded",
+        message: `Your company won \"${auction.title}\" for $${Number(bid.amount).toLocaleString("en-AU")}. Open the job to accept and manage the work.`,
+        href: `/platform/guest-auctions/${auction.id}`,
+        metadata: {
+          guestAuctionId: auction.id,
+          guestAuctionBidId: bid.id,
+          amount: Number(bid.amount),
+        },
+      },
+    });
+
     return {
       ok: true as const,
       auctionId: auction.id,
