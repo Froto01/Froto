@@ -24,6 +24,12 @@ type GuestAuctionList = {
   }>;
 };
 
+function friendlyStatus(status?: string) {
+  if (!status) return "Open";
+  if (status === "IN_PROGRESS") return "In progress";
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
 export default function GuestAuctionsPage() {
   const [data, setData] = useState<GuestAuctionList | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,5 +126,36 @@ export default function GuestAuctionsPage() {
 }
 
 function AuctionCards({ data, owner }: { data: GuestAuctionList; owner: boolean }) {
-  return <Card className="rounded-[1.7rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5"><CardHeader><CardTitle className="flex items-center gap-2 text-froto-navy"><Truck className="h-5 w-5 text-froto-teal" />{owner ? "My guest jobs" : "Open guest jobs"}</CardTitle></CardHeader><CardContent className="space-y-3">{data.auctions.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No guest auctions available yet.</p> : data.auctions.map((auction) => <Link key={auction.id} href={`/platform/guest-auctions/${auction.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/20 hover:bg-blue-50/30"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-froto-navy">{auction.title}</p><p className="mt-1 text-sm text-slate-500">{auction.pickupLocation} → {auction.deliveryLocation}</p></div><Badge className="bg-froto-navy text-white">{owner ? auction.status ?? "OPEN" : "SEALED"}</Badge></div><div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500"><span>Closes {new Date(auction.auctionClosesAt).toLocaleString("en-AU")}</span>{owner ? <span>{auction.bidCount ?? 0} bid{auction.bidCount === 1 ? "" : "s"}</span> : auction.ownBid ? <span>Your bid ${auction.ownBid.amount.toLocaleString("en-AU")}</span> : <span>No bid submitted</span>}</div></Link>)}</CardContent></Card>;
+  return (
+    <Card className="rounded-[1.7rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-froto-navy">
+          <Truck className="h-5 w-5 text-froto-teal" />
+          {owner ? "My guest jobs" : "Guest opportunities & jobs"}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {data.auctions.length === 0 ? (
+          <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No guest auctions or awarded guest jobs available yet.</p>
+        ) : data.auctions.map((auction) => {
+          const operational = auction.status && auction.status !== "OPEN";
+          return (
+            <Link key={auction.id} href={`/platform/guest-auctions/${auction.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/20 hover:bg-blue-50/30">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-froto-navy">{auction.title}</p>
+                  <p className="mt-1 text-sm text-slate-500">{auction.pickupLocation} → {auction.deliveryLocation}</p>
+                </div>
+                <Badge className={operational ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{owner ? friendlyStatus(auction.status) : operational ? friendlyStatus(auction.status) : "Sealed"}</Badge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+                {operational ? <span className="font-medium text-froto-teal">Manage awarded guest job</span> : <span>Closes {new Date(auction.auctionClosesAt).toLocaleString("en-AU")}</span>}
+                {owner ? <span>{auction.bidCount ?? 0} bid{auction.bidCount === 1 ? "" : "s"}</span> : auction.ownBid ? <span>Your bid ${auction.ownBid.amount.toLocaleString("en-AU")}</span> : <span>No bid submitted</span>}
+              </div>
+            </Link>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
 }
