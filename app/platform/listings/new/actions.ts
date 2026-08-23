@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { notifyMatchingOpportunity } from "@/lib/opportunity-alerts";
 import { prisma } from "@/lib/prisma";
 
 const MANAGE_ROLES = new Set(["OWNER", "ADMIN", "MANAGER"]);
@@ -32,28 +33,17 @@ type CreateListingInput = {
 export async function createListing(input: CreateListingInput) {
   const { userId } = await auth();
 
-  if (!userId) {
-    redirect("/auth-test");
-  }
+  if (!userId) redirect("/auth-test");
 
   const user = await prisma.user.findUnique({
-    where: {
-      clerkId: userId,
-    },
-    include: {
-      companies: true,
-    },
+    where: { clerkId: userId },
+    include: { companies: true },
   });
 
-  if (!user) {
-    redirect("/user-sync");
-  }
+  if (!user) redirect("/user-sync");
 
   const membership = user.companies[0];
-
-  if (!membership) {
-    redirect("/company/new");
-  }
+  if (!membership) redirect("/company/new");
 
   if (!MANAGE_ROLES.has(membership.role)) {
     throw new Error("Your company role cannot publish marketplace listings.");
@@ -66,61 +56,23 @@ export async function createListing(input: CreateListingInput) {
   const availableTo = new Date(`${input.availableTo}T00:00:00.000Z`);
   const biddingClosesAt = new Date(input.biddingClosesAt);
 
-  if (!input.title.trim()) {
-    throw new Error("A listing title is required.");
-  }
-
-  if (!Number.isInteger(capacityAmount) || capacityAmount <= 0) {
-    throw new Error("Capacity must be greater than zero.");
-  }
-
-  if (!Number.isFinite(startingBid) || startingBid < 0) {
-    throw new Error("Starting bid must be zero or greater.");
-  }
-
-  if (!Number.isFinite(minimumBidIncrement) || minimumBidIncrement <= 0) {
-    throw new Error("Minimum bid increment must be greater than zero.");
-  }
-
-  if (
-    Number.isNaN(availableFrom.getTime()) ||
-    Number.isNaN(availableTo.getTime()) ||
-    availableTo < availableFrom
-  ) {
-    throw new Error("Please provide a valid availability date range.");
-  }
-
-  if (
-    Number.isNaN(biddingClosesAt.getTime()) ||
-    biddingClosesAt.getTime() <= Date.now()
-  ) {
-    throw new Error("Bidding close time must be in the future.");
-  }
-
-  if (
-    input.listingType === "Transport Lane" &&
-    (!input.origin.trim() || !input.destination.trim())
-  ) {
-    throw new Error("Transport listings need an origin and destination.");
-  }
-
-  if (input.listingType === "Warehouse Space" && !input.location.trim()) {
-    throw new Error("Warehouse listings need a location.");
-  }
+  if (!input.title.trim()) throw new Error("A listing title is required.");
+  if (!Number.isInteger(capacityAmount) || capacityAmount <= 0) throw new Error("Capacity must be greater than zero.");
+  if (!Number.isFinite(startingBid) || startingBid < 0) throw new Error("Starting bid must be zero or greater.");
+  if (!Number.isFinite(minimumBidIncrement) || minimumBidIncrement <= 0) throw new Error("Minimum bid increment must be greater than zero.");
+  if (Number.isNaN(availableFrom.getTime()) || Number.isNaN(availableTo.getTime()) || availableTo < availableFrom) throw new Error("Please provide a valid availability date range.");
+  if (Number.isNaN(biddingClosesAt.getTime()) || biddingClosesAt.getTime() <= Date.now()) throw new Error("Bidding close time must be in the future.");
+  if (input.listingType === "Transport Lane" && (!input.origin.trim() || !input.destination.trim())) throw new Error("Transport listings need an origin and destination.");
+  if (input.listingType === "Warehouse Space" && !input.location.trim()) throw new Error("Warehouse listings need a location.");
 
   const listing = await prisma.listing.create({
     data: {
       companyId: membership.companyId,
       listingType: input.listingType,
       title: input.title.trim(),
-      location:
-        input.listingType === "Warehouse Space" ? input.location.trim() : null,
-      origin:
-        input.listingType === "Transport Lane" ? input.origin.trim() : null,
-      destination:
-        input.listingType === "Transport Lane"
-          ? input.destination.trim()
-          : null,
+      location: input.listingType === "Warehouse Space" ? input.location.trim() : null,
+      origin: input.listingType === "Transport Lane" ? input.origin.trim() : null,
+      destination: input.listingType === "Transport Lane" ? input.destination.trim() : null,
       capacityAmount,
       capacityUnit: input.capacityUnit,
       temperatureClass: input.temperatureClass,
@@ -133,8 +85,19 @@ export async function createListing(input: CreateListingInput) {
     },
   });
 
-  return {
-    success: true,
-    listingId: listing.id,
-  };
+  try {
+    await notifyMatchingOpportunity({
+      type: input.listingType === "Transport Lane" ? "TRANSPORT_LANE" : "WAREHOUSE_SPACE",
+      title: listing.title,
+      locations: [listing.location, listing.origin, listing.destination],
+      href: `/platform/listing/${listing.id}`,
+      sourceCompanyId: membership.companyId,
+      sourceUserId: user.id,
+      metadata: { listingId: listing.id },
+    });
+  } catch (error) {
+    console.error("Opportunity alert matching failed for listing", listing.id, error);
+  }
+
+  return { success: true, listingId: listing.id };
 }
