@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Star } from "lucide-react";
+import { BellRing, Star } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const companyId = user.companies[0]?.companyId ?? null;
   if (!companyId) redirect("/platform/guest-dashboard");
 
-  const [activeGuestJobCount, companyReviews, guestReviews] = await Promise.all([
+  const [activeGuestJobCount, companyReviews, guestReviews, activeAlertCount] = await Promise.all([
     prisma.guestAuctionBid.count({
       where: {
         bidderCompanyId: companyId,
@@ -29,6 +29,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }),
     prisma.review.findMany({ where: { reviewedCompanyId: companyId }, select: { rating: true } }),
     prisma.guestAuctionReview.findMany({ where: { reviewedCompanyId: companyId }, select: { rating: true } }),
+    prisma.opportunityAlertPreference.count({ where: { companyId, active: true } }),
   ]);
 
   const ratings = [...companyReviews, ...guestReviews].map((review) => review.rating);
@@ -43,6 +44,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
             Guest jobs · {activeGuestJobCount}
           </Link>
         ) : null}
+        <Link href="/platform/opportunity-alerts" className="flex items-center gap-2 rounded-full border border-froto-blue/15 bg-white px-4 py-2.5 text-sm font-semibold text-froto-navy shadow-lg shadow-froto-navy/10 transition hover:-translate-y-0.5 hover:bg-blue-50">
+          <BellRing className="h-4 w-4 text-froto-blue" />Opportunity alerts{activeAlertCount > 0 ? ` · ${activeAlertCount}` : ""}
+        </Link>
         <Link href={`/platform/companies/${companyId}`} className="rounded-2xl border border-amber-200 bg-white px-4 py-3 text-froto-navy shadow-lg shadow-froto-navy/10 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50">
           <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-700">My Froto reputation</span>
           <span className="mt-1 flex items-center gap-2 text-sm font-semibold">
