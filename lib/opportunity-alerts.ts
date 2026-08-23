@@ -62,6 +62,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
   const inAppMatches = uniqueByUser(
     matched.filter((preference) => preference.inAppEnabled)
   );
+  let inAppCreated = 0;
 
   if (inAppMatches.length > 0) {
     const recipientIds = inAppMatches.map((preference) => preference.userId);
@@ -83,7 +84,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
     );
 
     if (newInAppMatches.length > 0) {
-      await prisma.notification.createMany({
+      const result = await prisma.notification.createMany({
         data: newInAppMatches.map((preference) => ({
           companyId: preference.companyId,
           recipientUserId: preference.userId,
@@ -98,6 +99,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
           },
         })),
       });
+      inAppCreated = result.count;
     }
   }
 
@@ -120,7 +122,7 @@ export async function notifyMatchingOpportunity(input: OpportunityAlertInput) {
 
   return {
     matched: matched.length,
-    inAppCreated: inAppMatches.length,
+    inAppCreated,
     emailCandidates: emailMatches.length,
     emailsSent: emailResults.filter((result) => result.status === "sent").length,
   };
