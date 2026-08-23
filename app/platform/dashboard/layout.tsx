@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
-    select: { companies: { select: { companyId: true }, take: 1 } },
+    select: { id: true, companies: { select: { companyId: true }, take: 1 } },
   });
   if (!user) redirect("/user-sync");
 
@@ -29,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     }),
     prisma.review.findMany({ where: { reviewedCompanyId: companyId }, select: { rating: true } }),
     prisma.guestAuctionReview.findMany({ where: { reviewedCompanyId: companyId }, select: { rating: true } }),
-    prisma.opportunityAlertPreference.count({ where: { companyId, active: true } }),
+    prisma.opportunityAlertPreference.count({ where: { userId: user.id, active: true } }),
   ]);
 
   const ratings = [...companyReviews, ...guestReviews].map((review) => review.rating);
