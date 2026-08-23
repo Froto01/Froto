@@ -92,13 +92,20 @@ export default function GuestAuctionDetailPage() {
     } finally { setSaving(false); }
   }
 
-  async function awardBid(bidId: string) {
+  async function awardBid(bidId: string, closeEarly: boolean) {
+    if (closeEarly) {
+      const confirmed = window.confirm(
+        "This auction is still open. Awarding this company will close bidding immediately and prevent any further offers. Continue?"
+      );
+      if (!confirmed) return;
+    }
+
     setSaving(true); setError(null);
     try {
       const response = await fetch(`/api/guest-auctions/${params.id}/award`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bidId }),
+        body: JSON.stringify({ bidId, closeEarly }),
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Bid could not be awarded.");
@@ -112,6 +119,7 @@ export default function GuestAuctionDetailPage() {
   if (!detail) return <main className="min-h-screen bg-froto-ice p-8 text-red-700">{error ?? "Guest job not found."}</main>;
 
   const closed = new Date(detail.auction.auctionClosesAt).getTime() <= Date.now();
+  const canAward = detail.auction.status === "OPEN";
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -131,7 +139,43 @@ export default function GuestAuctionDetailPage() {
           </Card>
 
           {detail.viewerType === "GUEST_OWNER" ? (
-            <Card className="rounded-[1.8rem] border-amber-200 bg-white shadow-lg shadow-froto-navy/5"><CardHeader><CardTitle className="text-froto-navy">Compare company offers</CardTitle><p className="text-sm text-slate-500">Choose using price, verification and proven Froto reputation.</p></CardHeader><CardContent className="space-y-4">{ownerBids.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No company bids yet.</p> : ownerBids.map((bid) => <div key={bid.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><Link href={`/platform/companies/${bid.company.id}`} className="font-semibold text-froto-navy hover:underline">{bid.company.name}</Link>{bid.company.verified ? <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50"><CheckCircle2 className="mr-1 h-3 w-3" />Verified</Badge> : null}</div><p className="mt-2 flex items-center gap-1 text-sm text-slate-600"><Star className="h-4 w-4 fill-amber-400 text-amber-400" />{bid.company.ratingAverage?.toFixed(1) ?? "No rating"} · {bid.company.reviewCount} verified review{bid.company.reviewCount === 1 ? "" : "s"} · {bid.company.completedJobs} completed jobs</p></div><p className="text-2xl font-semibold text-froto-blue">${bid.amount.toLocaleString("en-AU")}</p></div>{bid.serviceDescription ? <p className="mt-3 text-sm text-slate-700">{bid.serviceDescription}</p> : null}{bid.leadTime ? <p className="mt-2 text-sm text-slate-500">Timing: {bid.leadTime}</p> : null}<div className="mt-4 flex items-center justify-between gap-3"><Badge className={bid.awarded ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}>{bid.awarded ? "Selected winner" : bid.status}</Badge>{detail.auction.status === "OPEN" && closed ? <Button disabled={saving} onClick={() => void awardBid(bid.id)} className="bg-froto-navy hover:bg-[#0a356f]">Award this company</Button> : null}</div></div>)}</CardContent></Card>
+            <Card className="rounded-[1.8rem] border-amber-200 bg-white shadow-lg shadow-froto-navy/5">
+              <CardHeader>
+                <CardTitle className="text-froto-navy">Compare company offers</CardTitle>
+                <p className="text-sm text-slate-500">Choose using price, verification and proven Froto reputation.</p>
+                {canAward && ownerBids.length > 0 ? (
+                  <p className="mt-2 rounded-xl bg-blue-50 px-3 py-2 text-xs text-froto-navy">
+                    {closed ? "Bidding has closed. You can now select the winning company." : "Bidding is still open. You can wait for the closing time or close bidding early when you select a winner."}
+                  </p>
+                ) : null}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {ownerBids.length === 0 ? <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No company bids yet.</p> : ownerBids.map((bid) => (
+                  <div key={bid.id} className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/platform/companies/${bid.company.id}`} className="font-semibold text-froto-navy hover:underline">{bid.company.name}</Link>
+                          {bid.company.verified ? <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50"><CheckCircle2 className="mr-1 h-3 w-3" />Verified</Badge> : null}
+                        </div>
+                        <p className="mt-2 flex items-center gap-1 text-sm text-slate-600"><Star className="h-4 w-4 fill-amber-400 text-amber-400" />{bid.company.ratingAverage?.toFixed(1) ?? "No rating"} · {bid.company.reviewCount} verified review{bid.company.reviewCount === 1 ? "" : "s"} · {bid.company.completedJobs} completed jobs</p>
+                      </div>
+                      <p className="text-2xl font-semibold text-froto-blue">${bid.amount.toLocaleString("en-AU")}</p>
+                    </div>
+                    {bid.serviceDescription ? <p className="mt-3 text-sm text-slate-700">{bid.serviceDescription}</p> : null}
+                    {bid.leadTime ? <p className="mt-2 text-sm text-slate-500">Timing: {bid.leadTime}</p> : null}
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                      <Badge className={bid.awarded ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}>{bid.awarded ? "Selected winner" : bid.status}</Badge>
+                      {canAward ? (
+                        <Button disabled={saving} onClick={() => void awardBid(bid.id, !closed)} className="bg-froto-navy hover:bg-[#0a356f]">
+                          {saving ? "Working..." : closed ? "Award this company" : "Close bidding & award"}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           ) : (
             <Card className="rounded-[1.8rem] border-froto-teal/10 bg-white shadow-lg shadow-froto-navy/5"><CardHeader><CardTitle className="text-froto-navy">Your sealed bid</CardTitle><p className="text-sm text-slate-500">Only the guest customer can compare all bids.</p></CardHeader><CardContent>{detail.ownBid ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5"><p className="text-sm text-slate-500">Your submitted offer</p><p className="mt-1 text-3xl font-semibold text-froto-navy">${detail.ownBid.amount.toLocaleString("en-AU")}</p><Badge className="mt-3 bg-froto-navy text-white">{detail.ownBid.status}</Badge>{detail.ownBid.serviceDescription ? <p className="mt-3 text-sm text-slate-700">{detail.ownBid.serviceDescription}</p> : null}</div> : !closed && detail.auction.status === "OPEN" ? <div className="space-y-4"><Input type="number" min="1" step="0.01" placeholder="Your total price (AUD)" value={amount} onChange={(e) => setAmount(e.target.value)} /><textarea rows={4} placeholder="Describe your service and what's included" value={serviceDescription} onChange={(e) => setServiceDescription(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" /><Input placeholder="Lead time / timing" value={leadTime} onChange={(e) => setLeadTime(e.target.value)} /><textarea rows={3} placeholder="Optional notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" /><Button disabled={saving || !amount} onClick={() => void submitBid()} className="w-full bg-froto-navy hover:bg-[#0a356f]">{saving ? "Submitting..." : "Submit sealed bid"}</Button></div> : <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Bidding is closed for this guest job.</p>}</CardContent></Card>
           )}
