@@ -27,6 +27,7 @@ export async function GET() {
 
   return NextResponse.json({
     email: user.email,
+    homeHref: user.companies.length > 0 ? "/platform/dashboard" : "/platform/guest-dashboard",
     preferences: preferences.map((preference) => ({
       id: preference.id,
       name: preference.name,
