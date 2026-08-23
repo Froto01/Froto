@@ -24,6 +24,7 @@ model User {
   tenderResponses        TenderResponse[]  @relation("TenderResponseSubmittedByUser")
   notifications          Notification[]    @relation("NotificationRecipientUser")
   reviewsSubmitted       Review[]          @relation("ReviewSubmittedByUser")
+  guestReviewsSubmitted  GuestAuctionReview[] @relation("GuestAuctionReviewSubmittedByUser")
   verificationsReviewed  Company[]         @relation("CompanyVerificationReviewer")
   guestAuctionsCreated   GuestAuction[]    @relation("GuestAuctionCreatedByUser")
   guestAuctionBidsPlaced GuestAuctionBid[] @relation("GuestAuctionBidPlacedByUser")
@@ -56,6 +57,7 @@ model Company {
   notifications                Notification[]    @relation("NotificationCompany")
   reviewsGiven                 Review[]          @relation("ReviewAuthorCompany")
   reviewsReceived              Review[]          @relation("ReviewSubjectCompany")
+  guestReviewsReceived         GuestAuctionReview[] @relation("GuestAuctionReviewSubjectCompany")
   guestAuctionBids             GuestAuctionBid[] @relation("GuestAuctionBidderCompany")
 
   @@index([verificationReviewedByUserId])
@@ -173,6 +175,23 @@ model Review {
   @@index([reviewerUserId])
 }
 
+model GuestAuctionReview {
+  id                String       @id @default(cuid())
+  guestAuctionId    String       @unique
+  reviewedCompanyId String
+  reviewerUserId    String
+  rating            Int
+  comment           String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  guestAuction      GuestAuction @relation(fields: [guestAuctionId], references: [id], onDelete: Cascade)
+  reviewedCompany   Company      @relation("GuestAuctionReviewSubjectCompany", fields: [reviewedCompanyId], references: [id], onDelete: Restrict)
+  reviewerUser      User         @relation("GuestAuctionReviewSubmittedByUser", fields: [reviewerUserId], references: [id], onDelete: Restrict)
+
+  @@index([reviewedCompanyId, createdAt])
+  @@index([reviewerUserId])
+}
+
 model JobEvent {
   id             String   @id @default(cuid())
   jobId          String
@@ -265,6 +284,7 @@ model GuestAuction {
   createdByUser   User              @relation("GuestAuctionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
   bids            GuestAuctionBid[] @relation("GuestAuctionBids")
   awardedBid      GuestAuctionBid?  @relation("GuestAuctionAwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
+  review          GuestAuctionReview?
 
   @@index([createdByUserId])
   @@index([status])
