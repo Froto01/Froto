@@ -22,15 +22,17 @@ export async function POST(
     return NextResponse.json({ error: "Complete your Froto user setup first." }, { status: 409 });
   }
 
-  let body: { bidId?: unknown };
+  let body: { bidId?: unknown; closeEarly?: unknown };
 
   try {
-    body = (await request.json()) as { bidId?: unknown };
+    body = (await request.json()) as { bidId?: unknown; closeEarly?: unknown };
   } catch {
     return NextResponse.json({ error: "Invalid award request." }, { status: 400 });
   }
 
   const bidId = typeof body.bidId === "string" ? body.bidId.trim() : "";
+  const closeEarly = body.closeEarly === true;
+
   if (!bidId) {
     return NextResponse.json({ error: "Choose a company bid to award." }, { status: 400 });
   }
@@ -64,11 +66,12 @@ export async function POST(
       return { ok: false as const, status: 409, error: "This guest auction is not open for award." };
     }
 
-    if (auction.auctionClosesAt.getTime() > Date.now()) {
+    const stillOpen = auction.auctionClosesAt.getTime() > Date.now();
+    if (stillOpen && !closeEarly) {
       return {
         ok: false as const,
         status: 409,
-        error: "The silent auction must close before the guest can choose a winner.",
+        error: "Bidding is still open. Confirm that you want to close bidding early before awarding a winner.",
       };
     }
 
@@ -88,6 +91,7 @@ export async function POST(
       data: {
         awardedBidId: bid.id,
         awardedAt,
+        auctionClosesAt: stillOpen ? awardedAt : auction.auctionClosesAt,
         status: "AWARDED",
       },
     });
@@ -110,6 +114,7 @@ export async function POST(
       amount: Number(bid.amount),
       providerCompany: bid.bidderCompany,
       awardedAt: awardedAt.toISOString(),
+      closedEarly: stillOpen,
     };
   });
 
