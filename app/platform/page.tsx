@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Filter,
   LayoutDashboard,
+  LockKeyhole,
   Plus,
   Search,
   UserPlus,
@@ -71,6 +72,24 @@ type MarketplaceTender = {
   createdAt: string;
 };
 
+type GuestMarketplaceAuction = {
+  id: string;
+  title: string;
+  itemDescription: string;
+  pickupLocation: string;
+  deliveryLocation: string;
+  pickupDate: string | null;
+  deliveryBy: string | null;
+  auctionClosesAt: string;
+  notes: string | null;
+  ownBid: { amount: number; status: string } | null;
+};
+
+type GuestMarketplaceResponse = {
+  viewerType: "GUEST_OWNER" | "COMPANY_BIDDER";
+  auctions: GuestMarketplaceAuction[];
+};
+
 function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
@@ -133,6 +152,7 @@ export default function PlatformPage() {
   const [marketplaceTenders, setMarketplaceTenders] = useState<MarketplaceTender[]>([]);
   const [tendersLoading, setTendersLoading] = useState(true);
   const [tendersError, setTendersError] = useState<string | null>(null);
+  const [guestAuctions, setGuestAuctions] = useState<GuestMarketplaceAuction[]>([]);
 
   const [listingType, setListingType] = useState("all");
   const [listingTemperature, setListingTemperature] = useState("all");
@@ -197,12 +217,30 @@ export default function PlatformPage() {
       }
     }
 
+    async function loadGuestAuctions() {
+      try {
+        const response = await fetch("/api/guest-auctions", { cache: "no-store" });
+        if (!response.ok) {
+          if (!cancelled) setGuestAuctions([]);
+          return;
+        }
+        const data = (await response.json()) as GuestMarketplaceResponse;
+        if (!cancelled) {
+          setGuestAuctions(data.viewerType === "COMPANY_BIDDER" ? data.auctions : []);
+        }
+      } catch {
+        if (!cancelled) setGuestAuctions([]);
+      }
+    }
+
     void loadListings(true);
     void loadTenders(true);
+    void loadGuestAuctions();
 
     const refreshTimer = window.setInterval(() => {
       void loadListings(false);
       void loadTenders(false);
+      void loadGuestAuctions();
     }, 10000);
 
     return () => {
@@ -244,6 +282,17 @@ export default function PlatformPage() {
       );
     });
   }, [marketplaceListings, query, listingType, listingTemperature, listingAuctionState]);
+
+  const filteredGuestAuctions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return guestAuctions;
+    return guestAuctions.filter((auction) =>
+      [auction.title, auction.itemDescription, auction.pickupLocation, auction.deliveryLocation]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [guestAuctions, query]);
 
   const filteredTenders = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -332,10 +381,37 @@ export default function PlatformPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Live marketplace</p>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Available logistics capacity</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search and filter real capacity by type, temperature and bidding status, then open a listing for the full auction detail.</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search capacity and customer transport opportunities, then open the relevant auction detail.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new"><Plus className="h-4 w-4" />List capacity</Link></Button>
             </div>
+
+            {filteredGuestAuctions.length > 0 ? (
+              <div className="mb-7 rounded-[1.6rem] border border-cyan-100 bg-gradient-to-r from-cyan-50/70 to-blue-50/70 p-5 shadow-sm shadow-froto-navy/5">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-froto-blue" /><p className="font-semibold text-froto-navy">Customer jobs · sealed bids</p></div>
+                    <p className="mt-1 text-xs text-slate-500">Guest customers need transport. Your price stays private from competing companies.</p>
+                  </div>
+                  <Badge className="bg-froto-navy text-white">{filteredGuestAuctions.length} open</Badge>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {filteredGuestAuctions.map((auction) => (
+                    <Card key={auction.id} className="border-cyan-100 bg-white shadow-sm">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div><p className="font-semibold text-froto-navy">{auction.title}</p><p className="mt-1 text-sm text-slate-500">{auction.pickupLocation} → {auction.deliveryLocation}</p></div>
+                          <Badge className="bg-froto-green text-white">Open</Badge>
+                        </div>
+                        <p className="mt-3 line-clamp-2 text-sm text-slate-600">{auction.itemDescription}</p>
+                        <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500"><span>Closes {formatDateTime(auction.auctionClosesAt)}</span>{auction.ownBid ? <span className="font-medium text-froto-teal">Your sealed bid: {formatAUD(auction.ownBid.amount)}</span> : <span>No bid submitted</span>}</div>
+                        <Button asChild className="mt-4 w-full bg-froto-blue hover:bg-[#0969ba]"><Link href={`/platform/guest-auctions/${auction.id}`}>{auction.ownBid ? "View your bid" : "Submit sealed bid"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="mb-7 rounded-[1.4rem] border border-froto-blue/10 bg-white p-4 shadow-sm shadow-froto-navy/5">
               <div className="mb-3 flex items-center justify-between gap-3">
