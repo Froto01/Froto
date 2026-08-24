@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { decimalToMinorUnits } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -201,6 +202,16 @@ export async function POST(
               },
             },
           },
+        },
+      });
+
+      await tx.commercialTransaction.create({
+        data: {
+          jobId: job.id,
+          buyerCompanyId: bid.bidderCompanyId,
+          providerCompanyId: listing.companyId,
+          grossAmountMinor: decimalToMinorUnits(bid.amount),
+          awardedAt,
         },
       });
 
