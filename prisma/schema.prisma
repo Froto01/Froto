@@ -29,6 +29,8 @@ model User {
   guestAuctionsCreated   GuestAuction[]    @relation("GuestAuctionCreatedByUser")
   guestAuctionBidsPlaced GuestAuctionBid[] @relation("GuestAuctionBidPlacedByUser")
   opportunityAlertPreferences OpportunityAlertPreference[]
+  commercialTransactionsAsBuyer CommercialTransaction[] @relation("CommercialTransactionBuyerUser")
+  promotionsPurchased    Promotion[] @relation("PromotionPurchaserUser")
 }
 
 model Company {
@@ -61,6 +63,9 @@ model Company {
   guestReviewsReceived         GuestAuctionReview[] @relation("GuestAuctionReviewSubjectCompany")
   guestAuctionBids             GuestAuctionBid[] @relation("GuestAuctionBidderCompany")
   opportunityAlertPreferences  OpportunityAlertPreference[]
+  commercialTransactionsAsBuyer CommercialTransaction[] @relation("CommercialTransactionBuyerCompany")
+  commercialTransactionsAsProvider CommercialTransaction[] @relation("CommercialTransactionProviderCompany")
+  promotionsPurchased          Promotion[] @relation("PromotionPurchaserCompany")
 
   @@index([verificationReviewedByUserId])
 }
@@ -102,6 +107,7 @@ model Listing {
   bids                Bid[]    @relation("ListingBids")
   awardedBid          Bid?     @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   job                 Job?
+  promotions          Promotion[]
 
   @@index([companyId])
   @@index([status])
@@ -150,6 +156,7 @@ model Job {
   providerCompany         Company         @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
   events                  JobEvent[]
   reviews                 Review[]
+  commercialTransaction   CommercialTransaction?
 
   @@index([buyerCompanyId])
   @@index([providerCompanyId])
@@ -236,6 +243,7 @@ model Tender {
   responses              TenderResponse[] @relation("TenderResponses")
   awardedResponse        TenderResponse?  @relation("AwardedTenderResponse", fields: [awardedResponseId], references: [id], onDelete: SetNull)
   job                    Job?
+  promotions             Promotion[]
 
   @@index([companyId])
   @@index([status])
@@ -287,6 +295,8 @@ model GuestAuction {
   bids            GuestAuctionBid[] @relation("GuestAuctionBids")
   awardedBid      GuestAuctionBid?  @relation("GuestAuctionAwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   review          GuestAuctionReview?
+  commercialTransaction CommercialTransaction?
+  promotions      Promotion[]
 
   @@index([createdByUserId])
   @@index([status])
@@ -356,6 +366,170 @@ model Notification {
   @@index([type])
 }
 
+model CommercialTransaction {
+  id                   String                     @id @default(cuid())
+  jobId                String?                    @unique
+  guestAuctionId       String?                    @unique
+  buyerCompanyId       String?
+  buyerUserId          String?
+  providerCompanyId    String
+  grossAmountMinor     BigInt
+  currency             String                     @default("AUD")
+  paymentMode          CommercialPaymentMode      @default(UNSET)
+  paymentStatus        CommercialPaymentStatus    @default(UNSET)
+  settlementStatus     CommercialSettlementStatus @default(NOT_APPLICABLE)
+  paymentTerms         String?
+  awardedAt            DateTime
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  job                  Job?                       @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  guestAuction         GuestAuction?              @relation(fields: [guestAuctionId], references: [id], onDelete: Restrict)
+  buyerCompany         Company?                   @relation("CommercialTransactionBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
+  buyerUser            User?                      @relation("CommercialTransactionBuyerUser", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  providerCompany      Company                    @relation("CommercialTransactionProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
+  charges              PlatformCharge[]
+  payments             PaymentRecord[]
+  invoices             InvoiceRecord[]
+  adjustments          RefundAdjustment[]
+
+  @@index([buyerCompanyId, createdAt])
+  @@index([buyerUserId, createdAt])
+  @@index([providerCompanyId, createdAt])
+  @@index([paymentStatus])
+  @@index([settlementStatus])
+}
+
+model FeeRule {
+  id               String      @id @default(cuid())
+  name             String
+  transactionScope String?
+  feeKind          FeeKind
+  percentageBps    Int?
+  fixedAmountMinor BigInt?
+  minimumAmountMinor BigInt?
+  maximumAmountMinor BigInt?
+  currency         String      @default("AUD")
+  effectiveFrom    DateTime
+  effectiveTo      DateTime?
+  active           Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  charges          PlatformCharge[]
+
+  @@index([active, effectiveFrom])
+  @@index([transactionScope])
+}
+
+model PlatformCharge {
+  id                    String               @id @default(cuid())
+  commercialTransactionId String?
+  feeRuleId             String?
+  chargeType            PlatformChargeType
+  status                PlatformChargeStatus @default(PENDING)
+  amountMinor           BigInt
+  taxAmountMinor        BigInt               @default(0)
+  currency              String               @default("AUD")
+  calculationSnapshot   Json?
+  dueAt                 DateTime?
+  paidAt                DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  commercialTransaction CommercialTransaction? @relation(fields: [commercialTransactionId], references: [id], onDelete: Restrict)
+  feeRule               FeeRule?             @relation(fields: [feeRuleId], references: [id], onDelete: SetNull)
+
+  @@index([commercialTransactionId, createdAt])
+  @@index([status, dueAt])
+  @@index([chargeType])
+}
+
+model PaymentRecord {
+  id                    String                  @id @default(cuid())
+  commercialTransactionId String
+  provider              String?
+  providerPaymentRef    String?
+  paymentMethod         String?
+  status                CommercialPaymentStatus @default(PENDING)
+  amountMinor           BigInt
+  currency              String                  @default("AUD")
+  occurredAt            DateTime?
+  metadata              Json?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  commercialTransaction CommercialTransaction   @relation(fields: [commercialTransactionId], references: [id], onDelete: Cascade)
+
+  @@index([commercialTransactionId, createdAt])
+  @@index([provider, providerPaymentRef])
+  @@index([status])
+}
+
+model InvoiceRecord {
+  id                    String                @id @default(cuid())
+  commercialTransactionId String
+  invoiceType           InvoiceType
+  invoiceNumber         String?               @unique
+  status                InvoiceStatus         @default(DRAFT)
+  subtotalMinor         BigInt
+  taxAmountMinor        BigInt                @default(0)
+  totalMinor            BigInt
+  currency              String                @default("AUD")
+  issuedAt              DateTime?
+  dueAt                 DateTime?
+  paidAt                DateTime?
+  externalReference     String?
+  metadata              Json?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  commercialTransaction CommercialTransaction @relation(fields: [commercialTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([commercialTransactionId, createdAt])
+  @@index([status, dueAt])
+}
+
+model RefundAdjustment {
+  id                    String                   @id @default(cuid())
+  commercialTransactionId String
+  adjustmentType        AdjustmentType
+  amountMinor           BigInt
+  taxAmountMinor        BigInt                  @default(0)
+  currency              String                  @default("AUD")
+  reason                String?
+  providerReference     String?
+  occurredAt            DateTime                @default(now())
+  createdAt             DateTime                @default(now())
+  commercialTransaction CommercialTransaction   @relation(fields: [commercialTransactionId], references: [id], onDelete: Restrict)
+
+  @@index([commercialTransactionId, occurredAt])
+  @@index([adjustmentType])
+}
+
+model Promotion {
+  id                 String          @id @default(cuid())
+  listingId          String?
+  tenderId           String?
+  guestAuctionId     String?
+  purchaserCompanyId String?
+  purchaserUserId    String?
+  promotionType      PromotionType
+  status             PromotionStatus @default(PENDING)
+  amountMinor        BigInt?
+  taxAmountMinor     BigInt?         @default(0)
+  currency           String          @default("AUD")
+  startsAt           DateTime?
+  endsAt             DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  listing            Listing?        @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  tender             Tender?         @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  guestAuction       GuestAuction?   @relation(fields: [guestAuctionId], references: [id], onDelete: Cascade)
+  purchaserCompany   Company?        @relation("PromotionPurchaserCompany", fields: [purchaserCompanyId], references: [id], onDelete: Restrict)
+  purchaserUser      User?           @relation("PromotionPurchaserUser", fields: [purchaserUserId], references: [id], onDelete: Restrict)
+
+  @@index([listingId, status])
+  @@index([tenderId, status])
+  @@index([guestAuctionId, status])
+  @@index([status, startsAt, endsAt])
+}
+
 enum CompanyRole {
   OWNER
   ADMIN
@@ -364,4 +538,96 @@ enum CompanyRole {
   DRIVER
   WAREHOUSE
   STAFF
+}
+
+enum CommercialPaymentMode {
+  UNSET
+  PLATFORM
+  COMMERCIAL_TERMS
+  MANUAL
+}
+
+enum CommercialPaymentStatus {
+  UNSET
+  NOT_REQUIRED
+  PENDING
+  REQUIRES_ACTION
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
+  OVERDUE
+  CANCELLED
+}
+
+enum CommercialSettlementStatus {
+  NOT_APPLICABLE
+  PENDING
+  AVAILABLE
+  PAID_OUT
+  FAILED
+  HELD
+}
+
+enum FeeKind {
+  PERCENTAGE
+  FIXED
+  PERCENTAGE_WITH_LIMITS
+}
+
+enum PlatformChargeType {
+  SUCCESS_FEE
+  PROMOTION
+  OTHER
+}
+
+enum PlatformChargeStatus {
+  PENDING
+  DUE
+  PAID
+  WAIVED
+  PARTIALLY_REFUNDED
+  REFUNDED
+  CANCELLED
+}
+
+enum InvoiceType {
+  CUSTOMER_TRANSACTION
+  FROTO_FEE
+  PROMOTION
+  CREDIT_NOTE
+  RECEIPT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+  CREDITED
+}
+
+enum AdjustmentType {
+  REFUND
+  PARTIAL_REFUND
+  CREDIT
+  DEBIT
+  CORRECTION
+}
+
+enum PromotionType {
+  FEATURED
+  PRIORITY
+  URGENT
+  FEATURED_WAREHOUSE
+  HIGHLIGHTED_TENDER
+}
+
+enum PromotionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }
