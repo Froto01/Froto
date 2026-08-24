@@ -8,58 +8,14 @@ import {
   BarChart3,
   CheckCircle2,
   ClipboardList,
-  Clock3,
-  Flame,
   PackageCheck,
   Truck,
   Warehouse,
 } from "lucide-react";
 
+import { LandingLiveMarketplace } from "@/components/landing-live-marketplace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const MARKETPLACE_EXAMPLES = [
-  {
-    id: "1",
-    type: "Transport",
-    lane: "Sydney → Melbourne",
-    capacity: "22 pallet spaces",
-    bid: "$210",
-    timeLeft: "1h 42m left",
-    badge: "Hot",
-    activity: "+12% bid activity",
-  },
-  {
-    id: "2",
-    type: "Warehouse",
-    lane: "Brisbane 3PL – Chilled",
-    capacity: "80 pallet positions",
-    bid: "$28 / pallet / week",
-    timeLeft: "4h 15m left",
-    badge: "New",
-    activity: "Fresh listing",
-  },
-  {
-    id: "3",
-    type: "Transport",
-    lane: "Perth → Adelaide",
-    capacity: "12 pallet spaces",
-    bid: "$330",
-    timeLeft: "52m left",
-    badge: "Closing",
-    activity: "Ends soon",
-  },
-  {
-    id: "4",
-    type: "Warehouse",
-    lane: "Melbourne 3PL – Ambient",
-    capacity: "120 pallet positions",
-    bid: "$18 / pallet / week",
-    timeLeft: "6h 08m left",
-    badge: "Live",
-    activity: "+5 new views",
-  },
-];
 
 const OPERATORS = [
   "3PL Warehouses",
@@ -146,49 +102,15 @@ export default function LandingPage() {
               <div className="bg-gradient-to-r from-froto-navy via-[#0a4778] to-froto-teal px-6 py-5 text-white">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">
-                      Illustrative marketplace preview
-                    </p>
-                    <h2 className="mt-1 text-xl font-semibold">How live capacity can appear</h2>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Live marketplace</p>
+                    <h2 className="mt-1 text-xl font-semibold">Current Froto opportunities</h2>
                   </div>
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
                     <Truck className="h-5 w-5" />
                   </span>
                 </div>
               </div>
-
-              <CardContent className="space-y-3 p-5">
-                <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 ring-1 ring-amber-100">
-                  Example data for the feedback preview. Open the Marketplace to see current listings.
-                </p>
-                {MARKETPLACE_EXAMPLES.slice(0, 3).map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="font-semibold text-froto-navy">{item.lane}</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.capacity} · {item.timeLeft}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-slate-900">{item.bid}</p>
-                        <p className="mt-1 text-[11px] text-froto-teal">{item.activity}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <Link
-                  href="/platform"
-                  className="flex items-center justify-center gap-2 rounded-xl bg-froto-ice px-4 py-3 text-sm font-semibold text-froto-navy transition-colors hover:bg-cyan-50"
-                >
-                  View current marketplace
-                  <ArrowUpRight className="h-4 w-4 text-froto-blue" />
-                </Link>
-              </CardContent>
+              <LandingLiveMarketplace compact />
             </Card>
           </div>
         </div>
@@ -198,14 +120,10 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-blue">
-                Marketplace example
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">
-                A freight board built for action
-              </h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-froto-blue">Live marketplace board</p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">A freight board built for action</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                These illustrative examples show how transport lanes and warehouse space can be compared at a glance. Current marketplace data lives inside the Marketplace.
+                Current open transport capacity, warehouse space, tenders and customer jobs. Commercially sensitive identities and sealed pricing stay inside the signed-in marketplace.
               </p>
             </div>
 
@@ -217,68 +135,7 @@ export default function LandingPage() {
             </Button>
           </div>
 
-          <div className="overflow-hidden rounded-[1.75rem] border border-froto-blue/15 bg-white shadow-lg shadow-froto-navy/5">
-            <div className="grid grid-cols-12 gap-3 bg-froto-navy px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white/75">
-              <div className="col-span-5">Lane / listing</div>
-              <div className="col-span-3 sm:col-span-2">Type</div>
-              <div className="col-span-4 sm:col-span-3">Capacity</div>
-              <div className="hidden text-right sm:col-span-2 sm:block">Example bid</div>
-            </div>
-
-            <div className="divide-y divide-slate-100">
-              {MARKETPLACE_EXAMPLES.map((item) => (
-                <Link
-                  key={item.id}
-                  href="/platform"
-                  className="grid grid-cols-12 items-center gap-3 px-5 py-4 transition-colors hover:bg-froto-ice"
-                >
-                  <div className="col-span-12 sm:col-span-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-froto-navy">{item.lane}</p>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          item.badge === "Hot"
-                            ? "bg-rose-100 text-rose-700"
-                            : item.badge === "Closing"
-                              ? "bg-amber-100 text-amber-700"
-                              : item.badge === "New"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-cyan-100 text-cyan-800"
-                        }`}
-                      >
-                        {item.badge === "Hot" && <Flame className="mr-1 h-3 w-3" />}
-                        {item.badge === "Closing" && <Clock3 className="mr-1 h-3 w-3" />}
-                        {item.badge}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {item.timeLeft} · {item.activity}
-                    </p>
-                  </div>
-
-                  <div className="col-span-4 sm:col-span-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-froto-ice px-2.5 py-1 text-xs font-medium text-froto-navy">
-                      {item.type === "Transport" ? (
-                        <Truck className="h-3.5 w-3.5 text-froto-blue" />
-                      ) : (
-                        <Warehouse className="h-3.5 w-3.5 text-froto-teal" />
-                      )}
-                      {item.type}
-                    </span>
-                  </div>
-
-                  <div className="col-span-5 text-sm text-slate-600 sm:col-span-3">
-                    {item.capacity}
-                  </div>
-
-                  <div className="col-span-3 text-right sm:col-span-2">
-                    <p className="font-semibold text-froto-navy">{item.bid}</p>
-                    <p className="text-[11px] text-slate-400 sm:hidden">Example bid</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+          <LandingLiveMarketplace />
         </div>
       </section>
 
