@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { notifyMatchingOpportunity } from "@/lib/opportunity-alerts";
@@ -134,10 +135,13 @@ export async function GET(request: Request) {
   }
 
   const includeHistory = new URL(request.url).searchParams.get("includeHistory") === "1";
-  const openAuctionWhere = { status: "OPEN" as const, auctionClosesAt: { gt: new Date() } };
-  const awardedHistoryWhere = {
-    status: { in: ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"] as const },
-    bids: { some: { bidderCompanyId: membership.companyId, status: "AWARDED" as const } },
+  const openAuctionWhere: Prisma.GuestAuctionWhereInput = {
+    status: "OPEN",
+    auctionClosesAt: { gt: new Date() },
+  };
+  const awardedHistoryWhere: Prisma.GuestAuctionWhereInput = {
+    status: { in: ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"] },
+    bids: { some: { bidderCompanyId: membership.companyId, status: "AWARDED" } },
   };
 
   const auctions = await prisma.guestAuction.findMany({
