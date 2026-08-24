@@ -48,27 +48,11 @@ The long-term differentiation is the feedback loop:
 
 Any older documentation referring to Supabase as the active backend is superseded by the architecture above.
 
+The future mobile application should use the same Froto marketplace/backend rather than create a second marketplace or duplicate business logic. The current preferred mobile direction is **React Native with Expo**, subject to technical reassessment when mobile implementation begins.
+
 ## 5. Core marketplace capability built
 
-Froto currently includes or has established foundations for:
-
-- transport capacity listings;
-- warehouse / 3PL capacity listings;
-- live marketplace bidding;
-- structured tenders;
-- guest/customer transport jobs using sealed/silent bidding;
-- company onboarding and profiles;
-- company verification workflow;
-- reviews/reputation and trust-layer foundations;
-- award and transaction workflow;
-- completion confirmation workflow;
-- dashboards and transaction history;
-- in-app notifications;
-- saved opportunity alert preferences;
-- opportunity matching;
-- real transactional opportunity emails;
-- safe public landing-page marketplace activity;
-- Froto Market Pulse market-intelligence foundation.
+Froto currently includes or has established foundations for transport and warehouse/3PL capacity listings, live marketplace bidding, structured tenders, guest/customer transport jobs using sealed/silent bidding, company onboarding and profiles, verification, reviews/reputation, award/completion workflows, dashboards/history, notifications, opportunity matching/email alerts, safe public marketplace activity and Froto Market Pulse.
 
 ## 6. Opportunity alerts
 
@@ -112,51 +96,21 @@ The larger landing-page board remains the live current-opportunity view.
 
 ## 10. Froto Market Pulse
 
-### Purpose
-
 Market Pulse turns completed Froto transactions into anonymous market intelligence and gives users a feel for what the logistics spot market is doing.
-
-### Target presentation
 
 Each published benchmark should clearly show **Market / lane or 3PL market**, **Typical rate**, **Rate unit**, **30-day trend**, and **Activity / award count**.
 
-Examples of units include `$/shipment`, `$/pallet`, and `$/pallet/week`. Future structured data may support `$/km` and `$/pallet-km`.
+Statistical/privacy rules: use actual awarded/completed transactions rather than asking prices or live sealed bids; use median rates; compare latest 30 days with previous 30 days; require at least 3 comparable transactions at launch; show **“Building market data”** when insufficient; never expose contributing identities or individual prices; increase segmentation only when liquidity/privacy permit.
 
-### Statistical and privacy rules
-
-- Use actual awarded/completed transactions, not advertised asking prices.
-- Do not derive public benchmarks from competing live sealed bids.
-- Use **median** awarded rates rather than simple averages to reduce distortion from outliers.
-- Initial window: latest 30 days compared with previous 30 days for trend.
-- Require a minimum comparable sample before publishing a benchmark. Launch target: at least 3 comparable transactions, with the threshold capable of increasing as liquidity grows.
-- If the sample is insufficient, display **“Building market data”** rather than inventing or over-interpreting a rate.
-- Never expose the identity or individual commercial price of a contributing transaction.
-- Increase segmentation only when sample size remains sufficient and privacy is protected.
-
-### Initial benchmark interpretation
-
-- Transport: median awarded shipment value for genuinely comparable transport transactions; richer normalised units to follow as structured data supports them.
-- Pallet-based warehouse capacity: median awarded `$/pallet/week`, segmented by storage type/market when sufficient data exists.
+Initial interpretation: transport uses median awarded shipment value for genuinely comparable transactions, with richer normalised units later; pallet-based warehouse capacity uses median awarded `$/pallet/week` segmented when sufficient data exists.
 
 ## 11. Commercial model
 
-### Approved launch principle
+**No mandatory subscription for core marketplace participation.** Froto should minimise barriers to entry, especially for smaller carriers, owner-drivers, regional operators and smaller 3PLs.
 
-**No mandatory subscription for core marketplace participation.**
+Primary revenue is a **success / transaction fee** when business is successfully transacted/awarded through Froto. The exact fee schedule is not yet locked and may use different percentages, minimums and/or caps for different transaction sizes/types.
 
-Froto should minimise barriers to entry, especially for smaller carriers, owner-drivers, regional operators and smaller 3PLs.
-
-### Primary revenue
-
-**Success / transaction fee:** Froto earns a fee when business is successfully transacted/awarded through the marketplace.
-
-The exact fee schedule is not yet locked. It should be modelled before implementation and may use different percentages, minimums and/or caps for different transaction sizes/types. A small freight job and a large annual 3PL contract should not automatically be treated identically.
-
-### Optional revenue
-
-Promoted marketplace products may include featured listings, priority placement, highlighted tenders, urgent freight promotion and featured warehouse capacity.
-
-Future optional revenue may include advanced Market Pulse analytics/data, API access, enterprise integrations and premium tender/data tools. These must not create an unnecessary barrier to basic marketplace participation.
+Optional revenue may include featured listings, priority placement, highlighted tenders, urgent freight promotion and featured warehouse capacity. Future optional revenue may include advanced Market Pulse analytics/data, API access, enterprise integrations and premium tender/data tools.
 
 ## 12. Payments, billing and invoicing roadmap
 
@@ -172,13 +126,41 @@ Target transaction lifecycle:
 
 **Post → Bid → Award → payment/payment terms → Perform → Confirm → invoice/receipt → payout/settlement → Froto fee → Review → Market Pulse.**
 
-## 13. Future matching direction
+## 13. Future matching and Froto Driver direction
 
-The spot-market thesis does not require every operator to publicly advertise its spare capacity. As Froto matures, private availability/matching may allow operators to define preferred lanes, regions, equipment, dates and criteria so Froto can surface matching opportunities without publicly revealing network imbalances or commercially sensitive spare-capacity positions.
+The spot-market thesis does not require every operator to publicly advertise spare capacity. As Froto matures, private availability/matching may allow operators to define preferred lanes, regions, equipment, dates and criteria so Froto can surface matching opportunities without publicly revealing network imbalances or commercially sensitive spare-capacity positions.
 
-This is a future direction, not launch scope. It may be particularly valuable to larger carriers and 3PL networks.
+### Froto Driver
 
-Post-launch, Froto may also introduce a mobile/app experience supporting private contracts and live courier/package updates. SMS/push/live-location style notifications belong with this phase unless launch evidence changes the priority.
+A dedicated mobile experience is approved as a **planned post-launch product direction**, initially focused on carriers, courier drivers and owner-drivers who need to access the spot market while on the road.
+
+The app should connect to the same Froto marketplace/API/database as the web platform. It should not be a separate marketplace and should not initially attempt to reproduce every desktop feature.
+
+Preferred implementation direction: **React Native + Expo**, giving Froto one mobile codebase for iOS and Android while retaining the React/TypeScript ecosystem. This is a preferred architecture, not an irreversible vendor decision.
+
+### Mobile delivery phases
+
+**Phase 1 — Mobile web / PWA hardening**  
+Ensure the core marketplace works exceptionally well on phones and assess installable PWA capability without placing native-app delivery on the January launch critical path.
+
+**Phase 2 — Froto Driver app**  
+Focused workflow: driver/provider profile and vehicle/capacity → availability → nearby/relevant opportunity feed → push notification → view opportunity → bid → award → job details → completion → reputation.
+
+**Phase 3 — Intelligent/private matching**  
+Allow operators to specify current area, preferred direction/lane, vehicle/equipment, available capacity and availability window. Froto can proactively match suitable opportunities without requiring spare capacity to be publicly disclosed.
+
+**Phase 4 — Live logistics**  
+Potential opt-in location-aware matching, live job status, pickup/delivery events, proof of delivery, push/SMS and route-aware courier opportunities. Continuous location tracking must not be assumed; it should be opt-in and introduced only where the user value justifies privacy, battery and operational costs.
+
+### Courier utilisation thesis
+
+A particularly valuable future use case is matching a driver already travelling in approximately the right direction with incremental courier/freight demand. The objective is not simply to find an available driver, but eventually to identify capacity whose existing movement makes the additional job efficient.
+
+Examples include return/backload opportunities after delivery, partially empty vehicles, same-direction courier pickups and short-notice overflow work.
+
+### Launch guardrail
+
+Froto Driver is **not part of the 1 January 2027 critical path by default**. The web marketplace and commercial transaction loop should be completed and hardened first. A lightweight mobile/PWA capability may be brought forward only if doing so does not materially increase launch risk.
 
 ## 14. Roadmap status
 
@@ -207,6 +189,16 @@ Current focus:
 - promoted-listing architecture.
 
 Payment-provider selection remains on hold pending financial-adviser input.
+
+### Post-launch mobile roadmap
+
+- mobile/PWA hardening;
+- Froto Driver native app;
+- push notifications;
+- private availability/capacity matching;
+- route/location-aware matching where justified;
+- live pickup/delivery/POD workflows;
+- SMS integration where mobile use case supports it.
 
 ### Pre-launch priority
 
@@ -309,6 +301,26 @@ Protect the **1 January 2027** launch by treating schedule lead as contingency r
 **Reason:** Payment structure affects fees, settlement, tax/accounting and legal responsibilities and should not be locked prematurely.  
 **Impact:** Sprint 9 may build provider-neutral ledger, fee, invoice and promotion foundations but must not integrate a provider SDK or production payment flow yet.
 
+### D-020 — Froto Driver mobile product
+**Decision:** Develop a dedicated **Froto Driver** mobile experience as a planned post-launch product, initially focused on owner-drivers, courier drivers and mobile transport providers rather than recreating the entire desktop product.  
+**Reason:** Mobile creates the greatest incremental value for people controlling moving capacity who need to discover and act on spot opportunities while away from a desk.  
+**Impact:** The future mobile roadmap prioritises availability, opportunity matching, push alerts, bidding, award/job workflow, completion and reputation.
+
+### D-021 — Shared marketplace architecture for mobile
+**Decision:** Froto Driver should use the same Froto backend, identities, jobs, transactions and marketplace data as the web application. React Native + Expo is the current preferred implementation direction for iOS/Android.  
+**Reason:** One marketplace/source of truth avoids duplicated business logic and allows desktop-posted demand to reach mobile providers immediately.  
+**Impact:** Web/API architecture should remain reusable by future mobile clients; mobile technology can be reassessed before implementation if needed.
+
+### D-022 — Mobile launch sequencing
+**Decision:** Native Froto Driver is not on the January 2027 critical path by default. Mobile web/PWA quality comes first; native app, intelligent matching and live/location features follow in phases.  
+**Reason:** The core web spot market and commercial transaction loop need to be reliable before adding the operational and privacy complexity of native mobile/location services.  
+**Impact:** Mobile can be accelerated only if it does not materially increase launch risk.
+
+### D-023 — Location and private capacity matching
+**Decision:** Future matching should support private, preference-based availability and opt-in location/route intelligence rather than requiring operators to publicly expose spare capacity or continuously broadcast location.  
+**Reason:** This preserves commercial privacy and makes Froto more useful to larger networks while still allowing owner-drivers to receive highly relevant work.  
+**Impact:** Future matching may use area, direction, equipment, capacity, timing and opt-in location to identify efficient incremental jobs.
+
 ## 16. Open decisions requiring future approval
 
 The following are deliberately **not yet locked**:
@@ -321,7 +333,8 @@ The following are deliberately **not yet locked**:
 - refund and dispute policy;
 - promoted-listing prices;
 - advanced Market Pulse/data pricing;
-- detailed post-launch app/private-contract architecture.
+- final native-mobile framework/provider choices at implementation time;
+- detailed privacy/retention rules for future location data.
 
 These should be decided with commercial modelling and implementation evidence rather than guessed prematurely.
 
