@@ -8,7 +8,7 @@ export function decimalToMinorUnits(value: { toString(): string } | string | num
 
   const [, sign, whole, fraction = ""] = match;
   const cents = `${fraction}00`.slice(0, 2);
-  const minor = BigInt(whole) * 100n + BigInt(cents);
+  const minor = BigInt(whole) * BigInt(100) + BigInt(cents);
 
   return sign === "-" ? -minor : minor;
 }
