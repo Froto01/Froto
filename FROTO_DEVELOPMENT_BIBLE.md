@@ -1,7 +1,7 @@
 # Froto Development Bible
 
 **Status:** Living single source of truth  
-**Last reconciled:** 24 August 2026  
+**Last reconciled:** 25 August 2026  
 **Target launch:** 1 January 2027
 
 ## 1. Purpose
@@ -10,24 +10,29 @@ This document records what Froto is, the product principles, architecture, roadm
 
 ## 2. Product vision
 
-Froto is a live logistics capacity marketplace and price-discovery network. It connects shippers, carriers, owner-drivers, 3PL warehouses and other logistics participants so transport capacity, warehouse capacity, tenders and customer freight jobs can be discovered, competitively bid, awarded and completed in one workflow.
+**Froto is a spot marketplace for underutilised logistics capacity, helping carriers, owner-drivers, warehouses and customers efficiently match temporary supply with real-time demand.**
+
+Froto is not intended to replace stable contracted logistics, permanent lanes, established customer relationships or the transport-management systems operators already use to run those networks. Its role is to improve utilisation at the edges of those networks: empty and partially empty transport legs, overflow freight, short-term or spare warehouse capacity, urgent/ad-hoc demand and other temporary supply/demand imbalances.
+
+Transport and warehousing are both treated as tradable logistics capacity. Froto's strategic role is the market layer connecting fragmented logistics networks when capacity would otherwise be idle or demand would otherwise go unmatched.
 
 The long-term differentiation is the feedback loop:
 
 **Marketplace activity → transaction → completion → reputation → anonymous market intelligence → better matching and alerts → more marketplace activity.**
 
-Froto is broader than a freight quote board: transport and warehousing are both treated as tradable logistics capacity.
-
 ## 3. Product principles
 
 1. **Connect. Match. Move.**
-2. **Free to join. Free to participate. Froto earns when business happens.**
-3. Build liquidity first; avoid unnecessary barriers for small operators.
-4. Trust is part of the transaction: verification, completion records and reputation matter.
-5. Public market intelligence must be useful without exposing commercially sensitive individual transactions.
-6. Do not fabricate marketplace activity or benchmark data. When data is insufficient, say so.
-7. Prefer an agile launch-safe version first, then deepen functionality from real usage.
-8. Every new pre-launch feature should materially improve liquidity, trust, transaction completion, market intelligence or launch reliability.
+2. **Froto is a spot market, not a replacement for stable contracted logistics.**
+3. **Free to join. Free to participate. Froto earns when business happens.**
+4. Improve utilisation of logistics assets that would otherwise be idle, empty or underused.
+5. Build liquidity first; avoid unnecessary barriers for small operators.
+6. Trust is part of the transaction: verification, completion records and reputation matter.
+7. Public market intelligence must be useful without exposing commercially sensitive individual transactions.
+8. Do not fabricate marketplace activity or benchmark data. When data is insufficient, say so.
+9. Prefer an agile launch-safe version first, then deepen functionality from real usage.
+10. Every new pre-launch feature should materially improve liquidity, trust, transaction completion, market intelligence or launch reliability.
+11. Avoid drifting into a general TMS/WMS. Operational features should exist primarily where they enable or protect the marketplace transaction.
 
 ## 4. Current architecture
 
@@ -101,13 +106,7 @@ Trust information should help customers assess counterparties without compromisi
 
 The landing page contains a safe public view of real marketplace activity. It may expose broad opportunity information such as type, route/location, capacity/details, timing and activity counts.
 
-It must not expose:
-
-- private customer identities;
-- company identities where not intended for public display;
-- contact information;
-- competing sealed bid amounts;
-- other commercially sensitive private transaction data.
+It must not expose private customer identities, company identities where not intended for public display, contact information, competing sealed bid amounts, or other commercially sensitive private transaction data.
 
 The larger landing-page board remains the live current-opportunity view.
 
@@ -115,17 +114,11 @@ The larger landing-page board remains the live current-opportunity view.
 
 ### Purpose
 
-Market Pulse turns completed Froto transactions into anonymous market intelligence and gives users a feel for what the logistics market is doing.
+Market Pulse turns completed Froto transactions into anonymous market intelligence and gives users a feel for what the logistics spot market is doing.
 
 ### Target presentation
 
-Each published benchmark should clearly show:
-
-- **Market / lane or 3PL market**;
-- **Typical rate**;
-- **Rate unit**;
-- **30-day trend**;
-- **Activity / award count**.
+Each published benchmark should clearly show **Market / lane or 3PL market**, **Typical rate**, **Rate unit**, **30-day trend**, and **Activity / award count**.
 
 Examples of units include `$/shipment`, `$/pallet`, and `$/pallet/week`. Future structured data may support `$/km` and `$/pallet-km`.
 
@@ -138,7 +131,7 @@ Examples of units include `$/shipment`, `$/pallet`, and `$/pallet/week`. Future 
 - Require a minimum comparable sample before publishing a benchmark. Launch target: at least 3 comparable transactions, with the threshold capable of increasing as liquidity grows.
 - If the sample is insufficient, display **“Building market data”** rather than inventing or over-interpreting a rate.
 - Never expose the identity or individual commercial price of a contributing transaction.
-- Increase segmentation (temperature, equipment, load size, region, etc.) only when sample size remains sufficient and privacy is protected.
+- Increase segmentation only when sample size remains sufficient and privacy is protected.
 
 ### Initial benchmark interpretation
 
@@ -161,54 +154,31 @@ The exact fee schedule is not yet locked. It should be modelled before implement
 
 ### Optional revenue
 
-Promoted marketplace products may include:
-
-- featured listings;
-- priority placement;
-- highlighted tenders;
-- urgent freight promotion;
-- featured warehouse capacity.
+Promoted marketplace products may include featured listings, priority placement, highlighted tenders, urgent freight promotion and featured warehouse capacity.
 
 Future optional revenue may include advanced Market Pulse analytics/data, API access, enterprise integrations and premium tender/data tools. These must not create an unnecessary barrier to basic marketplace participation.
 
 ## 12. Payments, billing and invoicing roadmap
 
-Froto needs three related but distinct financial capabilities:
+Froto needs three related but distinct financial capabilities: a Froto revenue engine, customer-to-customer payment capability, and invoicing/financial records.
 
-### A. Froto revenue engine
-
-- calculate success/transaction fees;
-- calculate promoted-listing charges;
-- record Froto revenue and GST treatment;
-- support sensible fee minimums/caps/rules once commercially approved.
-
-### B. Customer-to-customer payment capability
-
-Froto should integrate a mature marketplace payment provider rather than build its own payment processor. The eventual architecture should support customer payment, payment status and service-provider payout where appropriate.
+Froto should integrate a mature marketplace payment provider rather than build its own payment processor. **Provider selection is currently deferred pending financial-adviser input and must remain provider-neutral until separately approved.**
 
 The commercial engine must remain independent of payment method: large commercial contracts may be awarded through Froto but paid under monthly/off-platform commercial terms rather than through a simple checkout.
 
-### C. Invoicing and financial records
-
-The platform roadmap includes:
-
-- tax invoices/receipts;
-- GST records;
-- payment status/history;
-- downloadable transaction records;
-- Froto fee records;
-- refunds/dispute handling design;
-- future accounting/ERP integrations where justified.
+The platform roadmap includes tax invoices/receipts, GST records, payment status/history, downloadable transaction records, Froto fee records, refunds/dispute handling design and future accounting/ERP integrations where justified.
 
 Target transaction lifecycle:
 
 **Post → Bid → Award → payment/payment terms → Perform → Confirm → invoice/receipt → payout/settlement → Froto fee → Review → Market Pulse.**
 
-## 13. Future mobile/private-contract direction
+## 13. Future matching direction
 
-Post-launch, Froto may introduce a mobile/app experience supporting private contracts and live courier/package updates, conceptually similar to real-time driver/job status applications but designed for Froto logistics workflows.
+The spot-market thesis does not require every operator to publicly advertise its spare capacity. As Froto matures, private availability/matching may allow operators to define preferred lanes, regions, equipment, dates and criteria so Froto can surface matching opportunities without publicly revealing network imbalances or commercially sensitive spare-capacity positions.
 
-SMS/push/live-location style notifications belong with this phase rather than the initial web launch unless launch evidence changes the priority.
+This is a future direction, not launch scope. It may be particularly valuable to larger carriers and 3PL networks.
+
+Post-launch, Froto may also introduce a mobile/app experience supporting private contracts and live courier/package updates. SMS/push/live-location style notifications belong with this phase unless launch evidence changes the priority.
 
 ## 14. Roadmap status
 
@@ -223,28 +193,20 @@ SMS/push/live-location style notifications belong with this phase rather than th
 - Opportunity alerts: in-app + email.
 - Resend production email-domain setup.
 - Safe live landing-page marketplace board.
+- Sprint 8 Market Pulse foundation.
 
-### Sprint 8 — Market Intelligence
+### Sprint 9 — Commercial Transactions
 
 Current focus:
 
-- Froto Market Pulse;
-- benchmark correctness and privacy;
-- Market Pulse UAT;
-- landing-page polish;
-- regression testing;
-- merge only after clean UAT.
+- provider-neutral commercial ledger;
+- award-to-commercial-transaction wiring;
+- financial summary views;
+- fee-rule architecture without activating an unapproved fee;
+- invoicing/GST/financial-record foundations;
+- promoted-listing architecture.
 
-### Next major commercial/transaction work
-
-After Sprint 8 hardening, prioritise design and implementation planning for:
-
-- success/transaction fee engine;
-- marketplace customer payments;
-- invoicing/GST/financial records;
-- promoted listings.
-
-The exact payment provider and fee schedule require explicit commercial/technical assessment before implementation.
+Payment-provider selection remains on hold pending financial-adviser input.
 
 ### Pre-launch priority
 
@@ -327,6 +289,26 @@ Protect the **1 January 2027** launch by treating schedule lead as contingency r
 **Reason:** Development is moving quickly and decisions must remain recoverable without relying on chat history.  
 **Impact:** Material approved decisions must be added to this document as part of completing the decision.
 
+### D-016 — Spot-market strategic definition
+**Decision:** Adopt the strategic definition: **“Froto is a spot marketplace for underutilised logistics capacity, helping carriers, owner-drivers, warehouses and customers efficiently match temporary supply with real-time demand.”**  
+**Reason:** Froto's primary value is improving utilisation of temporary excess capacity and unmet demand, not replacing stable freight contracts or existing transport-management workflows.  
+**Impact:** Product positioning, roadmap prioritisation and future feature assessment should reinforce the logistics spot-market role.
+
+### D-017 — Stable contracted work is not the target for displacement
+**Decision:** Froto will complement rather than attempt to replace permanent lanes, stable contracted freight, long-term warehouse customers and established operational systems.  
+**Reason:** Contract logistics values certainty and existing relationships; Froto creates greatest incremental value where networks are temporarily imbalanced.  
+**Impact:** Success should increasingly be assessed through utilisation and spot-market liquidity, not by trying to migrate all logistics activity onto Froto.
+
+### D-018 — Avoid TMS/WMS scope drift
+**Decision:** Froto should not become a general-purpose TMS or WMS unless a capability is necessary to enable, complete or protect a marketplace transaction.  
+**Reason:** Existing mature products already solve internal freight-management problems; Froto's differentiation is the cross-network market layer.  
+**Impact:** Future features must pass a marketplace-value test before entering the core roadmap.
+
+### D-019 — Payment-provider decision deferred
+**Decision:** Keep payment architecture provider-neutral until financial-adviser input is received and a provider is separately approved.  
+**Reason:** Payment structure affects fees, settlement, tax/accounting and legal responsibilities and should not be locked prematurely.  
+**Impact:** Sprint 9 may build provider-neutral ledger, fee, invoice and promotion foundations but must not integrate a provider SDK or production payment flow yet.
+
 ## 16. Open decisions requiring future approval
 
 The following are deliberately **not yet locked**:
@@ -334,7 +316,7 @@ The following are deliberately **not yet locked**:
 - exact Froto transaction fee percentage(s);
 - minimum/maximum/capped fee structure;
 - whether fees differ by transport, guest job, warehouse and tender type;
-- selected marketplace payment provider;
+- selected marketplace payment provider, pending financial-adviser input;
 - exact payment timing/escrow-like or direct settlement model, subject to legal/provider constraints;
 - refund and dispute policy;
 - promoted-listing prices;
