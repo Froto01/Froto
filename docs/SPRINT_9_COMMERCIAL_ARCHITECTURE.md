@@ -3,6 +3,12 @@
 **Status:** Architecture baseline for implementation  
 **Principle:** Free to join. Free to participate. Froto earns when business happens.
 
+## Current decision hold
+
+**Payment-provider selection is deliberately deferred pending advice from the product owner's financial adviser.** Stripe Connect and Airwallex may remain candidates for later assessment, but neither is approved, selected, or to be integrated yet.
+
+Until that advice is received, Sprint 9 may continue with provider-neutral work only: mapping the current transaction model, designing the commercial ledger, modelling fee scenarios, payment statuses, invoicing requirements and promoted-listing structure. No provider-specific SDK, account setup, production payment flow or irreversible schema dependency should be introduced.
+
 ## Goal
 
 Close the commercial transaction loop without creating a subscription barrier or prematurely locking Froto into one fee percentage or settlement method.
@@ -36,7 +42,7 @@ The integration must support the Australian market and be assessed for:
 - identity/KYC requirements imposed by the provider;
 - fees and suitability for small jobs as well as larger B2B transactions.
 
-Provider selection is an explicit decision gate and is not assumed by this document.
+Provider selection is an explicit decision gate and is currently on hold pending financial-adviser input.
 
 ### 3. Invoicing and financial records
 
@@ -135,15 +141,17 @@ Suggested settlement states:
 
 1. Map existing award/job/tender data into the proposed commercial transaction model.
 2. Model candidate fee structures using representative small, medium and large Froto transactions.
-3. Assess marketplace payment providers against Australian requirements.
-4. Approve fee policy and provider.
-5. Add database commercial/ledger models.
-6. Add transaction financial summary to awarded jobs.
-7. Integrate provider in test/sandbox mode.
-8. Add webhook-driven payment state.
-9. Add invoices/receipts and GST records.
-10. Add optional promoted listings.
-11. UAT both immediate-payment and commercial-terms paths before production activation.
+3. Define provider-neutral ledger, payment, settlement and invoice states.
+4. Obtain financial-adviser input on provider/fee/tax structure.
+5. Assess candidate marketplace payment providers against Australian requirements.
+6. Approve fee policy and provider.
+7. Add database commercial/ledger models.
+8. Add transaction financial summary to awarded jobs.
+9. Integrate approved provider in test/sandbox mode.
+10. Add webhook-driven payment state.
+11. Add invoices/receipts and GST records.
+12. Add optional promoted listings.
+13. UAT both immediate-payment and commercial-terms paths before production activation.
 
 ## Explicit non-goals for the first implementation
 
@@ -152,6 +160,7 @@ Suggested settlement states:
 - storing raw card details;
 - forcing all large contracts through instant checkout;
 - activating a transaction percentage before commercial approval;
+- integrating any payment provider before the current decision hold is lifted;
 - advanced enterprise accounting integrations before the core ledger works reliably.
 
 ## Approval gates
