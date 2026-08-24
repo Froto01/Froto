@@ -28,6 +28,7 @@ model User {
   verificationsReviewed  Company[]         @relation("CompanyVerificationReviewer")
   guestAuctionsCreated   GuestAuction[]    @relation("GuestAuctionCreatedByUser")
   guestAuctionBidsPlaced GuestAuctionBid[] @relation("GuestAuctionBidPlacedByUser")
+  opportunityAlertPreferences OpportunityAlertPreference[]
 }
 
 model Company {
@@ -59,6 +60,7 @@ model Company {
   reviewsReceived              Review[]          @relation("ReviewSubjectCompany")
   guestReviewsReceived         GuestAuctionReview[] @relation("GuestAuctionReviewSubjectCompany")
   guestAuctionBids             GuestAuctionBid[] @relation("GuestAuctionBidderCompany")
+  opportunityAlertPreferences  OpportunityAlertPreference[]
 
   @@index([verificationReviewedByUserId])
 }
@@ -315,9 +317,28 @@ model GuestAuctionBid {
   @@index([placedByUserId])
 }
 
+model OpportunityAlertPreference {
+  id               String   @id @default(cuid())
+  userId           String
+  companyId        String?
+  name             String   @default("My opportunities")
+  opportunityTypes String[] @default([])
+  areaKeywords     String[] @default([])
+  inAppEnabled     Boolean  @default(true)
+  emailEnabled     Boolean  @default(true)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company          Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, active])
+  @@index([companyId, active])
+}
+
 model Notification {
   id              String   @id @default(cuid())
-  companyId       String
+  companyId       String?
   recipientUserId String?
   type            String
   title           String
@@ -326,7 +347,7 @@ model Notification {
   metadata        Json?
   readAt          DateTime?
   createdAt       DateTime @default(now())
-  company         Company  @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  company         Company? @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
   recipientUser   User?    @relation("NotificationRecipientUser", fields: [recipientUserId], references: [id], onDelete: Cascade)
 
   @@index([companyId, createdAt])

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { notifyMatchingOpportunity } from "@/lib/opportunity-alerts";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -73,18 +74,11 @@ export async function GET() {
 export async function POST(request: Request) {
   const viewer = await getViewer();
 
-  if (!viewer) {
-    return NextResponse.json({ error: "Sign in to create a tender." }, { status: 401 });
-  }
+  if (!viewer) return NextResponse.json({ error: "Sign in to create a tender." }, { status: 401 });
 
   const membership = viewer.companies[0];
-  if (!membership) {
-    return NextResponse.json({ error: "Create a company before creating a tender." }, { status: 403 });
-  }
-
-  if (!MANAGE_ROLES.has(membership.role)) {
-    return NextResponse.json({ error: "Your company role cannot create tenders." }, { status: 403 });
-  }
+  if (!membership) return NextResponse.json({ error: "Create a company before creating a tender." }, { status: 403 });
+  if (!MANAGE_ROLES.has(membership.role)) return NextResponse.json({ error: "Your company role cannot create tenders." }, { status: 403 });
 
   const body = (await request.json()) as {
     title?: string;
@@ -107,21 +101,10 @@ export async function POST(request: Request) {
   const deliveryDate = new Date(body.deliveryDate ?? "");
   const responseClosesAt = new Date(body.responseClosesAt ?? "");
 
-  if (!title || !productDescription || !volume || !origin || !destination) {
-    return NextResponse.json({ error: "Complete all required tender fields." }, { status: 400 });
-  }
-
-  if (Number.isNaN(deliveryDate.getTime())) {
-    return NextResponse.json({ error: "Provide a valid delivery date." }, { status: 400 });
-  }
-
-  if (Number.isNaN(responseClosesAt.getTime()) || responseClosesAt.getTime() <= Date.now()) {
-    return NextResponse.json({ error: "Response close time must be in the future." }, { status: 400 });
-  }
-
-  if (deliveryDate.getTime() < responseClosesAt.getTime()) {
-    return NextResponse.json({ error: "Delivery date must be after the response close time." }, { status: 400 });
-  }
+  if (!title || !productDescription || !volume || !origin || !destination) return NextResponse.json({ error: "Complete all required tender fields." }, { status: 400 });
+  if (Number.isNaN(deliveryDate.getTime())) return NextResponse.json({ error: "Provide a valid delivery date." }, { status: 400 });
+  if (Number.isNaN(responseClosesAt.getTime()) || responseClosesAt.getTime() <= Date.now()) return NextResponse.json({ error: "Response close time must be in the future." }, { status: 400 });
+  if (deliveryDate.getTime() < responseClosesAt.getTime()) return NextResponse.json({ error: "Delivery date must be after the response close time." }, { status: 400 });
 
   const tender = await prisma.tender.create({
     data: {
@@ -139,6 +122,20 @@ export async function POST(request: Request) {
       notes: body.notes?.trim() || null,
     },
   });
+
+  try {
+    await notifyMatchingOpportunity({
+      type: "TENDER",
+      title: tender.title,
+      locations: [tender.origin, tender.destination],
+      href: `/platform/tenders/${tender.id}`,
+      sourceCompanyId: membership.companyId,
+      sourceUserId: viewer.id,
+      metadata: { tenderId: tender.id, storageRequired: tender.storageRequired },
+    });
+  } catch (error) {
+    console.error("Opportunity alert matching failed for tender", tender.id, error);
+  }
 
   return NextResponse.json({ success: true, tenderId: tender.id }, { status: 201 });
 }

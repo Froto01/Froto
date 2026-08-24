@@ -48,7 +48,7 @@ export default function GuestAuctionsPage() {
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/guest-auctions", { cache: "no-store" });
+      const response = await fetch("/api/guest-auctions?includeHistory=1", { cache: "no-store" });
       const payload = (await response.json()) as GuestAuctionList & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Guest auctions could not be loaded.");
       setData(payload);

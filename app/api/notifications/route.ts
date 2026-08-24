@@ -15,25 +15,38 @@ async function getViewer() {
   });
 }
 
+function notificationScope(viewer: NonNullable<Awaited<ReturnType<typeof getViewer>>>) {
+  const companyId = viewer.companies[0]?.companyId ?? null;
+
+  if (companyId) {
+    return {
+      OR: [
+        { companyId, recipientUserId: null },
+        { companyId, recipientUserId: viewer.id },
+        { companyId: null, recipientUserId: viewer.id },
+      ],
+    };
+  }
+
+  return { companyId: null, recipientUserId: viewer.id };
+}
+
 export async function GET() {
   const viewer = await getViewer();
-  const membership = viewer?.companies[0];
 
-  if (!viewer || !membership) {
-    return NextResponse.json({ error: "Sign in with a Froto company to view notifications." }, { status: 401 });
+  if (!viewer) {
+    return NextResponse.json({ error: "Sign in to view notifications." }, { status: 401 });
   }
 
   const notifications = await prisma.notification.findMany({
-    where: {
-      companyId: membership.companyId,
-      OR: [{ recipientUserId: null }, { recipientUserId: viewer.id }],
-    },
+    where: notificationScope(viewer),
     orderBy: { createdAt: "desc" },
     take: 100,
   });
 
   return NextResponse.json({
     unreadCount: notifications.filter((item) => !item.readAt).length,
+    homeHref: viewer.companies.length > 0 ? "/platform/dashboard" : "/platform/guest-dashboard",
     notifications: notifications.map((item) => ({
       id: item.id,
       type: item.type,
@@ -48,22 +61,18 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const viewer = await getViewer();
-  const membership = viewer?.companies[0];
 
-  if (!viewer || !membership) {
-    return NextResponse.json({ error: "Sign in with a Froto company to update notifications." }, { status: 401 });
+  if (!viewer) {
+    return NextResponse.json({ error: "Sign in to update notifications." }, { status: 401 });
   }
 
   const body = (await request.json().catch(() => ({}))) as { id?: string; markAll?: boolean };
   const now = new Date();
+  const scope = notificationScope(viewer);
 
   if (body.markAll) {
     await prisma.notification.updateMany({
-      where: {
-        companyId: membership.companyId,
-        readAt: null,
-        OR: [{ recipientUserId: null }, { recipientUserId: viewer.id }],
-      },
+      where: { ...scope, readAt: null },
       data: { readAt: now },
     });
 
@@ -75,11 +84,7 @@ export async function PATCH(request: Request) {
   }
 
   const notification = await prisma.notification.findFirst({
-    where: {
-      id: body.id,
-      companyId: membership.companyId,
-      OR: [{ recipientUserId: null }, { recipientUserId: viewer.id }],
-    },
+    where: { id: body.id, ...scope },
     select: { id: true },
   });
 
