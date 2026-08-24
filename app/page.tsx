@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { LandingLiveMarketplace } from "@/components/landing-live-marketplace";
+import { LandingMarketPulse } from "@/components/landing-market-pulse";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -102,15 +103,15 @@ export default function LandingPage() {
               <div className="bg-gradient-to-r from-froto-navy via-[#0a4778] to-froto-teal px-6 py-5 text-white">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Live marketplace</p>
-                    <h2 className="mt-1 text-xl font-semibold">Current Froto opportunities</h2>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100">Froto market pulse</p>
+                    <h2 className="mt-1 text-xl font-semibold">What the market is paying</h2>
                   </div>
                   <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
-                    <Truck className="h-5 w-5" />
+                    <BarChart3 className="h-5 w-5" />
                   </span>
                 </div>
               </div>
-              <LandingLiveMarketplace compact />
+              <LandingMarketPulse />
             </Card>
           </div>
         </div>
