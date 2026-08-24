@@ -96,7 +96,7 @@ export async function POST(request: Request) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { userId } = await auth();
 
   if (!userId) return NextResponse.json({ error: "Sign in to view guest auctions." }, { status: 401 });
@@ -133,16 +133,15 @@ export async function GET() {
     });
   }
 
+  const includeHistory = new URL(request.url).searchParams.get("includeHistory") === "1";
+  const openAuctionWhere = { status: "OPEN" as const, auctionClosesAt: { gt: new Date() } };
+  const awardedHistoryWhere = {
+    status: { in: ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"] as const },
+    bids: { some: { bidderCompanyId: membership.companyId, status: "AWARDED" as const } },
+  };
+
   const auctions = await prisma.guestAuction.findMany({
-    where: {
-      OR: [
-        { status: "OPEN", auctionClosesAt: { gt: new Date() } },
-        {
-          status: { in: ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"] },
-          bids: { some: { bidderCompanyId: membership.companyId, status: "AWARDED" } },
-        },
-      ],
-    },
+    where: includeHistory ? { OR: [openAuctionWhere, awardedHistoryWhere] } : openAuctionWhere,
     orderBy: { updatedAt: "desc" },
     include: {
       bids: {
