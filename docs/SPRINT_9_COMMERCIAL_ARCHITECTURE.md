@@ -91,6 +91,14 @@ Do not hard-code a single percentage throughout application code. Create configu
 
 The exact commercial numbers remain an approval decision and should be modelled before activation.
 
+### Implementation status — inactive foundation
+
+A provider-neutral calculation helper now exists at `lib/commercial/fee-engine.ts`. It supports percentage, fixed and percentage-with-limits calculations using integer minor units and basis points. It does **not** select a rule, create a charge, activate a fee, or expose pricing to customers. No default percentage has been introduced.
+
+A provider-neutral invoice-draft helper now exists at `lib/commercial/invoice-foundation.ts`. It constructs consistent draft invoice values in integer minor units but does **not** issue invoices, assign invoice numbers, determine GST treatment, or create accounting/legal obligations.
+
+These helpers are intentionally dormant until the fee schedule, GST treatment, invoice relationships and payment-provider decisions pass the approval gates below.
+
 ## Promoted listings
 
 Promotion is optional and must never be required for normal marketplace participation.
