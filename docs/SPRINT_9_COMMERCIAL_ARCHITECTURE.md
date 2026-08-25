@@ -93,9 +93,9 @@ The exact commercial numbers remain an approval decision and should be modelled 
 
 ### Implementation status — inactive foundation
 
-A provider-neutral calculation helper now exists at `lib/commercial/fee-engine.ts`. It supports percentage, fixed and percentage-with-limits calculations using integer minor units and basis points. It does **not** select a rule, create a charge, activate a fee, or expose pricing to customers. No default percentage has been introduced.
+The canonical provider-neutral fee helper is `lib/commercial-fees.ts`. It supports percentage, fixed and percentage-with-limits calculations using integer minor units and basis points, plus rule-completeness checks. It does **not** select a rule, create a charge, activate a fee, or expose pricing to customers. No default percentage has been introduced.
 
-A provider-neutral invoice-draft helper now exists at `lib/commercial/invoice-foundation.ts`. It constructs consistent draft invoice values in integer minor units but does **not** issue invoices, assign invoice numbers, determine GST treatment, or create accounting/legal obligations.
+The canonical provider-neutral invoice helper is `lib/commercial-invoices.ts`. It constructs consistent draft invoice/credit-note values and includes an explicit issue gate requiring an invoice number plus confirmed legal issuer and tax treatment. It does **not** determine GST treatment, issue invoices automatically, or create accounting/legal obligations.
 
 These helpers are intentionally dormant until the fee schedule, GST treatment, invoice relationships and payment-provider decisions pass the approval gates below.
 
