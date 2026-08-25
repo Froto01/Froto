@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { getActivePromotion, promotionLabel, promotionRank } from "@/lib/commercial/promotions";
 import { notifyMatchingOpportunity } from "@/lib/opportunity-alerts";
 import { prisma } from "@/lib/prisma";
 
@@ -31,44 +32,63 @@ export async function GET() {
         select: { id: true, companyId: true, amount: true },
         orderBy: { createdAt: "asc" },
       },
+      promotions: {
+        where: { status: "ACTIVE" },
+        select: {
+          promotionType: true,
+          status: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      },
     },
   });
 
-  const now = Date.now();
+  const now = new Date();
 
-  return NextResponse.json(
-    tenders.map((tender) => {
-      const responseClosed = tender.responseClosesAt.getTime() <= now;
-      const viewerResponse = viewerCompanyId
-        ? tender.responses.find((response) => response.companyId === viewerCompanyId)
-        : undefined;
+  const result = tenders.map((tender) => {
+    const responseClosed = tender.responseClosesAt.getTime() <= now.getTime();
+    const viewerResponse = viewerCompanyId
+      ? tender.responses.find((response) => response.companyId === viewerCompanyId)
+      : undefined;
+    const activePromotion = getActivePromotion(tender.promotions, now);
 
-      return {
-        id: tender.id,
-        title: tender.title,
-        productDescription: tender.productDescription,
-        volume: tender.volume,
-        origin: tender.origin,
-        destination: tender.destination,
-        storageRequired: tender.storageRequired,
-        temperatureRequirement: tender.temperatureRequirement,
-        deliveryDate: tender.deliveryDate.toISOString(),
-        responseClosesAt: tender.responseClosesAt.toISOString(),
-        responseClosed,
-        notes: tender.notes,
-        status: tender.awardedResponseId ? "AWARDED" : responseClosed ? "CLOSED" : tender.status,
-        companyName: tender.company.name,
-        companyVerified: tender.company.verified,
-        responseCount: tender.responses.length,
-        isOwner: viewerCompanyId === tender.companyId,
-        hasResponded: Boolean(viewerResponse),
-        viewerResponseAmount: viewerResponse ? Number(viewerResponse.amount) : null,
-        awardedResponseId: tender.awardedResponseId,
-        awardedAt: tender.awardedAt?.toISOString() ?? null,
-        createdAt: tender.createdAt.toISOString(),
-      };
-    })
-  );
+    return {
+      id: tender.id,
+      title: tender.title,
+      productDescription: tender.productDescription,
+      volume: tender.volume,
+      origin: tender.origin,
+      destination: tender.destination,
+      storageRequired: tender.storageRequired,
+      temperatureRequirement: tender.temperatureRequirement,
+      deliveryDate: tender.deliveryDate.toISOString(),
+      responseClosesAt: tender.responseClosesAt.toISOString(),
+      responseClosed,
+      notes: tender.notes,
+      status: tender.awardedResponseId ? "AWARDED" : responseClosed ? "CLOSED" : tender.status,
+      companyName: tender.company.name,
+      companyVerified: tender.company.verified,
+      responseCount: tender.responses.length,
+      isOwner: viewerCompanyId === tender.companyId,
+      hasResponded: Boolean(viewerResponse),
+      viewerResponseAmount: viewerResponse ? Number(viewerResponse.amount) : null,
+      awardedResponseId: tender.awardedResponseId,
+      awardedAt: tender.awardedAt?.toISOString() ?? null,
+      isPromoted: Boolean(activePromotion),
+      promotionType: activePromotion?.promotionType ?? null,
+      promotionLabel: promotionLabel(activePromotion?.promotionType),
+      promotionRank: promotionRank(activePromotion?.promotionType),
+      createdAt: tender.createdAt.toISOString(),
+    };
+  });
+
+  result.sort((a, b) => {
+    if (b.promotionRank !== a.promotionRank) return b.promotionRank - a.promotionRank;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  return NextResponse.json(result);
 }
 
 export async function POST(request: Request) {
