@@ -10,6 +10,7 @@ import {
   LockKeyhole,
   Plus,
   Search,
+  Sparkles,
   UserPlus,
   X,
 } from "lucide-react";
@@ -44,6 +45,10 @@ type MarketplaceListing = {
   companyName: string;
   companyVerified: boolean;
   isOwner: boolean;
+  isPromoted: boolean;
+  promotionType: string | null;
+  promotionLabel: string | null;
+  promotionRank: number;
   createdAt: string;
 };
 
@@ -69,6 +74,10 @@ type MarketplaceTender = {
   viewerResponseAmount: number | null;
   awardedResponseId: string | null;
   awardedAt: string | null;
+  isPromoted: boolean;
+  promotionType: string | null;
+  promotionLabel: string | null;
+  promotionRank: number;
   createdAt: string;
 };
 
@@ -126,6 +135,15 @@ function listingImage(listing: MarketplaceListing) {
   return listing.listingType === "Warehouse Space"
     ? "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80"
     : "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1200&q=80";
+}
+
+function PromotionBadge({ label }: { label: string | null }) {
+  return (
+    <Badge className="gap-1 border border-amber-300 bg-amber-50 text-amber-800 shadow-sm hover:bg-amber-50">
+      <Sparkles className="h-3 w-3" />
+      Promoted{label && label !== "Promoted" ? ` · ${label}` : ""}
+    </Badge>
+  );
 }
 
 function FilterSelect({ value, onChange, label, children }: { value: string; onChange: (value: string) => void; label: string; children: React.ReactNode }) {
@@ -450,11 +468,12 @@ export default function PlatformPage() {
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredListings.map((listing) => (
-                  <Card key={listing.id} className="group overflow-hidden rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                  <Card key={listing.id} className={`group overflow-hidden rounded-[1.6rem] bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg ${listing.isPromoted ? "border-amber-200 ring-1 ring-amber-100" : "border-froto-blue/10"}`}>
                     <div className="relative overflow-hidden">
                       <Image src={listingImage(listing)} alt={listing.title} width={1200} height={800} className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]" />
                       <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-froto-navy/30 to-transparent" />
-                      <div className="absolute left-3 top-3 flex gap-2">
+                      <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                        {listing.isPromoted ? <PromotionBadge label={listing.promotionLabel} /> : null}
                         <Badge className="border border-white/50 bg-white/92 text-froto-navy shadow-sm">{listing.listingType}</Badge>
                         <Badge className={listing.auctionState === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-green text-white"}>{listing.auctionState === "CLOSED" ? "Bidding closed" : "Bidding open"}</Badge>
                       </div>
@@ -524,12 +543,13 @@ export default function PlatformPage() {
             ) : (
               <div className="space-y-4">
                 {filteredTenders.map((tender) => (
-                  <Card key={tender.id} className="overflow-hidden rounded-[1.6rem] border-emerald-100 bg-white shadow-sm transition-shadow hover:shadow-md">
-                    <div className="h-1 bg-gradient-to-r from-froto-teal to-froto-green" />
+                  <Card key={tender.id} className={`overflow-hidden rounded-[1.6rem] bg-white shadow-sm transition-shadow hover:shadow-md ${tender.isPromoted ? "border-amber-200 ring-1 ring-amber-100" : "border-emerald-100"}`}>
+                    <div className={tender.isPromoted ? "h-1 bg-gradient-to-r from-amber-400 via-froto-teal to-froto-green" : "h-1 bg-gradient-to-r from-froto-teal to-froto-green"} />
                     <div className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:items-center">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-lg font-semibold text-froto-navy">{tender.title}</p>
+                          {tender.isPromoted ? <PromotionBadge label={tender.promotionLabel} /> : null}
                           <Badge className={tender.status === "AWARDED" ? "bg-froto-green text-white" : tender.status === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-teal text-white"}>{tender.status === "AWARDED" ? "Awarded" : tender.status === "CLOSED" ? "Responses closed" : "Open"}</Badge>
                           {tender.isOwner ? <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue">Your tender</Badge> : null}
                           {tender.hasResponded ? <Badge className="border border-emerald-200 bg-emerald-50 text-froto-green">Responded</Badge> : null}
