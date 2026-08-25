@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowRight, LayoutDashboard, PackageSearch } from "lucide-react";
+import { ArrowRight, LayoutDashboard, PackageSearch, ReceiptText } from "lucide-react";
 
 import { OwnerPromotionEntry } from "@/components/owner-promotion-entry";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,17 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       ) : null}
+
+      {pathname === "/platform/dashboard" ? (
+        <div className="border-b border-froto-blue/10 bg-froto-ice/70 px-4 py-2">
+          <div className="mx-auto flex max-w-6xl justify-end">
+            <Button asChild variant="outline" size="sm" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
+              <Link href="/platform/financial-records"><ReceiptText className="h-4 w-4 text-froto-teal" />Financial records</Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       <OwnerPromotionEntry />
       {children}
     </>
