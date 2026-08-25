@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ArrowRight, LayoutDashboard, PackageSearch } from "lucide-react";
 
+import { OwnerPromotionEntry } from "@/components/owner-promotion-entry";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,6 +77,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       ) : null}
+      <OwnerPromotionEntry />
       {children}
     </>
   );
