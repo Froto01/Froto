@@ -73,6 +73,11 @@ type JobDetail = {
   }>;
 };
 
+type ActionSuccess = {
+  status: JobStatus;
+  message: string;
+};
+
 function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
@@ -135,7 +140,7 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<ActionSuccess | null>(null);
   const [updating, setUpdating] = useState(false);
   const [actionNote, setActionNote] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
@@ -192,7 +197,10 @@ export default function JobDetailPage() {
         throw new Error(data.error ?? "Job status could not be updated.");
       }
 
-      setActionSuccess(`Job moved to ${statusLabel(status)}.`);
+      setActionSuccess({
+        status,
+        message: `Job moved to ${statusLabel(status)}.`,
+      });
       setActionNote("");
       await loadJob();
     } catch (caughtError) {
@@ -383,10 +391,10 @@ export default function JobDetailPage() {
                   </p>
                 )}
 
-                {actionSuccess ? (
+                {actionSuccess && actionSuccess.status === job.status ? (
                   <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                     <CheckCircle2 className="h-4 w-4" />
-                    {actionSuccess}
+                    {actionSuccess.message}
                   </div>
                 ) : null}
                 {actionError ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p> : null}
