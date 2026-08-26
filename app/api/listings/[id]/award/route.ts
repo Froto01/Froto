@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { createJobFeeSnapshotIfApplicable } from "@/lib/fee-snapshots";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -201,6 +202,20 @@ export async function POST(
               },
             },
           },
+        },
+      });
+
+      await createJobFeeSnapshotIfApplicable({
+        tx,
+        transactionType: "MARKETPLACE_JOB",
+        sourceId: job.id,
+        transactionAmount: bid.amount,
+        buyerCompanyId: bid.bidderCompanyId,
+        providerCompanyId: listing.companyId,
+        calculatedAt: awardedAt,
+        metadata: {
+          listingId: listing.id,
+          awardedBidId: bid.id,
         },
       });
 
