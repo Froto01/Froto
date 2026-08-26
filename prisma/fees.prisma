@@ -1,0 +1,87 @@
+enum FeeTransactionType {
+  MARKETPLACE_JOB
+  TENDER_JOB
+  GUEST_AUCTION
+  PROMOTED_LISTING
+}
+
+enum FeePayerType {
+  BUYER
+  PROVIDER
+  GUEST
+  COMPANY
+}
+
+enum TransactionFeeStatus {
+  CALCULATED
+  EARNED
+  INVOICED
+  PAID
+  WAIVED
+  REFUNDED
+  VOID
+}
+
+model FeeRule {
+  id                String             @id @default(cuid())
+  code              String
+  version           Int
+  transactionType   FeeTransactionType
+  percentageBps     Int
+  minimumFee         Decimal?           @db.Decimal(12, 2)
+  maximumFee         Decimal?           @db.Decimal(12, 2)
+  gstBps             Int                @default(1000)
+  payerType          FeePayerType
+  active             Boolean            @default(false)
+  effectiveFrom      DateTime?
+  effectiveTo        DateTime?
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  transactionFees   TransactionFee[]
+
+  @@unique([code, version])
+  @@index([transactionType, active])
+  @@index([effectiveFrom, effectiveTo])
+}
+
+model TransactionFee {
+  id                       String               @id @default(cuid())
+  idempotencyKey           String               @unique
+  feeRuleId                String
+  feeRuleCode              String
+  feeRuleVersion           Int
+  transactionType          FeeTransactionType
+  sourceId                 String
+  payerType                FeePayerType
+  payerCompanyId           String?
+  payerUserId              String?
+  currency                 String               @default("AUD")
+  transactionAmount        Decimal              @db.Decimal(12, 2)
+  percentageBps            Int
+  minimumFee               Decimal?             @db.Decimal(12, 2)
+  maximumFee               Decimal?             @db.Decimal(12, 2)
+  gstBps                    Int
+  feeExGst                  Decimal              @db.Decimal(12, 2)
+  gstAmount                 Decimal              @db.Decimal(12, 2)
+  feeIncGst                 Decimal              @db.Decimal(12, 2)
+  status                    TransactionFeeStatus @default(CALCULATED)
+  calculatedAt              DateTime             @default(now())
+  earnedAt                  DateTime?
+  invoicedAt                DateTime?
+  paidAt                    DateTime?
+  waivedAt                  DateTime?
+  refundedAt                DateTime?
+  paymentProvider           String?
+  paymentProviderReference  String?
+  metadata                  Json?
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+  feeRule                   FeeRule              @relation(fields: [feeRuleId], references: [id], onDelete: Restrict)
+
+  @@index([transactionType, sourceId])
+  @@index([status, createdAt])
+  @@index([payerCompanyId])
+  @@index([payerUserId])
+  @@index([feeRuleId])
+}
