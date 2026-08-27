@@ -12,6 +12,7 @@ type ReviewCompany = {
   id: string;
   name: string;
   abn: string | null;
+  acn: string | null;
   companyType: string | null;
   locations: string | null;
   notes: string | null;
@@ -72,9 +73,10 @@ export function VerificationReviewCard({ company }: { company: ReviewCompany }) 
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {[
             ["ABN", company.abn || "Not supplied"],
+            ["ACN", company.acn || "Not supplied"],
             ["Company type", company.companyType || "Not supplied"],
             ["Locations / lanes", company.locations || "Not supplied"],
             ["Company notes", company.notes || "Not supplied"],
