@@ -12,9 +12,9 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | MKT-02 | Place valid bid | Bid persists, ranking/history update correctly | TODO |
 | MKT-03 | Reject invalid/low bid | Server rejects without changing listing/bid state | TODO |
 | MKT-04 | Close bidding | Listing no longer accepts bids | TODO |
-| MKT-05 | Award valid bid | Listing becomes AWARDED and exactly one Job is created | TODO |
-| MKT-06 | Double-award attempt | Second award is rejected; no duplicate Job | TODO |
-| MKT-07 | Award with no active fee rule | Award succeeds; no TransactionFee snapshot is created | TODO |
+| MKT-05 | Award valid bid | Listing becomes AWARDED and exactly one Job is created | PASSED — Sydney UAT + Neon verification |
+| MKT-06 | Double-award attempt | Second award is rejected; no duplicate Job | PASSED — awarded UI locked + exactly one Job verified |
+| MKT-07 | Award with no active fee rule | Award succeeds; no TransactionFee snapshot is created | PASSED — Neon verified zero fee snapshots |
 | JOB-01 | Winner accepts job | AWARDED -> ACCEPTED | PASSED in prior UAT |
 | JOB-02 | Provider starts job | ACCEPTED -> IN_PROGRESS | PASSED in prior UAT |
 | JOB-03 | Buyer submits completion details | IN_PROGRESS -> DELIVERED; details retained in history | PASSED in prior UAT |
@@ -38,12 +38,12 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | SEC-01 | Unauthenticated award request | 401/redirect; no data mutation | TODO |
 | SEC-02 | Company B attempts to award Company A listing | 403; no mutation | TODO |
 | SEC-03 | Staff role attempts restricted award | 403; no mutation | TODO |
-| SEC-04 | Wrong company attempts job lifecycle action | 403; no mutation | TODO |
-| SEC-05 | Buyer attempts provider-only transition | Rejected | TODO |
-| SEC-06 | Provider attempts buyer-only completion submission | Rejected | TODO |
+| SEC-04 | Wrong company attempts job lifecycle action | 403; no mutation | CODE REVIEW PASS — live negative test pending |
+| SEC-05 | Buyer attempts provider-only transition | Rejected | CODE REVIEW PASS — live negative test pending |
+| SEC-06 | Provider attempts buyer-only completion submission | Rejected | CODE REVIEW PASS — live negative test pending |
 | SEC-07 | User accesses another company's private dashboard data | No tenant leakage | TODO |
 | SEC-08 | Non-admin accesses platform-admin actions | Rejected server-side | TODO |
-| SEC-09 | Review submitted for unrelated job/company | Rejected | TODO |
+| SEC-09 | Review submitted for unrelated job/company | Rejected | CODE REVIEW PASS — live negative test pending |
 | SEC-10 | Notification read/update for another user/company | Rejected | TODO |
 
 ## P1 — failure states and concurrency
@@ -53,9 +53,9 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | TODO |
 | FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | TODO |
 | FAIL-03 | Stale page bids after close | Server rejects bid | TODO |
-| FAIL-04 | Invalid job state transition | Rejected with current state unchanged | TODO |
-| FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | TODO |
-| FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | TODO |
+| FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
+| FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
+| FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | CODE REVIEW PASS — repeated COMPLETED has no valid transition |
 | FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | TODO |
 | FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | TODO |
 | FAIL-09 | Unsupported fee payer configuration | Award fails closed | TODO |
