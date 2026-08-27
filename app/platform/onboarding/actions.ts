@@ -108,7 +108,7 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
 
   if (abnChanged) {
     const existingCompany = await prisma.company.findUnique({
-      where: { abn },
+      where: { abn: abn! },
       select: { id: true },
     });
 
@@ -122,7 +122,7 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
 
   if (acnChanged) {
     const existingCompany = await prisma.company.findUnique({
-      where: { acn },
+      where: { acn: acn! },
       select: { id: true },
     });
 
