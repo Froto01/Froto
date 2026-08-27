@@ -101,7 +101,7 @@ function statusLabel(status: string) {
 }
 
 function nextAction(job: JobDetail) {
-  if (job.status === "AWARDED" && job.viewerSide === "BUYER") {
+  if (job.status === "AWARDED" && job.viewerSide === "PROVIDER") {
     return { status: "ACCEPTED" as const, label: "Accept awarded job", icon: CheckCircle2 };
   }
 
@@ -123,10 +123,30 @@ function nextAction(job: JobDetail) {
 const WORKFLOW_STEPS: JobStatus[] = ["AWARDED", "ACCEPTED", "IN_PROGRESS", "DELIVERED", "COMPLETED"];
 
 function actionNotePrompt(status: JobStatus) {
-  if (status === "ACCEPTED") return "Optional: add access, timing or contact instructions for the provider.";
+  if (status === "ACCEPTED") return "Optional: add an acceptance, booking or contact note for the buyer.";
   if (status === "IN_PROGRESS") return "Optional: add a vehicle, booking or job reference for the buyer.";
-  if (status === "DELIVERED") return "Add completion details or supporting evidence for the seller to review.";
+  if (status === "DELIVERED") return "Add completion details or supporting evidence for the provider to review.";
   return "Optional: add a final confirmation note for the buyer.";
+}
+
+function waitingMessage(job: JobDetail) {
+  if (job.status === "AWARDED" && job.viewerSide === "BUYER") {
+    return `Awaiting ${job.providerCompany.name} to accept the awarded job.`;
+  }
+
+  if (job.status === "ACCEPTED" && job.viewerSide === "BUYER") {
+    return `The job has been accepted. Awaiting ${job.providerCompany.name} to start the work.`;
+  }
+
+  if (job.status === "IN_PROGRESS" && job.viewerSide === "PROVIDER") {
+    return `Work is in progress. Awaiting ${job.buyerCompany.name} to submit completion details when the work is delivered.`;
+  }
+
+  if (job.status === "DELIVERED" && job.viewerSide === "BUYER") {
+    return `Completion details submitted. Awaiting ${job.providerCompany.name} to confirm completion.`;
+  }
+
+  return "The next action belongs to the other company.";
 }
 
 function reputationLabel(average: number | null, count: number) {
@@ -387,7 +407,7 @@ export default function JobDetailPage() {
                   </div>
                 ) : (
                   <p className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600">
-                    The next action belongs to the other company.
+                    {waitingMessage(job)}
                   </p>
                 )}
 
