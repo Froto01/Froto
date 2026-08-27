@@ -93,6 +93,7 @@ export function VerificationCard() {
   const status = verification.verified ? "VERIFIED" : verification.verificationStatus;
   const submittedAt = formatDate(verification.verificationSubmittedAt);
   const reviewedAt = formatDate(verification.verificationReviewedAt);
+  const hasValidIdentity = verification.abnValid || verification.acnValid;
 
   const statusCopy =
     status === "VERIFIED"
@@ -125,7 +126,7 @@ export function VerificationCard() {
 
   const canSubmit =
     verification.canRequestVerification &&
-    verification.abnValid &&
+    hasValidIdentity &&
     status !== "VERIFIED" &&
     status !== "SUBMITTED";
 
@@ -159,7 +160,7 @@ export function VerificationCard() {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-4">
           <div className="rounded-2xl border border-white/80 bg-white/80 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Company</p>
             <p className="mt-1 text-sm font-medium text-froto-navy">{verification.name}</p>
@@ -167,6 +168,10 @@ export function VerificationCard() {
           <div className="rounded-2xl border border-white/80 bg-white/80 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">ABN</p>
             <p className="mt-1 text-sm font-medium text-froto-navy">{verification.abn || "Not supplied"}</p>
+          </div>
+          <div className="rounded-2xl border border-white/80 bg-white/80 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">ACN</p>
+            <p className="mt-1 text-sm font-medium text-froto-navy">{verification.acn || "Not supplied"}</p>
           </div>
           <div className="rounded-2xl border border-white/80 bg-white/80 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Review activity</p>
@@ -197,9 +202,9 @@ export function VerificationCard() {
             </Button>
           ) : null}
 
-          {!verification.abnValid && status !== "VERIFIED" ? (
+          {!hasValidIdentity && status !== "VERIFIED" ? (
             <p className="text-sm font-medium text-amber-700">
-              Add a valid 11-digit ABN in Company details below before requesting verification.
+              Add a valid 11-digit ABN or 9-digit ACN in Company details below before requesting verification.
             </p>
           ) : null}
 
