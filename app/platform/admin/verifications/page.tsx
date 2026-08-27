@@ -18,6 +18,7 @@ export default async function VerificationAdminPage() {
         id: true,
         name: true,
         abn: true,
+        acn: true,
         companyType: true,
         locations: true,
         notes: true,
@@ -75,7 +76,7 @@ export default async function VerificationAdminPage() {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">Trust queue</p>
                 <CardTitle className="mt-1 text-xl text-froto-navy">Submitted companies</CardTitle>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">Review company details before allowing the Verified badge to appear across Froto. Rejections require a note so the company has a clear path to resubmit.</p>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">Review company details, including ABN and ACN where supplied, before allowing the Verified badge to appear across Froto. Rejections require a note so the company has a clear path to resubmit.</p>
               </div>
               <BadgeCheck className="h-5 w-5 text-froto-green" />
             </div>
