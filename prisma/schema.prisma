@@ -35,6 +35,7 @@ model Company {
   id                           String            @id @default(cuid())
   name                         String
   abn                          String?           @unique
+  acn                          String?           @unique
   verified                     Boolean           @default(false)
   verificationStatus           String            @default("UNVERIFIED")
   verificationSubmittedAt      DateTime?

@@ -10,14 +10,15 @@ type CompanyProfileInput = {
   locations: string;
   notes: string;
   abn?: string;
+  acn?: string;
 };
 
-function normalizeAbn(value: string) {
+function normalizeNumber(value: string) {
   return value.replace(/\D/g, "");
 }
 
 function isValidAbn(value: string) {
-  const digits = normalizeAbn(value).split("").map(Number);
+  const digits = normalizeNumber(value).split("").map(Number);
 
   if (digits.length !== 11) return false;
 
@@ -25,6 +26,18 @@ function isValidAbn(value: string) {
   digits[0] -= 1;
 
   return digits.reduce((sum, digit, index) => sum + digit * weights[index], 0) % 89 === 0;
+}
+
+function isValidAcn(value: string) {
+  const digits = normalizeNumber(value).split("").map(Number);
+
+  if (digits.length !== 9) return false;
+
+  const weights = [8, 7, 6, 5, 4, 3, 2, 1];
+  const sum = digits.slice(0, 8).reduce((total, digit, index) => total + digit * weights[index], 0);
+  const checkDigit = (10 - (sum % 10)) % 10;
+
+  return digits[8] === checkDigit;
 }
 
 async function getCurrentMembership() {
@@ -63,7 +76,9 @@ async function getCurrentMembership() {
 export async function updateCompanyProfile(input: CompanyProfileInput) {
   const membership = await getCurrentMembership();
   const suppliedAbn = input.abn?.trim();
-  const abn = suppliedAbn ? normalizeAbn(suppliedAbn) : null;
+  const suppliedAcn = input.acn?.trim();
+  const abn = suppliedAbn ? normalizeNumber(suppliedAbn) : null;
+  const acn = suppliedAcn ? normalizeNumber(suppliedAcn) : null;
 
   if (abn && !isValidAbn(abn)) {
     return {
@@ -72,9 +87,28 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
     } as const;
   }
 
-  if (abn && abn !== membership.company.abn) {
+  if (acn && !isValidAcn(acn)) {
+    return {
+      success: false,
+      error: "Enter a valid 9-digit Australian Company Number (ACN).",
+    } as const;
+  }
+
+  const abnChanged = Boolean(abn && abn !== membership.company.abn);
+  const acnChanged = Boolean(acn && acn !== membership.company.acn);
+  const identityChanged = abnChanged || acnChanged;
+  const canEditIdentity = membership.role === "OWNER" || membership.role === "ADMIN";
+
+  if (identityChanged && !canEditIdentity) {
+    return {
+      success: false,
+      error: "Only a company owner or admin can change ABN or ACN details.",
+    } as const;
+  }
+
+  if (abnChanged) {
     const existingCompany = await prisma.company.findUnique({
-      where: { abn },
+      where: { abn: abn! },
       select: { id: true },
     });
 
@@ -86,7 +120,19 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
     }
   }
 
-  const abnChanged = Boolean(abn && abn !== membership.company.abn);
+  if (acnChanged) {
+    const existingCompany = await prisma.company.findUnique({
+      where: { acn: acn! },
+      select: { id: true },
+    });
+
+    if (existingCompany && existingCompany.id !== membership.companyId) {
+      return {
+        success: false,
+        error: "That ACN is already connected to another Froto company.",
+      } as const;
+    }
+  }
 
   await prisma.company.update({
     where: {
@@ -97,7 +143,8 @@ export async function updateCompanyProfile(input: CompanyProfileInput) {
       locations: input.locations,
       notes: input.notes,
       ...(abn ? { abn } : {}),
-      ...(abnChanged
+      ...(acn ? { acn } : {}),
+      ...(identityChanged
         ? {
             verified: false,
             verificationStatus: "UNVERIFIED",
@@ -125,6 +172,7 @@ export async function getCompanyVerificationStatus() {
     select: {
       name: true,
       abn: true,
+      acn: true,
       verified: true,
       verificationStatus: true,
       verificationSubmittedAt: true,
@@ -140,9 +188,11 @@ export async function getCompanyVerificationStatus() {
   return {
     ...company,
     abnValid: Boolean(company.abn && isValidAbn(company.abn)),
+    acnValid: Boolean(company.acn && isValidAcn(company.acn)),
     verificationSubmittedAt: company.verificationSubmittedAt?.toISOString() ?? null,
     verificationReviewedAt: company.verificationReviewedAt?.toISOString() ?? null,
     canRequestVerification: membership.role === "OWNER" || membership.role === "ADMIN",
+    canEditCompanyIdentity: membership.role === "OWNER" || membership.role === "ADMIN",
   };
 }
 
@@ -162,6 +212,7 @@ export async function requestCompanyVerification() {
     },
     select: {
       abn: true,
+      acn: true,
       verified: true,
       verificationStatus: true,
     },
@@ -188,17 +239,27 @@ export async function requestCompanyVerification() {
     };
   }
 
-  if (!company.abn?.trim()) {
+  const hasAbn = Boolean(company.abn?.trim());
+  const hasAcn = Boolean(company.acn?.trim());
+
+  if (!hasAbn && !hasAcn) {
     return {
       success: false,
-      error: "Add your ABN in Company details before requesting verification.",
+      error: "Add a valid ABN or ACN in Company details before requesting verification.",
     };
   }
 
-  if (!isValidAbn(company.abn)) {
+  if (hasAbn && !isValidAbn(company.abn!)) {
     return {
       success: false,
-      error: "Add a valid 11-digit Australian Business Number (ABN) before requesting verification.",
+      error: "Correct the saved ABN before requesting verification.",
+    };
+  }
+
+  if (hasAcn && !isValidAcn(company.acn!)) {
+    return {
+      success: false,
+      error: "Correct the saved ACN before requesting verification.",
     };
   }
 

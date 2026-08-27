@@ -23,6 +23,7 @@ type CompanyProfileForm = {
   locations: string;
   notes: string;
   abn: string;
+  acn: string;
 };
 
 const roles: {
@@ -66,6 +67,7 @@ const emptyForm: CompanyProfileForm = {
   locations: "",
   notes: "",
   abn: "",
+  acn: "",
 };
 
 const roleToneClasses: Record<string, string> = {
@@ -100,6 +102,7 @@ export default function OnboardingPage() {
         locations: form.locations,
         notes: form.notes,
         abn: form.abn,
+        acn: form.acn,
       });
 
       if (!result.success) {
@@ -215,6 +218,7 @@ export default function OnboardingPage() {
                   "Company type": submittedProfile.role,
                   "Primary locations / lanes": submittedProfile.locations,
                   ABN: submittedProfile.abn || "Existing ABN retained if already saved",
+                  ACN: submittedProfile.acn || "Existing ACN retained if already saved",
                   Notes: submittedProfile.notes,
                 }).map(([label, value]) => (
                   <div
@@ -285,20 +289,39 @@ export default function OnboardingPage() {
                     />
                   </label>
 
-                  <label className="space-y-2 text-sm font-medium text-froto-navy sm:col-span-2">
-                    ABN
+                  <label className="space-y-2 text-sm font-medium text-froto-navy">
+                    Australian Business Number (ABN)
                     <Input
                       value={form.abn}
                       onChange={(event) => updateField("abn", event.target.value)}
-                      placeholder="Enter ABN to request company verification"
+                      placeholder="11-digit ABN"
                       inputMode="numeric"
                       autoComplete="off"
                       className="border-froto-blue/15 bg-white focus-visible:border-froto-blue focus-visible:ring-froto-blue/20"
                     />
                     <span className="block text-xs font-normal text-slate-500">
-                      Enter a valid 11-digit Australian Business Number. Leave blank to retain an existing saved ABN.
+                      Optional. Leave blank to retain an existing saved ABN.
                     </span>
                   </label>
+
+                  <label className="space-y-2 text-sm font-medium text-froto-navy">
+                    Australian Company Number (ACN)
+                    <Input
+                      value={form.acn}
+                      onChange={(event) => updateField("acn", event.target.value)}
+                      placeholder="9-digit ACN"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      className="border-froto-blue/15 bg-white focus-visible:border-froto-blue focus-visible:ring-froto-blue/20"
+                    />
+                    <span className="block text-xs font-normal text-slate-500">
+                      For registered Australian companies. Leave blank to retain an existing saved ACN.
+                    </span>
+                  </label>
+
+                  <div className="sm:col-span-2 rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-xs leading-5 text-amber-800">
+                    ABN and ACN are verification-sensitive company identity details. Only a company owner or admin can change them. Changing either number resets verification for review.
+                  </div>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy sm:col-span-2">
                     Notes
