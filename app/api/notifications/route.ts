@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type NotificationReceiptRow = {
+  notificationId: string;
+  readAt: Date;
+};
+
 async function getViewer() {
   const { userId } = await auth();
   if (!userId) return null;
@@ -31,6 +36,16 @@ function notificationScope(viewer: NonNullable<Awaited<ReturnType<typeof getView
   return { companyId: null, recipientUserId: viewer.id };
 }
 
+async function getReceiptMap(userId: string) {
+  const receipts = await prisma.$queryRaw<NotificationReceiptRow[]>`
+    SELECT "notificationId", "readAt"
+    FROM "NotificationReceipt"
+    WHERE "userId" = ${userId}
+  `;
+
+  return new Map(receipts.map((receipt) => [receipt.notificationId, receipt.readAt]));
+}
+
 export async function GET() {
   const viewer = await getViewer();
 
@@ -43,19 +58,24 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     take: 100,
   });
+  const receiptMap = await getReceiptMap(viewer.id);
 
   return NextResponse.json({
-    unreadCount: notifications.filter((item) => !item.readAt).length,
+    unreadCount: notifications.filter((item) => !receiptMap.has(item.id)).length,
     homeHref: viewer.companies.length > 0 ? "/platform/dashboard" : "/platform/guest-dashboard",
-    notifications: notifications.map((item) => ({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      message: item.message,
-      href: item.href,
-      readAt: item.readAt?.toISOString() ?? null,
-      createdAt: item.createdAt.toISOString(),
-    })),
+    notifications: notifications.map((item) => {
+      const readAt = receiptMap.get(item.id) ?? null;
+
+      return {
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        message: item.message,
+        href: item.href,
+        readAt: readAt?.toISOString() ?? null,
+        createdAt: item.createdAt.toISOString(),
+      };
+    }),
   });
 }
 
@@ -71,10 +91,23 @@ export async function PATCH(request: Request) {
   const scope = notificationScope(viewer);
 
   if (body.markAll) {
-    await prisma.notification.updateMany({
-      where: { ...scope, readAt: null },
-      data: { readAt: now },
+    const notifications = await prisma.notification.findMany({
+      where: scope,
+      select: { id: true },
     });
+
+    if (notifications.length > 0) {
+      await prisma.$transaction(
+        notifications.map((notification) =>
+          prisma.$executeRaw`
+            INSERT INTO "NotificationReceipt" ("notificationId", "userId", "readAt")
+            VALUES (${notification.id}, ${viewer.id}, ${now})
+            ON CONFLICT ("notificationId", "userId")
+            DO UPDATE SET "readAt" = EXCLUDED."readAt"
+          `,
+        ),
+      );
+    }
 
     return NextResponse.json({ success: true });
   }
@@ -92,10 +125,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Notification not found." }, { status: 404 });
   }
 
-  await prisma.notification.update({
-    where: { id: notification.id },
-    data: { readAt: now },
-  });
+  await prisma.$executeRaw`
+    INSERT INTO "NotificationReceipt" ("notificationId", "userId", "readAt")
+    VALUES (${notification.id}, ${viewer.id}, ${now})
+    ON CONFLICT ("notificationId", "userId")
+    DO UPDATE SET "readAt" = EXCLUDED."readAt"
+  `;
 
   return NextResponse.json({ success: true });
 }
