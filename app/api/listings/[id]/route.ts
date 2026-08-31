@@ -46,6 +46,16 @@ export async function GET(
             select: {
               name: true,
               verified: true,
+              reviewsReceived: {
+                select: {
+                  rating: true,
+                },
+              },
+              guestReviewsReceived: {
+                select: {
+                  rating: true,
+                },
+              },
             },
           },
         },
@@ -148,6 +158,16 @@ export async function GET(
       const isViewerBid = bid.bidderCompanyId === viewerCompanyId;
       const isWinningBid = bid.id === listing.awardedBidId;
       const canSeeIdentity = isOwner || isViewerBid || isWinningBid;
+      const ratings = canSeeIdentity
+        ? [
+            ...bid.bidderCompany.reviewsReceived,
+            ...bid.bidderCompany.guestReviewsReceived,
+          ].map((review) => review.rating)
+        : [];
+      const bidderCompanyReviewCount = ratings.length;
+      const bidderCompanyRating = bidderCompanyReviewCount
+        ? ratings.reduce((sum, rating) => sum + rating, 0) / bidderCompanyReviewCount
+        : null;
 
       return {
         id: bid.id,
@@ -158,6 +178,8 @@ export async function GET(
           : `Bidder ${bidderLabels.get(bid.bidderCompanyId)}`,
         bidderCompanyVerified: canSeeIdentity && bid.bidderCompany.verified,
         bidderCompanyId: canSeeIdentity ? bid.bidderCompanyId : null,
+        bidderCompanyRating,
+        bidderCompanyReviewCount,
         outcome: listing.awardedBidId
           ? isWinningBid
             ? "WINNER"
