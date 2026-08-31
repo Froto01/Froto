@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Clock3, Trophy } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, Star, Trophy } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ type LiveBid = {
   bidderCompanyName: string;
   bidderCompanyVerified: boolean;
   bidderCompanyId: string | null;
+  bidderCompanyRating: number | null;
+  bidderCompanyReviewCount: number;
   outcome: BidOutcome;
 };
 
@@ -594,6 +596,26 @@ export default function ListingDetailPage() {
                                   <Badge variant="outline">Unsuccessful</Badge>
                                 ) : null}
                               </div>
+                              {bid.bidderCompanyId ? (
+                                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                  {bid.bidderCompanyRating !== null ? (
+                                    <span className="inline-flex items-center gap-1 font-medium text-amber-700">
+                                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                      {bid.bidderCompanyRating.toFixed(1)} / 5
+                                      <span className="font-normal text-slate-500">
+                                        · {bid.bidderCompanyReviewCount} verified review{bid.bidderCompanyReviewCount === 1 ? "" : "s"}
+                                      </span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-500">No verified reviews yet</span>
+                                  )}
+                                  <Button asChild variant="link" className="h-auto p-0 text-xs text-froto-blue">
+                                    <Link href={`/platform/companies/${bid.bidderCompanyId}`}>
+                                      View reputation
+                                    </Link>
+                                  </Button>
+                                </div>
+                              ) : null}
                               <p className="mt-1 text-xs text-slate-500">
                                 {formatBidTime(bid.createdAt)}
                               </p>
