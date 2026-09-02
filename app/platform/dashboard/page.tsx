@@ -133,11 +133,11 @@ export default async function DashboardPage() {
   ]);
 
   const metrics = [
-    { label: "Active listings", value: activeListingCount, detail: "Your live capacity", icon: PackageCheck, tone: "blue" },
-    { label: "Active bids", value: activeBidCount, detail: "Your bids on live listings", icon: BarChart3, tone: "teal" },
-    { label: "Active jobs", value: activeJobCount, detail: "Marketplace + tender jobs", icon: BriefcaseBusiness, tone: "green" },
-    { label: "Jobs won", value: wonJobCount, detail: "Awards won by your company", icon: RadioTower, tone: "cyan" },
-    { label: "Completed", value: completedJobCount, detail: "Finished Froto jobs", icon: CheckCircle2, tone: "navy" },
+    { label: "Active listings", value: activeListingCount, detail: "Your live capacity", icon: PackageCheck, tone: "blue", href: "/platform/activity#listings" },
+    { label: "Active bids", value: activeBidCount, detail: "Your bids on live listings", icon: BarChart3, tone: "teal", href: "/platform/activity#bids" },
+    { label: "Active jobs", value: activeJobCount, detail: "Marketplace + tender jobs", icon: BriefcaseBusiness, tone: "green", href: "/platform/activity#transactions" },
+    { label: "Jobs won", value: wonJobCount, detail: "Awards won by your company", icon: RadioTower, tone: "cyan", href: "/platform/activity#awards" },
+    { label: "Completed", value: completedJobCount, detail: "Finished Froto jobs", icon: CheckCircle2, tone: "navy", href: "/platform/activity#transactions" },
   ];
   const dashboardLoadedAt = new Date().getTime();
 
@@ -174,7 +174,7 @@ export default async function DashboardPage() {
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {metrics.map((metric) => { const Icon = metric.icon; return <Card key={metric.label} className="rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-medium text-slate-500">{metric.label}</p><p className="mt-2 text-2xl font-semibold text-froto-navy">{metric.value}</p></div><span className={`flex h-10 w-10 items-center justify-center rounded-2xl ring-1 ${toneClasses[metric.tone]}`}><Icon className="h-4 w-4" /></span></div><p className="mt-3 text-xs text-slate-500">{metric.detail}</p></CardContent></Card>; })}
+          {metrics.map((metric) => { const Icon = metric.icon; return <Link key={metric.label} href={metric.href} aria-label={`View ${metric.label.toLowerCase()}`} className="group rounded-[1.4rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-froto-blue focus-visible:ring-offset-2"><Card className="h-full rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition group-hover:-translate-y-0.5 group-hover:border-froto-blue/25 group-hover:shadow-lg"><CardContent className="pt-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-medium text-slate-500">{metric.label}</p><p className="mt-2 text-2xl font-semibold text-froto-navy">{metric.value}</p></div><span className={`flex h-10 w-10 items-center justify-center rounded-2xl ring-1 ${toneClasses[metric.tone]}`}><Icon className="h-4 w-4" /></span></div><p className="mt-3 text-xs text-slate-500">{metric.detail}</p><p className="mt-2 text-xs font-medium text-froto-blue opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">View details →</p></CardContent></Card></Link>; })}
         </section>
 
         <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
