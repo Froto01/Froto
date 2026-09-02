@@ -164,7 +164,7 @@ export default async function ActivityPage() {
           <Card className="rounded-[1.4rem] border-froto-navy/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><CircleDollarSign className="h-5 w-5 text-froto-navy" /><p className="mt-4 text-xs font-medium text-slate-500">Completed job value</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{formatAUD(completedValue)}</p></CardContent></Card>
         </section>
 
-        <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
+        <Card id="listings" className="scroll-mt-6 rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Supply side</p><CardTitle className="mt-1 text-xl text-froto-navy">My Listings</CardTitle></div><ListChecks className="h-5 w-5 text-froto-blue" /></div></CardHeader>
           <CardContent className="space-y-3">
             {listings.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No listings yet.</p> : listings.map((listing) => {
@@ -174,7 +174,7 @@ export default async function ActivityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.75rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
+        <Card id="bids" className="scroll-mt-6 rounded-[1.75rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">Marketplace demand</p><CardTitle className="mt-1 text-xl text-froto-navy">My Bids</CardTitle></div><BarChart3 className="h-5 w-5 text-froto-teal" /></div></CardHeader>
           <CardContent className="space-y-3">
             {bids.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No bids placed yet.</p> : bids.map((bid) => {
@@ -186,7 +186,7 @@ export default async function ActivityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
+        <Card id="tenders" className="scroll-mt-6 rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-green">Structured sourcing</p><CardTitle className="mt-1 text-xl text-froto-navy">My Tenders</CardTitle></div><ClipboardList className="h-5 w-5 text-froto-green" /></div></CardHeader>
           <CardContent className="space-y-3">
             {tenders.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No tenders created yet.</p> : tenders.map((tender) => {
@@ -196,7 +196,7 @@ export default async function ActivityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.75rem] border-cyan-100 bg-white shadow-md shadow-froto-navy/5">
+        <Card id="awards" className="scroll-mt-6 rounded-[1.75rem] border-cyan-100 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-cyan">Supplier responses</p><CardTitle className="mt-1 text-xl text-froto-navy">My Tender Responses</CardTitle></div><Send className="h-5 w-5 text-froto-cyan" /></div></CardHeader>
           <CardContent className="space-y-3">
             {tenderResponses.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No tender responses submitted yet.</p> : tenderResponses.map((response) => {
@@ -206,7 +206,7 @@ export default async function ActivityPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
+        <Card id="transactions" className="scroll-mt-6 rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-green">Commercial record</p><CardTitle className="mt-1 text-xl text-froto-navy">Transaction History</CardTitle></div><BriefcaseBusiness className="h-5 w-5 text-froto-green" /></div></CardHeader>
           <CardContent className="space-y-3">
             {jobs.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">Awarded transactions will appear here automatically.</p> : jobs.map((job) => {
