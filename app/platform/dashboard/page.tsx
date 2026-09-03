@@ -16,6 +16,7 @@ import {
   Pencil,
   Plus,
   RadioTower,
+  ShieldCheck,
   UserPlus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +165,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button asChild variant="outline" className="relative gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/notifications"><Bell className="h-4 w-4 text-froto-blue" />Notifications{unreadNotificationCount > 0 ? <Badge className="ml-1 min-w-6 justify-center bg-froto-green px-1.5 text-white">{unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}</Badge> : null}</Link></Button>
+            {user.platformRole === "PLATFORM_ADMIN" ? <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/admin/commercial"><ShieldCheck className="h-4 w-4" />Froto Admin</Link></Button> : null}
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/activity"><BarChart3 className="h-4 w-4 text-froto-teal" />My Business</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-green/15 bg-white text-froto-navy"><Link href="/platform/activity#transactions"><CircleDollarSign className="h-4 w-4 text-froto-green" />Financials</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/listings/new"><Plus className="h-4 w-4 text-froto-blue" />Create Listing</Link></Button>
