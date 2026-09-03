@@ -192,7 +192,7 @@ export default async function CommercialAdminPage() {
                           <td className="px-3 py-4 text-right font-medium text-froto-navy">{formatAUD(Number(fee.transactionAmount))}</td>
                           <td className="px-3 py-4 text-right text-froto-navy">{formatAUD(Number(fee.feeExGst))}</td>
                           <td className="px-3 py-4 text-right text-slate-600">{formatAUD(Number(fee.gstAmount))}</td>
-                          <td className="px-3 py-4 text-right font-semibold text-froto-blue">{formatAUD(Number(fee.feeInclGst))}</td>
+                          <td className="px-3 py-4 text-right font-semibold text-froto-blue">{formatAUD(Number(fee.feeIncGst))}</td>
                           <td className="px-3 py-4"><Badge className={fee.status === "PAID" ? "bg-froto-green text-white" : fee.status === "EARNED" ? "bg-froto-blue text-white" : "bg-froto-navy text-white"}>{statusLabel(fee.status)}</Badge></td>
                         </tr>
                       );
