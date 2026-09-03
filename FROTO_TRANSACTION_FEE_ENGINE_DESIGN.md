@@ -1,8 +1,24 @@
 # Froto Transaction Fee Engine Design
 
-**Status:** Design proposal for approval  
+**Status:** Architecture and launch commercial policy approved  
 **Date:** 26 August 2026  
 **Scope:** Success / transaction fee calculation and accounting foundation only. Payment-provider selection, exact fee rates and invoice policy remain explicit approval gates.
+
+## Approved launch commercial policy — 3 September 2026
+
+- Free to list, bid and tender.
+- The successful provider pays the success fee.
+- Fee: 3% of completed job value, excluding GST.
+- Minimum fee: $10 excluding GST.
+- Maximum fee: $500 excluding GST.
+- Australian GST: 10%, added separately.
+- The fee is calculated and snapshotted at award, but becomes earned only after confirmed completion.
+- Marketplace and tender jobs use the same launch rule.
+- Guest customers pay no platform fee; the winning provider is the intended payer.
+- Guest-auction fee activation remains deferred until its post-award lifecycle supports completion-based earning.
+- Subscriptions are not required at launch; premium membership, promoted listings and advertising remain future options.
+- Cancellation before completion voids or prevents earning; disputed transactions require review before collection.
+- Payment collection, invoicing and payment-provider selection remain separate approval and implementation gates.
 
 ## 1. Objective
 

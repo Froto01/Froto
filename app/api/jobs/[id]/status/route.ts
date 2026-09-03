@@ -223,6 +223,22 @@ export async function POST(
           },
         });
 
+        if (nextStatus === "COMPLETED") {
+          await tx.transactionFee.updateMany({
+            where: {
+              sourceId: job.id,
+              transactionType: {
+                in: ["MARKETPLACE_JOB", "TENDER_JOB"],
+              },
+              status: "CALCULATED",
+            },
+            data: {
+              status: "EARNED",
+              earnedAt: now,
+            },
+          });
+        }
+
         if (nextStatus === "ACCEPTED") {
           await tx.notification.create({
             data: {
