@@ -52,7 +52,6 @@ export default async function CommercialAdminPage() {
     }),
     prisma.transactionFee.findMany({
       orderBy: { calculatedAt: "desc" },
-      take: 100,
     }),
     prisma.company.count(),
   ]);
@@ -184,7 +183,7 @@ export default async function CommercialAdminPage() {
                       return (
                         <tr key={fee.id} className="border-b border-slate-100 align-top">
                           <td className="px-3 py-4">
-                            <p className="font-semibold text-froto-navy">{title}</p>
+                            <Link className="font-semibold text-froto-blue underline" href={`/platform/admin/commercial/fees/${fee.id}`}>{title}</Link>
                             <p className="mt-1 text-xs text-slate-500">{fee.feeRuleCode} v{fee.feeRuleVersion} · {formatDate(fee.calculatedAt)}</p>
                           </td>
                           <td className="px-3 py-4 text-slate-600">{job?.buyerCompany.name ?? "Guest buyer"}</td>

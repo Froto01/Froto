@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/fee-engine.test.mjs",
+    "test": "node --test lib/fee-engine.test.mjs lib/fee-billing.test.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
