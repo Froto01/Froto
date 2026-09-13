@@ -2,17 +2,27 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 
 import { calculateTransactionFee } from "@/lib/fee-engine.mjs";
 
-type JobFeeTransactionType = "MARKETPLACE_JOB" | "TENDER_JOB";
+type SupportedFeeTransactionType = "MARKETPLACE_JOB" | "TENDER_JOB" | "GUEST_AUCTION";
 
-type CreateJobFeeSnapshotInput = {
+type CreateFeeSnapshotInput = {
   tx: Prisma.TransactionClient;
-  transactionType: JobFeeTransactionType;
+  transactionType: SupportedFeeTransactionType;
   sourceId: string;
   transactionAmount: { toString(): string };
-  buyerCompanyId: string;
+  buyerCompanyId?: string;
   providerCompanyId: string;
   calculatedAt: Date;
   metadata?: Record<string, string | number | boolean | null>;
+};
+
+type CreateJobFeeSnapshotInput = CreateFeeSnapshotInput & {
+  transactionType: "MARKETPLACE_JOB" | "TENDER_JOB";
+  buyerCompanyId: string;
+};
+
+type CreateGuestAuctionFeeSnapshotInput = CreateFeeSnapshotInput & {
+  transactionType?: "GUEST_AUCTION";
+  buyerCompanyId?: never;
 };
 
 function decimalToCents(value: { toString(): string } | null): number | null {
@@ -42,7 +52,7 @@ function centsToDecimal(cents: number): string {
   return `${dollars}.${remainder.toString().padStart(2, "0")}`;
 }
 
-export async function createJobFeeSnapshotIfApplicable({
+async function createFeeSnapshotIfApplicable({
   tx,
   transactionType,
   sourceId,
@@ -51,7 +61,7 @@ export async function createJobFeeSnapshotIfApplicable({
   providerCompanyId,
   calculatedAt,
   metadata,
-}: CreateJobFeeSnapshotInput) {
+}: CreateFeeSnapshotInput) {
   const rules = await tx.feeRule.findMany({
     where: {
       transactionType,
@@ -79,6 +89,9 @@ export async function createJobFeeSnapshotIfApplicable({
 
   let payerCompanyId: string;
   if (rule.payerType === "BUYER") {
+    if (!buyerCompanyId) {
+      throw new Error(`${transactionType} buyer-paid fee rule cannot be used without a buyer company.`);
+    }
     payerCompanyId = buyerCompanyId;
   } else if (rule.payerType === "PROVIDER") {
     payerCompanyId = providerCompanyId;
@@ -90,7 +103,7 @@ export async function createJobFeeSnapshotIfApplicable({
 
   const transactionAmountCents = decimalToCents(transactionAmount);
   if (transactionAmountCents === null) {
-    throw new Error("Transaction amount is required for a job fee snapshot.");
+    throw new Error("Transaction amount is required for a fee snapshot.");
   }
 
   const minimumFeeCents = decimalToCents(rule.minimumFee);
@@ -128,5 +141,19 @@ export async function createJobFeeSnapshotIfApplicable({
       calculatedAt,
       metadata: metadata ?? undefined,
     },
+  });
+}
+
+export async function createJobFeeSnapshotIfApplicable(input: CreateJobFeeSnapshotInput) {
+  return createFeeSnapshotIfApplicable(input);
+}
+
+export async function createGuestAuctionFeeSnapshotIfApplicable({
+  transactionType: _transactionType,
+  ...input
+}: CreateGuestAuctionFeeSnapshotInput) {
+  return createFeeSnapshotIfApplicable({
+    ...input,
+    transactionType: "GUEST_AUCTION",
   });
 }
