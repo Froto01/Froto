@@ -30,7 +30,13 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const [guestData, setGuestData] = useState<GuestAuctionResponse | null>(null);
 
   useEffect(() => {
-    if (pathname !== "/platform") return;
+    const guestAwarePaths = new Set([
+      "/platform",
+      "/platform/dashboard",
+      "/platform/listings/new",
+    ]);
+
+    if (!guestAwarePaths.has(pathname)) return;
 
     let cancelled = false;
     void fetch("/api/guest-auctions", { cache: "no-store" })
@@ -39,11 +45,24 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
         return (await response.json()) as GuestAuctionResponse;
       })
       .then((data) => {
-        if (!cancelled && data?.viewerType === "GUEST_OWNER") setGuestData(data);
+        if (cancelled || data?.viewerType !== "GUEST_OWNER") return;
+
+        setGuestData(data);
+
+        if (pathname === "/platform/listings/new") {
+          window.location.replace("/platform/guest-auctions");
+          return;
+        }
+
+        if (pathname === "/platform/dashboard") {
+          window.location.replace("/platform/guest-dashboard");
+        }
       })
       .catch(() => undefined);
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [pathname]);
 
   return (
@@ -58,7 +77,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
                     <div className="flex items-center gap-2"><PackageSearch className="h-5 w-5 text-froto-blue" /><p className="font-semibold text-froto-navy">Your transport requests</p></div>
                     <p className="mt-1 text-sm text-slate-500">Your guest jobs stay visible here while you browse the Froto marketplace.</p>
                   </div>
-                  <Button asChild variant="outline" className="gap-2"><Link href="/platform/guest-dashboard"><LayoutDashboard className="h-4 w-4" />Guest dashboard</Link></Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/guest-auctions"><PackageSearch className="h-4 w-4" />Post a job</Link></Button>
+                    <Button asChild variant="outline" className="gap-2"><Link href="/platform/guest-dashboard"><LayoutDashboard className="h-4 w-4" />Guest dashboard</Link></Button>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
