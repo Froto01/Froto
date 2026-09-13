@@ -20,9 +20,11 @@ type CreateJobFeeSnapshotInput = CreateFeeSnapshotInput & {
   buyerCompanyId: string;
 };
 
-type CreateGuestAuctionFeeSnapshotInput = CreateFeeSnapshotInput & {
+type CreateGuestAuctionFeeSnapshotInput = Omit<
+  CreateFeeSnapshotInput,
+  "transactionType" | "buyerCompanyId"
+> & {
   transactionType?: "GUEST_AUCTION";
-  buyerCompanyId?: never;
 };
 
 function decimalToCents(value: { toString(): string } | null): number | null {
