@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { createGuestAuctionFeeSnapshotIfApplicable } from "@/lib/fee-snapshots";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,19 @@ export async function POST(
     await tx.guestAuctionBid.update({
       where: { id: bid.id },
       data: { status: "AWARDED" },
+    });
+
+    await createGuestAuctionFeeSnapshotIfApplicable({
+      tx,
+      sourceId: auction.id,
+      transactionAmount: bid.amount,
+      providerCompanyId: bid.bidderCompany.id,
+      calculatedAt: awardedAt,
+      metadata: {
+        guestAuctionId: auction.id,
+        guestAuctionBidId: bid.id,
+        guestCustomerUserId: user.id,
+      },
     });
 
     await tx.notification.create({

@@ -75,11 +75,26 @@ export async function POST(
       return { ok: false as const, status: 403, error: "Only the winning company can update this job." };
     }
 
+    const now = new Date();
     const updated = await tx.guestAuction.update({
       where: { id: auction.id },
       data: { status: transition.to },
       select: { id: true, status: true, updatedAt: true },
     });
+
+    if (action === "COMPLETE") {
+      await tx.transactionFee.updateMany({
+        where: {
+          transactionType: "GUEST_AUCTION",
+          sourceId: auction.id,
+          status: "CALCULATED",
+        },
+        data: {
+          status: "EARNED",
+          earnedAt: now,
+        },
+      });
+    }
 
     return {
       ok: true as const,
