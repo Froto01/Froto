@@ -29,6 +29,15 @@ function formatAUD(value: number) {
   }).format(value);
 }
 
+function formatAUDCents(value: number) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function formatDateTime(value: Date) {
   return new Intl.DateTimeFormat("en-AU", {
     day: "numeric",
@@ -42,7 +51,7 @@ function formatDateTime(value: Date) {
 function prettyStatus(status: string) {
   if (status === "IN_PROGRESS") return "In progress";
   if (status === "UNSUCCESSFUL") return "Unsuccessful";
-  return status.charAt(0) + status.slice(1).toLowerCase();
+  return status.charAt(0) + status.slice(1).toLowerCase().replaceAll("_", " ");
 }
 
 function listingStatus(status: string, biddingClosesAt: Date | null, awardedBidId: string | null) {
@@ -76,7 +85,7 @@ export default async function ActivityPage() {
 
   const company = membership.company;
 
-  const [listings, bids, tenders, tenderResponses, jobs] = await Promise.all([
+  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees] = await Promise.all([
     prisma.listing.findMany({
       where: { companyId: company.id },
       orderBy: { createdAt: "desc" },
@@ -125,9 +134,32 @@ export default async function ActivityPage() {
       },
       take: 100,
     }),
+    prisma.guestAuction.findMany({
+      where: { awardedBid: { is: { bidderCompanyId: company.id } } },
+      orderBy: { awardedAt: "desc" },
+      include: {
+        awardedBid: {
+          select: {
+            amount: true,
+            bidderCompanyId: true,
+          },
+        },
+      },
+      take: 100,
+    }),
+    prisma.transactionFee.findMany({
+      where: {
+        transactionType: "GUEST_AUCTION",
+        payerCompanyId: company.id,
+      },
+      orderBy: { calculatedAt: "desc" },
+      take: 100,
+    }),
   ]);
 
+  const guestFeeByAuctionId = new Map(guestFees.map((fee) => [fee.sourceId, fee]));
   const completedJobs = jobs.filter((job) => job.status === "COMPLETED");
+  const completedGuestAuctions = guestAuctions.filter((auction) => auction.status === "COMPLETED");
   const wonBids = bids.filter((bid) => bid.listing.awardedBidId === bid.id).length;
   const wonTenderResponses = tenderResponses.filter((response) => response.status === "AWARDED").length;
   const activeBidListings = new Set(
@@ -135,7 +167,9 @@ export default async function ActivityPage() {
       .filter((bid) => bid.listing.status === "ACTIVE" && !bid.listing.awardedBidId)
       .map((bid) => bid.listingId)
   ).size;
-  const completedValue = completedJobs.reduce((sum, job) => sum + Number(job.amount), 0);
+  const completedValue =
+    completedJobs.reduce((sum, job) => sum + Number(job.amount), 0) +
+    completedGuestAuctions.reduce((sum, auction) => sum + Number(auction.awardedBid?.amount ?? 0), 0);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -160,7 +194,7 @@ export default async function ActivityPage() {
           <Card className="rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><PackageCheck className="h-5 w-5 text-froto-blue" /><p className="mt-4 text-xs font-medium text-slate-500">All listings</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{listings.length}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><BarChart3 className="h-5 w-5 text-froto-teal" /><p className="mt-4 text-xs font-medium text-slate-500">Listings bidding on</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{activeBidListings}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><ClipboardList className="h-5 w-5 text-froto-green" /><p className="mt-4 text-xs font-medium text-slate-500">My tenders</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{tenders.length}</p></CardContent></Card>
-          <Card className="rounded-[1.4rem] border-froto-cyan/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><Trophy className="h-5 w-5 text-froto-cyan" /><p className="mt-4 text-xs font-medium text-slate-500">Awards won</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{wonBids + wonTenderResponses}</p></CardContent></Card>
+          <Card className="rounded-[1.4rem] border-froto-cyan/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><Trophy className="h-5 w-5 text-froto-cyan" /><p className="mt-4 text-xs font-medium text-slate-500">Awards won</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{wonBids + wonTenderResponses + guestAuctions.length}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-navy/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><CircleDollarSign className="h-5 w-5 text-froto-navy" /><p className="mt-4 text-xs font-medium text-slate-500">Completed job value</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{formatAUD(completedValue)}</p></CardContent></Card>
         </section>
 
@@ -209,7 +243,15 @@ export default async function ActivityPage() {
         <Card id="transactions" className="scroll-mt-6 rounded-[1.75rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-green">Commercial record</p><CardTitle className="mt-1 text-xl text-froto-navy">Transaction History</CardTitle></div><BriefcaseBusiness className="h-5 w-5 text-froto-green" /></div></CardHeader>
           <CardContent className="space-y-3">
-            {jobs.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">Awarded transactions will appear here automatically.</p> : jobs.map((job) => {
+            {jobs.length === 0 && guestAuctions.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">Awarded transactions will appear here automatically.</p> : null}
+
+            {guestAuctions.map((auction) => {
+              const fee = guestFeeByAuctionId.get(auction.id);
+              const amount = Number(auction.awardedBid?.amount ?? 0);
+              return <Link key={`guest-${auction.id}`} href={`/platform/guest-auctions/${auction.id}`} className="block rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4 transition-colors hover:border-froto-green/35 hover:bg-emerald-50/60"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{auction.title}</p><Badge className={auction.status === "COMPLETED" ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{prettyStatus(auction.status)}</Badge><Badge className="border border-emerald-200 bg-white text-froto-green">Guest</Badge></div><p className="mt-1 text-sm text-slate-500">Customer · Guest customer</p><p className="mt-1 text-xs text-slate-500">Awarded {formatDateTime(auction.awardedAt ?? auction.updatedAt)}</p>{fee ? <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600"><span>Froto fee {formatAUDCents(Number(fee.feeExGst))} ex GST</span><span>GST {formatAUDCents(Number(fee.gstAmount))}</span><span>Total {formatAUDCents(Number(fee.feeIncGst))}</span><span className="font-semibold text-froto-green">{prettyStatus(fee.status)}</span></div> : <p className="mt-3 text-xs font-medium text-amber-700">No Froto fee snapshot recorded for this award.</p>}</div><div className="text-left sm:text-right"><p className="text-xs text-slate-500">Agreed value</p><p className="font-semibold text-froto-blue">{formatAUD(amount)}</p>{auction.status === "COMPLETED" ? <p className="mt-1 flex items-center gap-1 text-xs font-medium text-froto-green sm:justify-end"><CheckCircle2 className="h-3.5 w-3.5" />Completed</p> : null}</div></div></Link>;
+            })}
+
+            {jobs.map((job) => {
               const isBuyer = job.buyerCompanyId === company.id;
               const counterpartyRole = isBuyer ? "Provider" : "Buyer";
               const counterparty = isBuyer ? job.providerCompany.name : job.buyerCompany.name;
