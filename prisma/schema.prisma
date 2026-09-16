@@ -8,103 +8,104 @@ datasource db {
 }
 
 model User {
-  id                     String            @id @default(cuid())
-  clerkId                String            @unique
-  email                  String            @unique
-  firstName              String?
-  lastName               String?
-  accountType            String?
-  platformRole           String            @default("USER")
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
-  companies              CompanyMember[]
-  bidsPlaced             Bid[]             @relation("BidPlacedByUser")
-  jobEvents              JobEvent[]        @relation("JobEventActorUser")
-  tendersCreated         Tender[]          @relation("TenderCreatedByUser")
-  tenderResponses        TenderResponse[]  @relation("TenderResponseSubmittedByUser")
-  notifications          Notification[]    @relation("NotificationRecipientUser")
-  notificationReceipts   NotificationReceipt[]
-  reviewsSubmitted       Review[]          @relation("ReviewSubmittedByUser")
-  guestReviewsSubmitted  GuestAuctionReview[] @relation("GuestAuctionReviewSubmittedByUser")
-  verificationsReviewed  Company[]         @relation("CompanyVerificationReviewer")
-  guestAuctionsCreated   GuestAuction[]    @relation("GuestAuctionCreatedByUser")
+  id String @id @default(cuid())
+  clerkId String @unique
+  email String @unique
+  firstName String?
+  lastName String?
+  accountType String?
+  platformRole String @default("USER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  companies CompanyMember[]
+  bidsPlaced Bid[] @relation("BidPlacedByUser")
+  jobEvents JobEvent[] @relation("JobEventActorUser")
+  tendersCreated Tender[] @relation("TenderCreatedByUser")
+  tenderResponses TenderResponse[] @relation("TenderResponseSubmittedByUser")
+  spotRequirementsCreated SpotRequirement[] @relation("SpotRequirementCreatedByUser")
+  spotOffersSubmitted SpotOffer[] @relation("SpotOfferSubmittedByUser")
+  notifications Notification[] @relation("NotificationRecipientUser")
+  notificationReceipts NotificationReceipt[]
+  reviewsSubmitted Review[] @relation("ReviewSubmittedByUser")
+  guestReviewsSubmitted GuestAuctionReview[] @relation("GuestAuctionReviewSubmittedByUser")
+  verificationsReviewed Company[] @relation("CompanyVerificationReviewer")
+  guestAuctionsCreated GuestAuction[] @relation("GuestAuctionCreatedByUser")
   guestAuctionBidsPlaced GuestAuctionBid[] @relation("GuestAuctionBidPlacedByUser")
   opportunityAlertPreferences OpportunityAlertPreference[]
 }
 
 model Company {
-  id                           String            @id @default(cuid())
-  name                         String
-  abn                          String?           @unique
-  acn                          String?           @unique
-  verified                     Boolean           @default(false)
-  verificationStatus           String            @default("UNVERIFIED")
-  verificationSubmittedAt      DateTime?
-  verificationReviewedAt       DateTime?
+  id String @id @default(cuid())
+  name String
+  abn String? @unique
+  acn String? @unique
+  verified Boolean @default(false)
+  verificationStatus String @default("UNVERIFIED")
+  verificationSubmittedAt DateTime?
+  verificationReviewedAt DateTime?
   verificationReviewedByUserId String?
-  verificationNotes            String?
-  companyType                  String?
-  locations                    String?
-  notes                        String?
-  createdAt                    DateTime          @default(now())
-  updatedAt                    DateTime          @updatedAt
-  verificationReviewedBy       User?             @relation("CompanyVerificationReviewer", fields: [verificationReviewedByUserId], references: [id], onDelete: SetNull)
-  members                      CompanyMember[]
-  listings                     Listing[]
-  bids                         Bid[]             @relation("BidderCompany")
-  buyerJobs                    Job[]             @relation("JobBuyerCompany")
-  providerJobs                 Job[]             @relation("JobProviderCompany")
-  jobEvents                    JobEvent[]        @relation("JobEventActorCompany")
-  tenders                      Tender[]          @relation("TenderOwnerCompany")
-  tenderResponses              TenderResponse[] @relation("TenderRespondingCompany")
-  notifications                Notification[]    @relation("NotificationCompany")
-  reviewsGiven                 Review[]          @relation("ReviewAuthorCompany")
-  reviewsReceived              Review[]          @relation("ReviewSubjectCompany")
-  guestReviewsReceived         GuestAuctionReview[] @relation("GuestAuctionReviewSubjectCompany")
-  guestAuctionBids             GuestAuctionBid[] @relation("GuestAuctionBidderCompany")
-  opportunityAlertPreferences  OpportunityAlertPreference[]
-
+  verificationNotes String?
+  companyType String?
+  locations String?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  verificationReviewedBy User? @relation("CompanyVerificationReviewer", fields: [verificationReviewedByUserId], references: [id], onDelete: SetNull)
+  members CompanyMember[]
+  listings Listing[]
+  bids Bid[] @relation("BidderCompany")
+  buyerJobs Job[] @relation("JobBuyerCompany")
+  providerJobs Job[] @relation("JobProviderCompany")
+  jobEvents JobEvent[] @relation("JobEventActorCompany")
+  tenders Tender[] @relation("TenderOwnerCompany")
+  tenderResponses TenderResponse[] @relation("TenderRespondingCompany")
+  spotRequirements SpotRequirement[] @relation("SpotRequirementOwnerCompany")
+  spotOffers SpotOffer[] @relation("SpotOfferProviderCompany")
+  notifications Notification[] @relation("NotificationCompany")
+  reviewsGiven Review[] @relation("ReviewAuthorCompany")
+  reviewsReceived Review[] @relation("ReviewSubjectCompany")
+  guestReviewsReceived GuestAuctionReview[] @relation("GuestAuctionReviewSubjectCompany")
+  guestAuctionBids GuestAuctionBid[] @relation("GuestAuctionBidderCompany")
+  opportunityAlertPreferences OpportunityAlertPreference[]
   @@index([verificationReviewedByUserId])
 }
 
 model CompanyMember {
-  id        String      @id @default(cuid())
-  role      CompanyRole @default(STAFF)
-  userId    String
+  id String @id @default(cuid())
+  role CompanyRole @default(STAFF)
+  userId String
   companyId String
-  company   Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([userId, companyId])
 }
 
 model Listing {
-  id                  String   @id @default(cuid())
-  companyId           String
-  listingType         String
-  title               String
-  location            String?
-  origin              String?
-  destination         String?
-  capacityAmount      Int
-  capacityUnit        String
-  temperatureClass    String
-  availableFrom       DateTime
-  availableTo         DateTime
-  startingBid         Decimal  @db.Decimal(12, 2)
-  minimumBidIncrement Decimal  @db.Decimal(12, 2)
-  biddingClosesAt     DateTime?
-  awardedBidId        String?  @unique
-  awardedAt           DateTime?
-  notes               String?
-  status              String   @default("ACTIVE")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  company             Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  bids                Bid[]    @relation("ListingBids")
-  awardedBid          Bid?     @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
-  job                 Job?
-
+  id String @id @default(cuid())
+  companyId String
+  listingType String
+  title String
+  location String?
+  origin String?
+  destination String?
+  capacityAmount Int
+  capacityUnit String
+  temperatureClass String
+  availableFrom DateTime
+  availableTo DateTime
+  startingBid Decimal @db.Decimal(12, 2)
+  minimumBidIncrement Decimal @db.Decimal(12, 2)
+  biddingClosesAt DateTime?
+  awardedBidId String? @unique
+  awardedAt DateTime?
+  notes String?
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bids Bid[] @relation("ListingBids")
+  awardedBid Bid? @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
+  job Job?
   @@index([companyId])
   @@index([status])
   @@index([listingType])
@@ -112,47 +113,49 @@ model Listing {
 }
 
 model Bid {
-  id              String    @id @default(cuid())
-  listingId       String
+  id String @id @default(cuid())
+  listingId String
   bidderCompanyId String
-  placedByUserId  String
-  amount          Decimal   @db.Decimal(12, 2)
-  createdAt       DateTime  @default(now())
-  listing         Listing   @relation("ListingBids", fields: [listingId], references: [id], onDelete: Cascade)
-  bidderCompany   Company   @relation("BidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
-  placedByUser    User      @relation("BidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
-  awardedListing  Listing?  @relation("AwardedBid")
-  job             Job?
-
+  placedByUserId String
+  amount Decimal @db.Decimal(12, 2)
+  createdAt DateTime @default(now())
+  listing Listing @relation("ListingBids", fields: [listingId], references: [id], onDelete: Cascade)
+  bidderCompany Company @relation("BidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
+  placedByUser User @relation("BidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
+  awardedListing Listing? @relation("AwardedBid")
+  job Job?
   @@index([listingId, createdAt])
   @@index([bidderCompanyId])
   @@index([placedByUserId])
 }
 
 model Job {
-  id                      String          @id @default(cuid())
-  listingId               String?         @unique
-  awardedBidId            String?         @unique
-  tenderId                String?         @unique
-  awardedTenderResponseId String?         @unique
-  buyerCompanyId          String
-  providerCompanyId       String
-  amount                  Decimal         @db.Decimal(12, 2)
-  status                  String          @default("AWARDED")
-  acceptedAt              DateTime?
-  startedAt               DateTime?
-  completedAt             DateTime?
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-  listing                 Listing?        @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  awardedBid              Bid?            @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
-  tender                  Tender?         @relation(fields: [tenderId], references: [id], onDelete: Restrict)
-  awardedTenderResponse   TenderResponse? @relation(fields: [awardedTenderResponseId], references: [id], onDelete: Restrict)
-  buyerCompany            Company         @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
-  providerCompany         Company         @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
-  events                  JobEvent[]
-  reviews                 Review[]
-
+  id String @id @default(cuid())
+  listingId String? @unique
+  awardedBidId String? @unique
+  tenderId String? @unique
+  awardedTenderResponseId String? @unique
+  spotRequirementId String? @unique
+  awardedSpotOfferId String? @unique
+  buyerCompanyId String
+  providerCompanyId String
+  amount Decimal @db.Decimal(12, 2)
+  status String @default("AWARDED")
+  acceptedAt DateTime?
+  startedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  awardedBid Bid? @relation(fields: [awardedBidId], references: [id], onDelete: Restrict)
+  tender Tender? @relation(fields: [tenderId], references: [id], onDelete: Restrict)
+  awardedTenderResponse TenderResponse? @relation(fields: [awardedTenderResponseId], references: [id], onDelete: Restrict)
+  spotRequirement SpotRequirement? @relation(fields: [spotRequirementId], references: [id], onDelete: Restrict)
+  awardedSpotOffer SpotOffer? @relation(fields: [awardedSpotOfferId], references: [id], onDelete: Restrict)
+  buyerCompany Company @relation("JobBuyerCompany", fields: [buyerCompanyId], references: [id], onDelete: Restrict)
+  providerCompany Company @relation("JobProviderCompany", fields: [providerCompanyId], references: [id], onDelete: Restrict)
+  events JobEvent[]
+  reviews Review[]
   @@index([buyerCompanyId])
   @@index([providerCompanyId])
   @@index([status])
@@ -160,85 +163,81 @@ model Job {
 }
 
 model Review {
-  id                String   @id @default(cuid())
-  jobId             String
+  id String @id @default(cuid())
+  jobId String
   reviewerCompanyId String
   reviewedCompanyId String
-  reviewerUserId    String
-  rating            Int
-  comment           String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  job               Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  reviewerCompany   Company  @relation("ReviewAuthorCompany", fields: [reviewerCompanyId], references: [id], onDelete: Restrict)
-  reviewedCompany   Company  @relation("ReviewSubjectCompany", fields: [reviewedCompanyId], references: [id], onDelete: Restrict)
-  reviewerUser      User     @relation("ReviewSubmittedByUser", fields: [reviewerUserId], references: [id], onDelete: Restrict)
-
+  reviewerUserId String
+  rating Int
+  comment String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviewerCompany Company @relation("ReviewAuthorCompany", fields: [reviewerCompanyId], references: [id], onDelete: Restrict)
+  reviewedCompany Company @relation("ReviewSubjectCompany", fields: [reviewedCompanyId], references: [id], onDelete: Restrict)
+  reviewerUser User @relation("ReviewSubmittedByUser", fields: [reviewerUserId], references: [id], onDelete: Restrict)
   @@unique([jobId, reviewerCompanyId])
   @@index([reviewedCompanyId, createdAt])
   @@index([reviewerUserId])
 }
 
 model GuestAuctionReview {
-  id                String       @id @default(cuid())
-  guestAuctionId    String       @unique
+  id String @id @default(cuid())
+  guestAuctionId String @unique
   reviewedCompanyId String
-  reviewerUserId    String
-  rating            Int
-  comment           String?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  guestAuction      GuestAuction @relation(fields: [guestAuctionId], references: [id], onDelete: Cascade)
-  reviewedCompany   Company      @relation("GuestAuctionReviewSubjectCompany", fields: [reviewedCompanyId], references: [id], onDelete: Restrict)
-  reviewerUser      User         @relation("GuestAuctionReviewSubmittedByUser", fields: [reviewerUserId], references: [id], onDelete: Restrict)
-
+  reviewerUserId String
+  rating Int
+  comment String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  guestAuction GuestAuction @relation(fields: [guestAuctionId], references: [id], onDelete: Cascade)
+  reviewedCompany Company @relation("GuestAuctionReviewSubjectCompany", fields: [reviewedCompanyId], references: [id], onDelete: Restrict)
+  reviewerUser User @relation("GuestAuctionReviewSubmittedByUser", fields: [reviewerUserId], references: [id], onDelete: Restrict)
   @@index([reviewedCompanyId, createdAt])
   @@index([reviewerUserId])
 }
 
 model JobEvent {
-  id             String   @id @default(cuid())
-  jobId          String
-  eventType      String
-  actorUserId    String?
+  id String @id @default(cuid())
+  jobId String
+  eventType String
+  actorUserId String?
   actorCompanyId String?
-  note           String?
-  metadata       Json?
-  createdAt      DateTime @default(now())
-  job            Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  actorUser      User?    @relation("JobEventActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
-  actorCompany   Company? @relation("JobEventActorCompany", fields: [actorCompanyId], references: [id], onDelete: SetNull)
-
+  note String?
+  metadata Json?
+  createdAt DateTime @default(now())
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  actorUser User? @relation("JobEventActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorCompany Company? @relation("JobEventActorCompany", fields: [actorCompanyId], references: [id], onDelete: SetNull)
   @@index([jobId, createdAt])
   @@index([actorUserId])
   @@index([actorCompanyId])
 }
 
 model Tender {
-  id                     String           @id @default(cuid())
-  companyId              String
-  createdByUserId        String
-  title                  String
-  productDescription     String
-  volume                 String
-  origin                 String
-  destination            String
-  storageRequired        Boolean          @default(false)
+  id String @id @default(cuid())
+  companyId String
+  createdByUserId String
+  title String
+  productDescription String
+  volume String
+  origin String
+  destination String
+  storageRequired Boolean @default(false)
   temperatureRequirement String?
-  deliveryDate           DateTime
-  responseClosesAt       DateTime
-  notes                  String?
-  status                 String           @default("OPEN")
-  awardedResponseId      String?          @unique
-  awardedAt              DateTime?
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
-  company                Company          @relation("TenderOwnerCompany", fields: [companyId], references: [id], onDelete: Cascade)
-  createdByUser          User             @relation("TenderCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  responses              TenderResponse[] @relation("TenderResponses")
-  awardedResponse        TenderResponse?  @relation("AwardedTenderResponse", fields: [awardedResponseId], references: [id], onDelete: SetNull)
-  job                    Job?
-
+  deliveryDate DateTime
+  responseClosesAt DateTime
+  notes String?
+  status String @default("OPEN")
+  awardedResponseId String? @unique
+  awardedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation("TenderOwnerCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser User @relation("TenderCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  responses TenderResponse[] @relation("TenderResponses")
+  awardedResponse TenderResponse? @relation("AwardedTenderResponse", fields: [awardedResponseId], references: [id], onDelete: SetNull)
+  job Job?
   @@index([companyId])
   @@index([status])
   @@index([responseClosesAt])
@@ -246,50 +245,105 @@ model Tender {
 }
 
 model TenderResponse {
-  id                 String   @id @default(cuid())
-  tenderId           String
-  companyId          String
-  submittedByUserId  String
-  amount             Decimal  @db.Decimal(12, 2)
+  id String @id @default(cuid())
+  tenderId String
+  companyId String
+  submittedByUserId String
+  amount Decimal @db.Decimal(12, 2)
   serviceDescription String?
-  leadTime           String?
-  notes              String?
-  status             String   @default("SUBMITTED")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  tender              Tender   @relation("TenderResponses", fields: [tenderId], references: [id], onDelete: Cascade)
-  company             Company  @relation("TenderRespondingCompany", fields: [companyId], references: [id], onDelete: Restrict)
-  submittedByUser     User     @relation("TenderResponseSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
-  awardedTender       Tender?  @relation("AwardedTenderResponse")
-  job                 Job?
-
+  leadTime String?
+  notes String?
+  status String @default("SUBMITTED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tender Tender @relation("TenderResponses", fields: [tenderId], references: [id], onDelete: Cascade)
+  company Company @relation("TenderRespondingCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  submittedByUser User @relation("TenderResponseSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  awardedTender Tender? @relation("AwardedTenderResponse")
+  job Job?
   @@unique([tenderId, companyId])
   @@index([tenderId, createdAt])
   @@index([companyId])
   @@index([status])
 }
 
-model GuestAuction {
-  id              String            @id @default(cuid())
+model SpotRequirement {
+  id String @id @default(cuid())
+  companyId String
   createdByUserId String
-  title           String
-  itemDescription String
-  pickupLocation  String
-  deliveryLocation String
-  pickupDate      DateTime?
-  deliveryBy      DateTime?
-  auctionClosesAt DateTime
-  notes           String?
-  status          String            @default("OPEN")
-  awardedBidId    String?           @unique
-  awardedAt       DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  createdByUser   User              @relation("GuestAuctionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  bids            GuestAuctionBid[] @relation("GuestAuctionBids")
-  awardedBid      GuestAuctionBid?  @relation("GuestAuctionAwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
-  review          GuestAuctionReview?
+  requirementType String
+  title String
+  origin String?
+  destination String?
+  location String?
+  quantity Int
+  quantityUnit String
+  temperatureClass String?
+  requiredFrom DateTime
+  requiredTo DateTime?
+  offersCloseAt DateTime?
+  notes String?
+  status String @default("OPEN")
+  awardedOfferId String? @unique
+  awardedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company Company @relation("SpotRequirementOwnerCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  createdByUser User @relation("SpotRequirementCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  offers SpotOffer[] @relation("SpotRequirementOffers")
+  awardedOffer SpotOffer? @relation("AwardedSpotOffer", fields: [awardedOfferId], references: [id], onDelete: SetNull)
+  job Job?
+  @@index([companyId])
+  @@index([status])
+  @@index([requirementType])
+  @@index([offersCloseAt])
+  @@index([createdAt])
+}
 
+model SpotOffer {
+  id String @id @default(cuid())
+  spotRequirementId String
+  companyId String
+  submittedByUserId String
+  amount Decimal @db.Decimal(12, 2)
+  serviceDescription String?
+  leadTime String?
+  notes String?
+  status String @default("SUBMITTED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  spotRequirement SpotRequirement @relation("SpotRequirementOffers", fields: [spotRequirementId], references: [id], onDelete: Cascade)
+  company Company @relation("SpotOfferProviderCompany", fields: [companyId], references: [id], onDelete: Restrict)
+  submittedByUser User @relation("SpotOfferSubmittedByUser", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  awardedRequirement SpotRequirement? @relation("AwardedSpotOffer")
+  job Job?
+  @@unique([spotRequirementId, companyId])
+  @@index([spotRequirementId, createdAt])
+  @@index([companyId])
+  @@index([submittedByUserId])
+  @@index([status])
+}
+
+model GuestAuction {
+  id String @id @default(cuid())
+  createdByUserId String
+  title String
+  itemDescription String
+  pickupLocation String
+  deliveryLocation String
+  pickupDate DateTime?
+  deliveryBy DateTime?
+  auctionClosesAt DateTime
+  notes String?
+  status String @default("OPEN")
+  awardedBidId String? @unique
+  awardedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdByUser User @relation("GuestAuctionCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  bids GuestAuctionBid[] @relation("GuestAuctionBids")
+  awardedBid GuestAuctionBid? @relation("GuestAuctionAwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
+  review GuestAuctionReview?
   @@index([createdByUserId])
   @@index([status])
   @@index([auctionClosesAt])
@@ -297,22 +351,21 @@ model GuestAuction {
 }
 
 model GuestAuctionBid {
-  id                 String       @id @default(cuid())
-  guestAuctionId     String
-  bidderCompanyId    String
-  placedByUserId     String
-  amount             Decimal      @db.Decimal(12, 2)
+  id String @id @default(cuid())
+  guestAuctionId String
+  bidderCompanyId String
+  placedByUserId String
+  amount Decimal @db.Decimal(12, 2)
   serviceDescription String?
-  leadTime           String?
-  notes              String?
-  status             String       @default("SUBMITTED")
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  auction            GuestAuction @relation("GuestAuctionBids", fields: [guestAuctionId], references: [id], onDelete: Cascade)
-  bidderCompany      Company      @relation("GuestAuctionBidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
-  placedByUser       User         @relation("GuestAuctionBidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
-  awardedAuction     GuestAuction? @relation("GuestAuctionAwardedBid")
-
+  leadTime String?
+  notes String?
+  status String @default("SUBMITTED")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  auction GuestAuction @relation("GuestAuctionBids", fields: [guestAuctionId], references: [id], onDelete: Cascade)
+  bidderCompany Company @relation("GuestAuctionBidderCompany", fields: [bidderCompanyId], references: [id], onDelete: Restrict)
+  placedByUser User @relation("GuestAuctionBidPlacedByUser", fields: [placedByUserId], references: [id], onDelete: Restrict)
+  awardedAuction GuestAuction? @relation("GuestAuctionAwardedBid")
   @@unique([guestAuctionId, bidderCompanyId])
   @@index([guestAuctionId, createdAt])
   @@index([bidderCompanyId])
@@ -320,39 +373,37 @@ model GuestAuctionBid {
 }
 
 model OpportunityAlertPreference {
-  id               String   @id @default(cuid())
-  userId           String
-  companyId        String?
-  name             String   @default("My opportunities")
+  id String @id @default(cuid())
+  userId String
+  companyId String?
+  name String @default("My opportunities")
   opportunityTypes String[] @default([])
-  areaKeywords     String[] @default([])
-  inAppEnabled     Boolean  @default(true)
-  emailEnabled     Boolean  @default(true)
-  active           Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  company          Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-
+  areaKeywords String[] @default([])
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   @@index([userId, active])
   @@index([companyId, active])
 }
 
 model Notification {
-  id              String   @id @default(cuid())
-  companyId       String?
+  id String @id @default(cuid())
+  companyId String?
   recipientUserId String?
-  type            String
-  title           String
-  message         String
-  href            String?
-  metadata        Json?
-  readAt          DateTime?
-  createdAt       DateTime @default(now())
-  company         Company? @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
-  recipientUser   User?    @relation("NotificationRecipientUser", fields: [recipientUserId], references: [id], onDelete: Cascade)
-  receipts        NotificationReceipt[]
-
+  type String
+  title String
+  message String
+  href String?
+  metadata Json?
+  readAt DateTime?
+  createdAt DateTime @default(now())
+  company Company? @relation("NotificationCompany", fields: [companyId], references: [id], onDelete: Cascade)
+  recipientUser User? @relation("NotificationRecipientUser", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  receipts NotificationReceipt[]
   @@index([companyId, createdAt])
   @@index([companyId, readAt])
   @@index([recipientUserId, createdAt])
@@ -361,11 +412,10 @@ model Notification {
 
 model NotificationReceipt {
   notificationId String
-  userId         String
-  readAt         DateTime     @default(now())
-  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId String
+  readAt DateTime @default(now())
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@id([notificationId, userId])
   @@index([userId, readAt])
 }
