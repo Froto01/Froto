@@ -1,0 +1,48 @@
+"use client";
+
+import Link from "next/link";
+import { FormEvent, use, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type Requirement = { id:string; requirementType:string; title:string; origin:string|null; destination:string|null; location:string|null; quantity:number; quantityUnit:string; temperatureClass:string|null; requiredFrom:string; requiredTo:string|null; offersCloseAt:string|null; notes:string|null; status:string; offerCount?:number; awardedOfferId?:string; awardedAt:string|null; job:{id:string;status:string}|null };
+type Offer = { id:string; amount:number; serviceDescription:string|null; leadTime:string|null; notes:string|null; status:string; awarded?:boolean; company?:{id:string;name:string;verified:boolean;companyType:string|null;locations:string[];ratingAverage:number|null;reviewCount:number;completedJobs:number} };
+
+export default function SpotRequirementPage({ params }: { params: Promise<{ id:string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const [requirement,setRequirement]=useState<Requirement|null>(null);
+  const [viewer,setViewer]=useState<"OWNER"|"PROVIDER"|null>(null);
+  const [offers,setOffers]=useState<Offer[]>([]);
+  const [ownOffer,setOwnOffer]=useState<Offer|null>(null);
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState("");
+
+  const load=useCallback(async()=>{
+    const detail=await fetch(`/api/spot-requirements/${id}`,{cache:"no-store"});
+    const data=await detail.json();
+    if(!detail.ok) throw new Error(data.error||"Could not load spot requirement.");
+    setRequirement(data.requirement); setViewer(data.viewerType); setOwnOffer(data.ownOffer||null);
+    if(data.viewerType==="OWNER"){
+      const res=await fetch(`/api/spot-requirements/${id}/offers`,{cache:"no-store"}); const offersData=await res.json();
+      if(!res.ok) throw new Error(offersData.error||"Could not load offers."); setOffers(offersData.offers||[]);
+    }
+  },[id]);
+  useEffect(()=>{load().catch(e=>setError(e instanceof Error?e.message:"Could not load requirement."));},[load]);
+
+  async function submitOffer(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const f=new FormData(event.currentTarget);const res=await fetch(`/api/spot-requirements/${id}/offers`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount:Number(f.get("amount")),serviceDescription:f.get("serviceDescription"),leadTime:f.get("leadTime"),notes:f.get("notes")})});const data=await res.json();if(!res.ok){setError(data.error||"Could not submit offer.");setBusy(false);return;}await load();setBusy(false);}
+  async function award(offerId:string){if(!requirement)return;const closes=requirement.offersCloseAt?new Date(requirement.offersCloseAt).getTime():Infinity;const closeEarly=Date.now()<closes;if(closeEarly&&!window.confirm("Private offers are still open. Close offers now and award this provider?"))return;if(!closeEarly&&!window.confirm("Award this provider and create the Froto job?"))return;setBusy(true);setError("");const res=await fetch(`/api/spot-requirements/${id}/award`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({offerId,closeEarly})});const data=await res.json();if(!res.ok){setError(data.error||"Could not award provider.");setBusy(false);return;}router.push(`/platform/jobs/${data.jobId}`);}
+
+  if(!requirement)return <main className="mx-auto max-w-5xl p-6">{error?<p className="text-red-700">{error}</p>:<p>Loading spot requirement…</p>}</main>;
+  const route=requirement.requirementType==="TRANSPORT"?`${requirement.origin} → ${requirement.destination}`:requirement.location;
+  const input="w-full rounded-lg border border-slate-300 px-3 py-2";
+  return <main className="mx-auto max-w-5xl p-6">
+    <Link href="/platform" className="text-sm text-slate-600">← Marketplace</Link>
+    <div className="mt-6 flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">{requirement.requirementType==="TRANSPORT"?"Transport needed":"Storage needed"}</p><h1 className="mt-2 text-3xl font-bold text-slate-950">{requirement.title}</h1><p className="mt-2 text-lg text-slate-600">{route}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold">{requirement.status}</span></div>
+    <section className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 md:grid-cols-3"><div><div className="text-xs uppercase text-slate-500">Quantity</div><strong>{requirement.quantity} {requirement.quantityUnit}</strong></div><div><div className="text-xs uppercase text-slate-500">Required from</div><strong>{new Date(requirement.requiredFrom).toLocaleString("en-AU")}</strong></div><div><div className="text-xs uppercase text-slate-500">Offers close</div><strong>{requirement.offersCloseAt?new Date(requirement.offersCloseAt).toLocaleString("en-AU"):"Open until awarded"}</strong></div>{requirement.temperatureClass?<div><div className="text-xs uppercase text-slate-500">Handling</div><strong>{requirement.temperatureClass}</strong></div>:null}{requirement.notes?<div className="md:col-span-3"><div className="text-xs uppercase text-slate-500">Notes</div><p className="mt-1 whitespace-pre-wrap">{requirement.notes}</p></div>:null}</section>
+    {error?<p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>:null}
+
+    {viewer==="PROVIDER"?<section className="mt-8"><h2 className="text-xl font-bold">Your private offer</h2><p className="mt-1 text-sm text-slate-600">Only the customer can compare provider offers. Other providers cannot see your price or identity.</p>{ownOffer?<div className="mt-4 rounded-xl border border-slate-200 p-5"><div className="text-2xl font-bold">{ownOffer.amount.toLocaleString("en-AU",{style:"currency",currency:"AUD"})}</div><p className="mt-2 text-sm text-slate-600">Status: {ownOffer.status}</p>{ownOffer.serviceDescription?<p className="mt-3">{ownOffer.serviceDescription}</p>:null}</div>:requirement.status==="OPEN"?<form onSubmit={submitOffer} className="mt-4 grid gap-4 rounded-xl border border-slate-200 p-5"><label className="grid gap-1 text-sm font-medium">Offer amount (AUD)<input className={input} name="amount" type="number" min="0.01" step="0.01" required /></label><label className="grid gap-1 text-sm font-medium">Service description<textarea className={`${input} min-h-24`} name="serviceDescription" /></label><label className="grid gap-1 text-sm font-medium">Lead time / availability<input className={input} name="leadTime" /></label><label className="grid gap-1 text-sm font-medium">Notes<textarea className={input} name="notes" /></label><button disabled={busy} className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{busy?"Submitting…":"Submit private offer"}</button></form>:<p className="mt-4 text-slate-600">Offers are closed.</p>}</section>:null}
+
+    {viewer==="OWNER"?<section className="mt-8"><div className="flex items-end justify-between"><div><h2 className="text-xl font-bold">Private provider offers</h2><p className="mt-1 text-sm text-slate-600">Compare price, capability and reputation. You choose the provider. Lowest price does not automatically win.</p></div><span className="text-sm font-semibold">{offers.length} offer{offers.length===1?"":"s"}</span></div><div className="mt-4 grid gap-4">{offers.map(o=><article key={o.id} className={`rounded-xl border p-5 ${o.awarded?"border-green-500 bg-green-50":"border-slate-200"}`}><div className="flex flex-wrap justify-between gap-4"><div><div className="flex items-center gap-2"><h3 className="font-bold">{o.company?.name}</h3>{o.company?.verified?<span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Verified</span>:null}</div><p className="mt-1 text-sm text-slate-600">{o.company?.ratingAverage==null?"No ratings yet":`${o.company.ratingAverage.toFixed(1)} / 5 · ${o.company.reviewCount} reviews`} · {o.company?.completedJobs??0} completed jobs</p></div><div className="text-right"><div className="text-2xl font-bold">{o.amount.toLocaleString("en-AU",{style:"currency",currency:"AUD"})}</div><div className="text-xs text-slate-500">Provider offer</div></div></div>{o.serviceDescription?<p className="mt-4">{o.serviceDescription}</p>:null}{o.leadTime?<p className="mt-2 text-sm"><strong>Availability:</strong> {o.leadTime}</p>:null}{o.notes?<p className="mt-2 text-sm text-slate-600">{o.notes}</p>:null}{requirement.status==="OPEN"?<button disabled={busy} onClick={()=>award(o.id)} className="mt-4 rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white disabled:opacity-50">Award this provider</button>:o.awarded?<p className="mt-4 font-semibold text-green-800">Awarded provider</p>:null}</article>)}{!offers.length?<div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-600">No provider offers yet.</div>:null}</div>{requirement.job?<Link href={`/platform/jobs/${requirement.job.id}`} className="mt-5 inline-block font-semibold text-blue-700">Open Froto job →</Link>:null}</section>:null}
+  </main>;
+}
