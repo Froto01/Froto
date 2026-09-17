@@ -22,8 +22,10 @@ type Preference = {
 const MAX_SAVED_ALERTS = 20;
 
 const OPPORTUNITY_TYPES = [
-  ["TRANSPORT_LANE", "Transport lanes"],
-  ["WAREHOUSE_SPACE", "Warehouse space"],
+  ["SPOT_TRANSPORT_NEEDED", "Transport needed now"],
+  ["SPOT_STORAGE_NEEDED", "Storage needed now"],
+  ["TRANSPORT_LANE", "Transport capacity available"],
+  ["WAREHOUSE_SPACE", "Warehouse space available"],
   ["TENDER", "Tenders"],
   ["GUEST_JOB", "Guest transport jobs"],
 ] as const;
@@ -37,7 +39,7 @@ export default function OpportunityAlertsPage() {
   const [email, setEmail] = useState("");
   const [homeHref, setHomeHref] = useState("/platform");
   const [name, setName] = useState("My opportunities");
-  const [types, setTypes] = useState<string[]>(["TRANSPORT_LANE", "WAREHOUSE_SPACE", "TENDER", "GUEST_JOB"]);
+  const [types, setTypes] = useState<string[]>(OPPORTUNITY_TYPES.map(([value]) => value));
   const [areas, setAreas] = useState("");
   const [inAppEnabled, setInAppEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
@@ -128,7 +130,7 @@ export default function OpportunityAlertsPage() {
 
   return <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16"><div className="mx-auto max-w-5xl px-4 py-8">
     <Button asChild variant="outline" className="mb-6 gap-2"><Link href={homeHref}><ArrowLeft className="h-4 w-4" />Dashboard</Link></Button>
-    <div className="flex items-start gap-4"><div className="rounded-2xl bg-froto-navy p-3 text-white"><BellRing className="h-6 w-6" /></div><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Opportunity alerts</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-froto-navy">Tell Froto what to watch for</h1><p className="mt-2 max-w-3xl text-sm text-slate-500">Save the opportunity types and areas that matter to you. Froto can surface matching transport, storage, tender and guest-job opportunities as they appear.</p></div></div>
+    <div className="flex items-start gap-4"><div className="rounded-2xl bg-froto-navy p-3 text-white"><BellRing className="h-6 w-6" /></div><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Opportunity alerts</p><h1 className="mt-1 text-3xl font-semibold tracking-tight text-froto-navy">Tell Froto what to watch for</h1><p className="mt-2 max-w-3xl text-sm text-slate-500">Save the opportunity types and areas that matter to you. Froto can surface matching transport needs, storage needs, available capacity, tenders and guest jobs as they appear.</p></div></div>
 
     {error ? <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
 
