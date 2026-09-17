@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { notifyMatchingOpportunity } from "@/lib/opportunity-alerts";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -37,10 +38,10 @@ export async function POST(request: Request) {
   const requiredTo = parseOptionalDate(body.requiredTo);
   const offersCloseAt = parseOptionalDate(body.offersCloseAt);
 
-  if (!['TRANSPORT', 'STORAGE'].includes(requirementType)) return NextResponse.json({ error: "Requirement type must be TRANSPORT or STORAGE." }, { status: 400 });
+  if (!["TRANSPORT", "STORAGE"].includes(requirementType)) return NextResponse.json({ error: "Requirement type must be TRANSPORT or STORAGE." }, { status: 400 });
   if (!title || !Number.isInteger(quantity) || quantity <= 0 || !quantityUnit || !requiredFrom) return NextResponse.json({ error: "Title, quantity, quantity unit and required-from date are required." }, { status: 400 });
-  if (requirementType === 'TRANSPORT' && (!origin || !destination)) return NextResponse.json({ error: "Transport requirements need an origin and destination." }, { status: 400 });
-  if (requirementType === 'STORAGE' && !location) return NextResponse.json({ error: "Storage requirements need a location." }, { status: 400 });
+  if (requirementType === "TRANSPORT" && (!origin || !destination)) return NextResponse.json({ error: "Transport requirements need an origin and destination." }, { status: 400 });
+  if (requirementType === "STORAGE" && !location) return NextResponse.json({ error: "Storage requirements need a location." }, { status: 400 });
   if (requiredTo && requiredTo.getTime() < requiredFrom.getTime()) return NextResponse.json({ error: "Required-to date cannot be before required-from date." }, { status: 400 });
   if (offersCloseAt && offersCloseAt.getTime() <= Date.now()) return NextResponse.json({ error: "Offer closing time must be in the future." }, { status: 400 });
 
@@ -62,6 +63,20 @@ export async function POST(request: Request) {
       notes: notes || null,
     },
   });
+
+  try {
+    await notifyMatchingOpportunity({
+      type: requirement.requirementType === "TRANSPORT" ? "SPOT_TRANSPORT_NEEDED" : "SPOT_STORAGE_NEEDED",
+      title: requirement.title,
+      locations: requirement.requirementType === "TRANSPORT" ? [requirement.origin, requirement.destination] : [requirement.location],
+      href: `/platform/spot-requirements/${requirement.id}`,
+      sourceCompanyId: membership.companyId,
+      sourceUserId: user.id,
+      metadata: { spotRequirementId: requirement.id, requirementType: requirement.requirementType },
+    });
+  } catch (error) {
+    console.error("Opportunity alert matching failed for spot requirement", requirement.id, error);
+  }
 
   return NextResponse.json({
     id: requirement.id,
