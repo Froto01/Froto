@@ -42,6 +42,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const offer = await tx.spotOffer.findFirst({ where: { id: offerId, spotRequirementId: requirement.id }, include: { company: { select: { id: true, name: true, verified: true } } } });
     if (!offer) return { ok: false, status: 400, error: "That offer does not belong to this spot requirement." };
+    if (offer.status !== "SUBMITTED") return { ok: false, status: 409, error: "That offer is no longer available to award." };
     if (offer.companyId === requirement.companyId) return { ok: false, status: 409, error: "A company cannot be both buyer and provider on the same spot requirement." };
 
     const offeredCompanies = await tx.spotOffer.findMany({ where: { spotRequirementId: requirement.id }, select: { companyId: true }, distinct: ["companyId"] });
