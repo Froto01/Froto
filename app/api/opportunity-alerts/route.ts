@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_TYPES = new Set(["TRANSPORT_LANE", "WAREHOUSE_SPACE", "TENDER", "GUEST_JOB"]);
+const ALLOWED_TYPES = new Set(["TRANSPORT_LANE", "WAREHOUSE_SPACE", "TENDER", "GUEST_JOB", "SPOT_TRANSPORT_NEEDED", "SPOT_STORAGE_NEEDED"]);
 const MAX_ALERTS_PER_USER = 20;
 
 async function currentUser() {
