@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendOpportunityEmail } from "@/lib/resend-email";
 
-type OpportunityType = "TRANSPORT_LANE" | "WAREHOUSE_SPACE" | "TENDER" | "GUEST_JOB";
+type OpportunityType = "TRANSPORT_LANE" | "WAREHOUSE_SPACE" | "TENDER" | "GUEST_JOB" | "SPOT_TRANSPORT_NEEDED" | "SPOT_STORAGE_NEEDED";
 
 type OpportunityAlertInput = {
   type: OpportunityType;
