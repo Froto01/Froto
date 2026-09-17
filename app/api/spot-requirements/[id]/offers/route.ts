@@ -48,9 +48,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { amount, serviceDescription, leadTime, notes } = parseOfferBody(body);
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide an offer amount greater than zero." }, { status: 400 });
+  if (Math.round(amount * 100) !== amount * 100) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
 
   try {
-    const offer = await prisma.spotOffer.create({ data: { spotRequirementId: requirement.id, companyId: membership.companyId, submittedByUserId: user.id, amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null } });
+    const offer = await prisma.$transaction(async (tx) => {
+      const created = await tx.spotOffer.create({ data: { spotRequirementId: requirement.id, companyId: membership.companyId, submittedByUserId: user.id, amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null } });
+      await tx.notification.create({ data: { companyId: requirement.companyId, type: "SPOT_OFFER_RECEIVED", title: "New private spot offer", message: `A provider submitted a private offer for your spot requirement.`, href: `/platform/spot-requirements/${requirement.id}`, metadata: { spotRequirementId: requirement.id, offerId: created.id } } });
+      return created;
+    });
     return NextResponse.json({ id: offer.id, amount: Number(offer.amount), status: offer.status, createdAt: offer.createdAt.toISOString(), privacy: "SEALED" }, { status: 201 });
   } catch (error) {
     if (typeof error === "object" && error && "code" in error && error.code === "P2002") return NextResponse.json({ error: "Your company has already submitted an offer to this requirement." }, { status: 409 });
@@ -79,6 +84,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { amount, serviceDescription, leadTime, notes } = parseOfferBody(body);
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide an offer amount greater than zero." }, { status: 400 });
+  if (Math.round(amount * 100) !== amount * 100) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
 
   const offer = await prisma.spotOffer.update({
     where: { id: existing.id },
