@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 function localDateTimeToIso(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -11,10 +11,14 @@ function localDateTimeToIso(value: FormDataEntryValue | null) {
   return date.toISOString();
 }
 
+function initialRequirementType(): "TRANSPORT" | "STORAGE" {
+  if (typeof window === "undefined") return "TRANSPORT";
+  return new URLSearchParams(window.location.search).get("type")?.toLowerCase() === "storage" ? "STORAGE" : "TRANSPORT";
+}
+
 export default function NewSpotRequirementPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [type, setType] = useState<"TRANSPORT" | "STORAGE">(() => searchParams.get("type")?.toLowerCase() === "storage" ? "STORAGE" : "TRANSPORT");
+  const [type, setType] = useState<"TRANSPORT" | "STORAGE">(initialRequirementType);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
