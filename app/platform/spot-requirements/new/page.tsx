@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 function localDateTimeToIso(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -13,7 +13,8 @@ function localDateTimeToIso(value: FormDataEntryValue | null) {
 
 export default function NewSpotRequirementPage() {
   const router = useRouter();
-  const [type, setType] = useState<"TRANSPORT" | "STORAGE">("TRANSPORT");
+  const searchParams = useSearchParams();
+  const [type, setType] = useState<"TRANSPORT" | "STORAGE">(() => searchParams.get("type")?.toLowerCase() === "storage" ? "STORAGE" : "TRANSPORT");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
