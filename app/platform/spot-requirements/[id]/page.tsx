@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, use, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 
 type Requirement = { id:string; requirementType:string; title:string; origin:string|null; destination:string|null; location:string|null; quantity:number; quantityUnit:string; temperatureClass:string|null; requiredFrom:string; requiredTo:string|null; offersCloseAt:string|null; notes:string|null; status:string; offerCount?:number; awardedOfferId?:string; awardedAt:string|null; job:{id:string;status:string}|null };
-type Offer = { id:string; amount:number; serviceDescription:string|null; leadTime:string|null; notes:string|null; status:string; awarded?:boolean; company?:{id:string;name:string;verified:boolean;companyType:string|null;locations:string[];ratingAverage:number|null;reviewCount:number;completedJobs:number} };
+type Offer = { id:string; amount:number; serviceDescription:string|null; leadTime:string|null; notes:string|null; status:string; awarded?:boolean; company?:{id:string;name:string;verified:boolean;companyType:string|null;locations:string|null;ratingAverage:number|null;reviewCount:number;completedJobs:number} };
 
-export default function SpotRequirementPage({ params }: { params: Promise<{ id:string }> }) {
-  const { id } = use(params);
+export default function SpotRequirementPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
   const router = useRouter();
   const [requirement,setRequirement]=useState<Requirement|null>(null);
   const [viewer,setViewer]=useState<"OWNER"|"PROVIDER"|null>(null);
