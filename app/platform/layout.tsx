@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowRight, LayoutDashboard, LockKeyhole, PackageSearch, Plus } from "lucide-react";
+import { ArrowRight, LayoutDashboard, LockKeyhole, PackageSearch } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,33 @@ type SpotResponse = {
   privacy: "SEALED_OFFERS";
   requirements: SpotRequirement[];
 };
+
+const marketplaceDirections = [
+  {
+    label: "I NEED TRANSPORT NOW",
+    description: "Post freight that needs moving now or soon. Providers send private offers.",
+    href: "/platform/spot-requirements/new?type=transport",
+    badge: "TRANSPORT NEEDED",
+  },
+  {
+    label: "I NEED STORAGE NOW",
+    description: "Post a short-term warehouse or storage requirement and compare private offers.",
+    href: "/platform/spot-requirements/new?type=storage",
+    badge: "STORAGE NEEDED",
+  },
+  {
+    label: "I HAVE SPARE CAPACITY",
+    description: "List an available transport lane or warehouse space for buyers to bid on.",
+    href: "/platform/listings/new",
+    badge: "CAPACITY AVAILABLE",
+  },
+  {
+    label: "I NEED AN ONGOING LOGISTICS SERVICE",
+    description: "Create a structured tender for a recurring or contract logistics requirement.",
+    href: "/platform/tenders/new",
+    badge: "TENDER",
+  },
+] as const;
 
 export default function PlatformLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -144,18 +171,31 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
 
       {pathname === "/platform" && spotData?.viewerType === "PROVIDER" ? (
         <div className="bg-white px-4 pt-6">
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-6xl space-y-4">
+            <Card className="rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
+              <CardContent className="p-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">What do you want to do?</p>
+                  <p className="mt-1 text-sm text-slate-500">Choose the direction of the transaction first. Froto will take you into the correct marketplace workflow.</p>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {marketplaceDirections.map((direction) => (
+                    <Link key={direction.label} href={direction.href} className="group rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/30 hover:bg-blue-50/40">
+                      <Badge className="bg-froto-navy text-white">{direction.badge}</Badge>
+                      <p className="mt-3 text-sm font-bold text-froto-navy">{direction.label}</p>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">{direction.description}</p>
+                      <span className="mt-3 flex items-center gap-1 text-xs font-semibold text-froto-blue">Continue <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="rounded-[1.6rem] border-blue-100 bg-gradient-to-r from-blue-50/70 to-cyan-50/60 shadow-md shadow-froto-navy/5">
               <CardContent className="p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2"><LockKeyhole className="h-5 w-5 text-froto-blue" /><p className="font-semibold text-froto-navy">Companies need transport or storage now · private offers</p></div>
-                    <p className="mt-1 text-sm text-slate-500">Short-term transport and storage requirements. Provider prices and identities stay sealed from competitors.</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button asChild className="gap-2 bg-froto-blue hover:bg-[#0969ba]"><Link href="/platform/spot-requirements/new?type=transport"><Plus className="h-4 w-4" />I need transport now</Link></Button>
-                    <Button asChild variant="outline" className="gap-2 border-froto-teal/30 bg-white text-froto-navy"><Link href="/platform/spot-requirements/new?type=storage"><Plus className="h-4 w-4 text-froto-teal" />I need storage now</Link></Button>
-                  </div>
+                <div>
+                  <div className="flex items-center gap-2"><LockKeyhole className="h-5 w-5 text-froto-blue" /><p className="font-semibold text-froto-navy">Companies need transport or storage now · private offers</p></div>
+                  <p className="mt-1 text-sm text-slate-500">Short-term transport and storage requirements. Provider prices and identities stay sealed from competitors.</p>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
