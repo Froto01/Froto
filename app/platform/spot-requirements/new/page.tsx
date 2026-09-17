@@ -4,6 +4,13 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+function localDateTimeToIso(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new Error("Please provide valid dates and times.");
+  return date.toISOString();
+}
+
 export default function NewSpotRequirementPage() {
   const router = useRouter();
   const [type, setType] = useState<"TRANSPORT" | "STORAGE">("TRANSPORT");
@@ -13,8 +20,8 @@ export default function NewSpotRequirementPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const form = new FormData(event.currentTarget);
-    const payload = { requirementType:type, title:form.get("title"), origin:form.get("origin"), destination:form.get("destination"), location:form.get("location"), quantity:Number(form.get("quantity")), quantityUnit:form.get("quantityUnit"), temperatureClass:form.get("temperatureClass"), requiredFrom:form.get("requiredFrom"), requiredTo:form.get("requiredTo"), offersCloseAt:form.get("offersCloseAt"), notes:form.get("notes") };
     try {
+      const payload = { requirementType:type, title:form.get("title"), origin:form.get("origin"), destination:form.get("destination"), location:form.get("location"), quantity:Number(form.get("quantity")), quantityUnit:form.get("quantityUnit"), temperatureClass:form.get("temperatureClass"), requiredFrom:localDateTimeToIso(form.get("requiredFrom")), requiredTo:localDateTimeToIso(form.get("requiredTo")), offersCloseAt:localDateTimeToIso(form.get("offersCloseAt")), notes:form.get("notes") };
       const response=await fetch("/api/spot-requirements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Could not post spot requirement."); router.push(`/platform/spot-requirements/${data.id}`);
     } catch(err){setError(err instanceof Error?err.message:"Could not post spot requirement.");setBusy(false);}
