@@ -23,6 +23,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const isOwner = requirement.companyId === membership.companyId;
   const ownOffer = isOwner ? null : await prisma.spotOffer.findUnique({ where: { spotRequirementId_companyId: { spotRequirementId: requirement.id, companyId: membership.companyId } } });
+  const isAwardedProvider = Boolean(ownOffer && requirement.awardedOfferId === ownOffer.id);
 
   return NextResponse.json({
     viewerType: isOwner ? "OWNER" : "PROVIDER",
@@ -45,10 +46,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       offerCount: isOwner ? requirement._count.offers : undefined,
       awardedOfferId: isOwner ? requirement.awardedOfferId : undefined,
       awardedAt: requirement.awardedAt?.toISOString() ?? null,
-      job: requirement.job,
+      job: isOwner || isAwardedProvider ? requirement.job : null,
       createdAt: requirement.createdAt.toISOString(),
       updatedAt: requirement.updatedAt.toISOString(),
     },
-    ownOffer: ownOffer ? { id: ownOffer.id, amount: Number(ownOffer.amount), serviceDescription: ownOffer.serviceDescription, leadTime: ownOffer.leadTime, notes: ownOffer.notes, status: ownOffer.status, createdAt: ownOffer.createdAt.toISOString(), updatedAt: ownOffer.updatedAt.toISOString(), awarded: requirement.awardedOfferId === ownOffer.id } : null,
+    ownOffer: ownOffer ? { id: ownOffer.id, amount: Number(ownOffer.amount), serviceDescription: ownOffer.serviceDescription, leadTime: ownOffer.leadTime, notes: ownOffer.notes, status: ownOffer.status, createdAt: ownOffer.createdAt.toISOString(), updatedAt: ownOffer.updatedAt.toISOString(), awarded: isAwardedProvider } : null,
   });
 }
