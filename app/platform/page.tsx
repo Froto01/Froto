@@ -89,6 +89,26 @@ type GuestMarketplaceResponse = {
   viewerType: "GUEST_OWNER" | "COMPANY_BIDDER";
   auctions: GuestMarketplaceAuction[];
 };
+type SpotMarketplaceRequirement = {
+  id: string;
+  requirementType: "TRANSPORT" | "STORAGE";
+  title: string;
+  origin: string | null;
+  destination: string | null;
+  location: string | null;
+  quantity: number;
+  quantityUnit: string;
+  temperatureClass: string | null;
+  requiredFrom: string;
+  offersCloseAt: string | null;
+  ownOffer: { amount: number; status: string } | null;
+};
+
+type SpotMarketplaceResponse = {
+  viewerType: "OWNER" | "PROVIDER";
+  requirements: SpotMarketplaceRequirement[];
+};
+
 
 function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -153,6 +173,7 @@ export default function PlatformPage() {
   const [tendersLoading, setTendersLoading] = useState(true);
   const [tendersError, setTendersError] = useState<string | null>(null);
   const [guestAuctions, setGuestAuctions] = useState<GuestMarketplaceAuction[]>([]);
+  const [spotRequirements, setSpotRequirements] = useState<SpotMarketplaceRequirement[]>([]);
 
   const [listingType, setListingType] = useState("all");
   const [listingTemperature, setListingTemperature] = useState("all");
@@ -217,6 +238,15 @@ export default function PlatformPage() {
       }
     }
 
+    async function loadSpotRequirements() {
+      try {
+        const response = await fetch("/api/spot-requirements", { cache: "no-store" });
+        if (!response.ok) { if (!cancelled) setSpotRequirements([]); return; }
+        const data = (await response.json()) as SpotMarketplaceResponse;
+        if (!cancelled) setSpotRequirements(data.viewerType === "PROVIDER" ? data.requirements : []);
+      } catch { if (!cancelled) setSpotRequirements([]); }
+    }
+
     async function loadGuestAuctions() {
       try {
         const response = await fetch("/api/guest-auctions", { cache: "no-store" });
@@ -236,11 +266,13 @@ export default function PlatformPage() {
     void loadListings(true);
     void loadTenders(true);
     void loadGuestAuctions();
+    void loadSpotRequirements();
 
     const refreshTimer = window.setInterval(() => {
       void loadListings(false);
       void loadTenders(false);
       void loadGuestAuctions();
+      void loadSpotRequirements();
     }, 10000);
 
     return () => {
@@ -282,6 +314,11 @@ export default function PlatformPage() {
       );
     });
   }, [marketplaceListings, query, listingType, listingTemperature, listingAuctionState]);
+
+  const filteredSpotRequirements = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return spotRequirements.filter((requirement) => [requirement.title, requirement.requirementType, requirement.origin ?? "", requirement.destination ?? "", requirement.location ?? "", requirement.quantityUnit, requirement.temperatureClass ?? ""].join(" ").toLowerCase().includes(q));
+  }, [spotRequirements, query]);
 
   const filteredGuestAuctions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -354,7 +391,7 @@ export default function PlatformPage() {
             <Link href="/platform/dashboard"><LayoutDashboard className="h-4 w-4 text-froto-blue" />Dashboard</Link>
           </Button>
           <Button asChild variant="outline" className="gap-2 border-froto-teal/20 bg-white text-froto-navy">
-            <Link href="/platform/listings/new"><Plus className="h-4 w-4 text-froto-teal" />Create Listing</Link>
+            <Link href="/platform/listings/new"><Plus className="h-4 w-4 text-froto-teal" />List Capacity</Link>
           </Button>
           <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]">
             <Link href="/platform/onboarding"><UserPlus className="h-4 w-4" />Company Profile</Link>
@@ -380,11 +417,25 @@ export default function PlatformPage() {
             <div className="mb-5 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Live marketplace</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Available logistics capacity</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search capacity and customer transport opportunities, then open the relevant auction detail.</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live logistics marketplace</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search transport and storage needs alongside available logistics capacity. The badge shows which side of the transaction each opportunity represents.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new"><Plus className="h-4 w-4" />List capacity</Link></Button>
             </div>
+
+            {filteredSpotRequirements.length > 0 ? (
+              <div className="mb-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredSpotRequirements.map((requirement) => (
+                  <Card key={requirement.id} className="group rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                    <CardContent className="space-y-4 p-5">
+                      <div className="flex items-start justify-between gap-3"><div><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><h2 className="mt-3 text-xl font-semibold text-froto-navy">{requirement.title}</h2></div><LockKeyhole className="h-4 w-4 shrink-0 text-slate-400" /></div>
+                      <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm"><p className="font-medium text-slate-700">{requirement.quantity} {requirement.quantityUnit}{requirement.temperatureClass ? ` · ${requirement.temperatureClass}` : ""}</p><p className="mt-1 text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin} → ${requirement.destination}` : requirement.location}</p></div>
+                      <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4"><div><p className="text-xs text-slate-500">Required from</p><p className="mt-1 text-sm font-medium text-froto-navy">{formatDate(requirement.requiredFrom)}</p><p className="mt-1 text-xs text-slate-500">{requirement.offersCloseAt ? `Offers close ${formatDateTime(requirement.offersCloseAt)}` : "Open for private offers"}</p></div><Button asChild className="bg-froto-blue hover:bg-[#0969ba]"><Link href={`/platform/spot-requirements/${requirement.id}`}>{requirement.ownOffer ? "View your offer" : "Submit private offer"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : null}
 
             {filteredGuestAuctions.length > 0 ? (
               <div className="mb-7 rounded-[1.6rem] border border-cyan-100 bg-gradient-to-r from-cyan-50/70 to-blue-50/70 p-5 shadow-sm shadow-froto-navy/5">
@@ -455,7 +506,7 @@ export default function PlatformPage() {
                       <Image src={listingImage(listing)} alt={listing.title} width={1200} height={800} className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]" />
                       <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-froto-navy/30 to-transparent" />
                       <div className="absolute left-3 top-3 flex gap-2">
-                        <Badge className="border border-white/50 bg-white/92 text-froto-navy shadow-sm">{listing.listingType}</Badge>
+                        <Badge className="border border-white/50 bg-white/92 text-froto-navy shadow-sm">{listing.listingType === "Transport Lane" ? "TRANSPORT CAPACITY AVAILABLE" : "WAREHOUSE SPACE AVAILABLE"}</Badge>
                         <Badge className={listing.auctionState === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-green text-white"}>{listing.auctionState === "CLOSED" ? "Bidding closed" : "Bidding open"}</Badge>
                       </div>
                     </div>
