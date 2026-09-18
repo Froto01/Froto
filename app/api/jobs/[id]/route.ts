@@ -43,6 +43,7 @@ export async function GET(
     include: {
       listing: true,
       tender: true,
+      spotRequirement: true,
       buyerCompany: { select: { id: true, name: true, verified: true } },
       providerCompany: { select: { id: true, name: true, verified: true } },
       events: {
@@ -104,7 +105,20 @@ export async function GET(
           notes: job.tender.notes,
           href: `/platform/tenders/${job.tender.id}`,
         }
-      : null;
+      : job.spotRequirement
+        ? {
+            type: "SPOT_REQUIREMENT" as const,
+            id: job.spotRequirement.id,
+            title: job.spotRequirement.title,
+            location: job.spotRequirement.requirementType === "TRANSPORT"
+              ? `${job.spotRequirement.origin ?? "Origin"} to ${job.spotRequirement.destination ?? "Destination"}`
+              : job.spotRequirement.location ?? "Storage location",
+            capacity: `${job.spotRequirement.quantity} ${job.spotRequirement.quantityUnit}`,
+            detail: job.spotRequirement.temperatureClass,
+            notes: job.spotRequirement.notes,
+            href: `/platform/spot-requirements/${job.spotRequirement.id}`,
+          }
+        : null;
 
   if (!source) {
     return NextResponse.json({ error: "This job has no transaction source." }, { status: 409 });
