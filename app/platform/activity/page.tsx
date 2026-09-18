@@ -85,7 +85,7 @@ export default async function ActivityPage() {
 
   const company = membership.company;
 
-  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees] = await Promise.all([
+  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers] = await Promise.all([
     prisma.listing.findMany({
       where: { companyId: company.id },
       orderBy: { createdAt: "desc" },
@@ -155,6 +155,8 @@ export default async function ActivityPage() {
       orderBy: { calculatedAt: "desc" },
       take: 100,
     }),
+    prisma.spotRequirement.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { _count: { select: { offers: true } } }, take: 50 }),
+    prisma.spotOffer.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { requirement: { include: { company: { select: { name: true } } } } }, take: 100 }),
   ]);
 
   const guestFeeByAuctionId = new Map(guestFees.map((fee) => [fee.sourceId, fee]));
@@ -197,6 +199,16 @@ export default async function ActivityPage() {
           <Card className="rounded-[1.4rem] border-froto-cyan/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><Trophy className="h-5 w-5 text-froto-cyan" /><p className="mt-4 text-xs font-medium text-slate-500">Awards won</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{wonBids + wonTenderResponses + guestAuctions.length}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-navy/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><CircleDollarSign className="h-5 w-5 text-froto-navy" /><p className="mt-4 text-xs font-medium text-slate-500">Completed job value</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{formatAUD(completedValue)}</p></CardContent></Card>
         </section>
+
+        <Card id="spot-requirements" className="scroll-mt-6 rounded-[1.75rem] border-cyan-100 bg-white shadow-md shadow-froto-navy/5">
+          <CardHeader><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Customer requirements</p><CardTitle className="mt-1 text-xl text-froto-navy">My Transport & Storage Needs</CardTitle></div></CardHeader>
+          <CardContent className="space-y-3">{spotRequirements.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No spot requirements posted yet.</p> : spotRequirements.map((requirement) => <Link key={requirement.id} href={`/platform/spot-requirements/${requirement.id}`} className="block rounded-2xl border border-cyan-100 bg-cyan-50/25 p-4 transition hover:bg-cyan-50/60"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><p className="font-semibold text-froto-navy">{requirement.title}</p><Badge className="border border-froto-blue/15 bg-white text-froto-blue">{requirement._count.offers} private offer{requirement._count.offers === 1 ? "" : "s"}</Badge></div><p className="mt-2 text-sm text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin ?? "Origin"} → ${requirement.destination ?? "Destination"}` : requirement.location ?? "Storage location"}</p></div><span className="text-sm font-semibold text-froto-blue">View offers →</span></div></Link>)}</CardContent>
+        </Card>
+
+        <Card id="spot-offers" className="scroll-mt-6 rounded-[1.75rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
+          <CardHeader><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">Provider offers</p><CardTitle className="mt-1 text-xl text-froto-navy">My Private Spot Offers</CardTitle></div></CardHeader>
+          <CardContent className="space-y-3">{spotOffers.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No private spot offers submitted yet.</p> : spotOffers.map((offer) => <Link key={offer.id} href={`/platform/spot-requirements/${offer.requirementId}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:bg-teal-50/35"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{offer.requirement.title}</p><Badge className={offer.status === "AWARDED" ? "bg-froto-green text-white" : offer.status === "NOT_SELECTED" ? "bg-slate-500 text-white" : "bg-froto-teal text-white"}>{prettyStatus(offer.status)}</Badge></div><p className="mt-1 text-sm text-slate-500">Customer · {offer.requirement.company.name}</p></div><div className="text-left sm:text-right"><p className="text-xs text-slate-500">Your private offer</p><p className="font-semibold text-froto-blue">{formatAUD(Number(offer.amount))}</p></div></div></Link>)}</CardContent>
+        </Card>
 
         <Card id="listings" className="scroll-mt-6 rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Supply side</p><CardTitle className="mt-1 text-xl text-froto-navy">My Listings</CardTitle></div><ListChecks className="h-5 w-5 text-froto-blue" /></div></CardHeader>
