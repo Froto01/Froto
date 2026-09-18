@@ -31,6 +31,16 @@ type JobSource =
       href: string;
     }
   | {
+      type: "SPOT_REQUIREMENT";
+      id: string;
+      title: string;
+      location: string;
+      capacity: string;
+      detail: string | null;
+      notes: string | null;
+      href: string;
+    }
+  | {
       type: "TENDER";
       id: string;
       title: string;
@@ -288,8 +298,8 @@ export default function JobDetailPage() {
     !job.reviews.some((review) => review.isViewerReview) &&
     ["OWNER", "ADMIN", "MANAGER"].includes(job.viewerRole);
   const reviewTarget = job.viewerSide === "BUYER" ? job.providerCompany : job.buyerCompany;
-  const sourceLabel = job.source.type === "TENDER" ? "Tender job" : "Marketplace job";
-  const sourceButton = job.source.type === "TENDER" ? "View original tender" : "View original listing";
+  const sourceLabel = job.source.type === "TENDER" ? "Tender job" : job.source.type === "SPOT_REQUIREMENT" ? "Spot requirement job" : "Marketplace job";
+  const sourceButton = job.source.type === "TENDER" ? "View original tender" : job.source.type === "SPOT_REQUIREMENT" ? "View original requirement" : "View original listing";
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
@@ -324,7 +334,7 @@ export default function JobDetailPage() {
                 </div>
                 <div className="rounded-2xl bg-teal-50/60 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-froto-teal">
-                    {job.source.type === "TENDER" ? "Tender requirement" : "Capacity"}
+                    {job.source.type === "TENDER" ? "Tender requirement" : job.source.type === "SPOT_REQUIREMENT" ? "Requirement" : "Capacity"}
                   </p>
                   <p className="mt-1 font-semibold text-froto-navy">{job.source.capacity}</p>
                   {job.source.detail ? <p className="text-sm text-slate-500">{job.source.detail}</p> : null}
