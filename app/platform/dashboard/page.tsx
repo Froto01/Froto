@@ -101,6 +101,7 @@ export default async function DashboardPage() {
       include: {
         listing: { select: { title: true } },
         tender: { select: { title: true } },
+        spotRequirement: { select: { title: true } },
         buyerCompany: { select: { name: true } },
         providerCompany: { select: { name: true } },
       },
@@ -114,6 +115,7 @@ export default async function DashboardPage() {
           include: {
             listing: { select: { title: true } },
             tender: { select: { title: true } },
+            spotRequirement: { select: { title: true } },
           },
         },
         actorCompany: { select: { name: true } },
@@ -230,8 +232,8 @@ export default async function DashboardPage() {
               {jobs.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No post-award jobs yet. New awards will appear here automatically.</p> : jobs.map((job) => {
                 const counterpartyRole = job.buyerCompanyId === company.id ? "Provider" : "Buyer";
                 const counterparty = job.buyerCompanyId === company.id ? job.providerCompany.name : job.buyerCompany.name;
-                const title = job.listing?.title ?? job.tender?.title ?? "Froto job";
-                const source = job.tender ? "Tender" : "Marketplace";
+                const title = job.listing?.title ?? job.tender?.title ?? job.spotRequirement?.title ?? "Froto job";
+                const source = job.tender ? "Tender" : job.spotRequirement ? "Spot requirement" : "Marketplace";
                 return <Link key={job.id} href={`/platform/jobs/${job.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-froto-blue/20 hover:bg-blue-50/40"><div className="flex items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{title}</p><Badge className="border border-slate-200 bg-white text-slate-600">{source}</Badge></div><p className="mt-1 text-sm text-slate-500">{counterpartyRole} · {counterparty}</p></div><Badge className="bg-froto-navy text-white">{statusLabel(job.status)}</Badge></div><div className="mt-3 flex items-center justify-between text-sm"><span className="text-slate-500">Agreed value</span><span className="font-semibold text-froto-blue">{formatAUD(Number(job.amount))}</span></div></Link>;
               })}
             </CardContent>
@@ -241,7 +243,7 @@ export default async function DashboardPage() {
             <CardHeader><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-teal">Audit trail</p><CardTitle className="mt-1 text-xl text-froto-navy">Recent job activity</CardTitle></div></CardHeader>
             <CardContent className="space-y-3">
               {recentJobEvents.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">Job events will appear here after your next award.</p> : recentJobEvents.map((event) => {
-                const title = event.job.listing?.title ?? event.job.tender?.title ?? "Froto job";
+                const title = event.job.listing?.title ?? event.job.tender?.title ?? event.job.spotRequirement?.title ?? "Froto job";
                 return <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-froto-navy">{title}</p><p className="mt-1 text-sm text-slate-600">{statusLabel(event.eventType)} · {event.actorCompany?.name ?? "Froto"}</p></div><span className="text-xs text-slate-500">{formatDateTime(event.createdAt)}</span></div></div>;
               })}
             </CardContent>
