@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 import {
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   Bell,
   BriefcaseBusiness,
@@ -168,8 +169,7 @@ export default async function DashboardPage() {
             {user.platformRole === "PLATFORM_ADMIN" ? <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/admin/commercial"><ShieldCheck className="h-4 w-4" />Froto Admin</Link></Button> : null}
             <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/activity"><BarChart3 className="h-4 w-4 text-froto-teal" />My Business</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-green/15 bg-white text-froto-navy"><Link href="/platform/activity#transactions"><CircleDollarSign className="h-4 w-4 text-froto-green" />Financials</Link></Button>
-            <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="/platform/listings/new"><Plus className="h-4 w-4 text-froto-blue" />Create Listing</Link></Button>
-            <Button asChild variant="outline" className="gap-2 border-froto-green/15 bg-white text-froto-navy"><Link href="/platform/tenders/new"><ClipboardList className="h-4 w-4 text-froto-green" />Create Tender</Link></Button>
+            <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy"><Link href="#create-opportunity"><Plus className="h-4 w-4 text-froto-blue" />Create Opportunity</Link></Button>
             <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/onboarding"><UserPlus className="h-4 w-4" />Company Profile</Link></Button>
             <Button asChild variant="outline" className="gap-2 border-froto-teal/15 bg-white text-froto-navy"><Link href="/platform"><ArrowLeft className="h-4 w-4 text-froto-teal" />Marketplace</Link></Button>
           </div>
@@ -177,6 +177,18 @@ export default async function DashboardPage() {
       </header>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
+        <Card id="create-opportunity" className="scroll-mt-6 rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
+          <CardHeader><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Create opportunity</p><CardTitle className="mt-1 text-xl text-froto-navy">What do you want to do?</CardTitle><p className="mt-2 text-sm text-slate-500">Choose the commercial direction first. Froto will take you into the correct workflow.</p></div></CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              { badge: "TRANSPORT NEEDED", title: "I NEED TRANSPORT NOW", detail: "Post freight that needs moving now or soon.", href: "/platform/spot-requirements/new?type=transport" },
+              { badge: "STORAGE NEEDED", title: "I NEED STORAGE NOW", detail: "Post a short-term warehouse or storage requirement.", href: "/platform/spot-requirements/new?type=storage" },
+              { badge: "CAPACITY AVAILABLE", title: "I HAVE SPARE CAPACITY", detail: "List an available transport lane or warehouse space.", href: "/platform/listings/new" },
+              { badge: "TENDER", title: "I NEED AN ONGOING LOGISTICS SERVICE", detail: "Create a tender for recurring or contract logistics.", href: "/platform/tenders/new" },
+            ].map((direction) => <Link key={direction.title} href={direction.href} className="group rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/30 hover:bg-blue-50/40"><Badge className="bg-froto-navy text-white">{direction.badge}</Badge><p className="mt-3 text-sm font-bold text-froto-navy">{direction.title}</p><p className="mt-2 text-xs leading-5 text-slate-500">{direction.detail}</p><span className="mt-3 flex items-center gap-1 text-xs font-semibold text-froto-blue">Continue <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span></Link>)}
+          </CardContent>
+        </Card>
+
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {metrics.map((metric) => { const Icon = metric.icon; return <Link key={metric.label} href={metric.href} aria-label={`View ${metric.label.toLowerCase()}`} className="group rounded-[1.4rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-froto-blue focus-visible:ring-offset-2"><Card className="h-full rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition group-hover:-translate-y-0.5 group-hover:border-froto-blue/25 group-hover:shadow-lg"><CardContent className="pt-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-medium text-slate-500">{metric.label}</p><p className="mt-2 text-2xl font-semibold text-froto-navy">{metric.value}</p></div><span className={`flex h-10 w-10 items-center justify-center rounded-2xl ring-1 ${toneClasses[metric.tone]}`}><Icon className="h-4 w-4" /></span></div><p className="mt-3 text-xs text-slate-500">{metric.detail}</p><p className="mt-2 text-xs font-medium text-froto-blue opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">View details →</p></CardContent></Card></Link>; })}
         </section>
