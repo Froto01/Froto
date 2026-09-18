@@ -128,6 +128,7 @@ export default async function ActivityPage() {
       include: {
         listing: { select: { title: true } },
         tender: { select: { title: true } },
+        spotRequirement: { select: { title: true } },
         buyerCompany: { select: { name: true } },
         providerCompany: { select: { name: true } },
         events: { orderBy: { createdAt: "asc" } },
@@ -267,8 +268,8 @@ export default async function ActivityPage() {
               const isBuyer = job.buyerCompanyId === company.id;
               const counterpartyRole = isBuyer ? "Provider" : "Buyer";
               const counterparty = isBuyer ? job.providerCompany.name : job.buyerCompany.name;
-              const sourceTitle = job.listing?.title ?? job.tender?.title ?? "Froto transaction";
-              const sourceType = job.tender ? "Tender" : "Marketplace";
+              const sourceTitle = job.listing?.title ?? job.tender?.title ?? job.spotRequirement?.title ?? "Froto transaction";
+              const sourceType = job.tender ? "Tender" : job.spotRequirement ? "Spot requirement" : "Marketplace";
               return <Link key={job.id} href={`/platform/jobs/${job.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-froto-green/20 hover:bg-emerald-50/30"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{sourceTitle}</p><Badge className={job.status === "COMPLETED" ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{prettyStatus(job.status)}</Badge><Badge className="border border-slate-200 bg-white text-slate-600">{sourceType}</Badge></div><p className="mt-1 text-sm text-slate-500">{counterpartyRole} · {counterparty}</p><p className="mt-1 text-xs text-slate-500">Awarded {formatDateTime(job.createdAt)} · {job.events.length} lifecycle event{job.events.length === 1 ? "" : "s"}</p></div><div className="text-left sm:text-right"><p className="text-xs text-slate-500">Agreed value</p><p className="font-semibold text-froto-blue">{formatAUD(Number(job.amount))}</p>{job.status === "COMPLETED" ? <p className="mt-1 flex items-center gap-1 text-xs font-medium text-froto-green sm:justify-end"><CheckCircle2 className="h-3.5 w-3.5" />Completed</p> : null}</div></div></Link>;
             })}
           </CardContent>
