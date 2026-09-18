@@ -72,6 +72,7 @@ export default async function DashboardPage() {
     companyTenders,
     responseCount,
     unreadNotificationCount,
+    companySpotRequirements,
   ] = await Promise.all([
     prisma.listing.count({ where: { companyId: company.id, status: "ACTIVE" } }),
     prisma.listing.findMany({
@@ -133,6 +134,12 @@ export default async function DashboardPage() {
         OR: [{ recipientUserId: null }, { recipientUserId: user.id }],
       },
     }),
+    prisma.spotRequirement.findMany({
+      where: { companyId: company.id },
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { offers: true } } },
+      take: 12,
+    }),
   ]);
 
   const metrics = [
@@ -192,6 +199,17 @@ export default async function DashboardPage() {
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {metrics.map((metric) => { const Icon = metric.icon; return <Link key={metric.label} href={metric.href} aria-label={`View ${metric.label.toLowerCase()}`} className="group rounded-[1.4rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-froto-blue focus-visible:ring-offset-2"><Card className="h-full rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition group-hover:-translate-y-0.5 group-hover:border-froto-blue/25 group-hover:shadow-lg"><CardContent className="pt-6"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-medium text-slate-500">{metric.label}</p><p className="mt-2 text-2xl font-semibold text-froto-navy">{metric.value}</p></div><span className={`flex h-10 w-10 items-center justify-center rounded-2xl ring-1 ${toneClasses[metric.tone]}`}><Icon className="h-4 w-4" /></span></div><p className="mt-3 text-xs text-slate-500">{metric.detail}</p><p className="mt-2 text-xs font-medium text-froto-blue opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">View details →</p></CardContent></Card></Link>; })}
         </section>
+
+        <Card className="rounded-[1.75rem] border-cyan-100 bg-white shadow-md shadow-froto-navy/5">
+          <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Customer requirements</p><CardTitle className="mt-1 text-xl text-froto-navy">My transport & storage needs</CardTitle></div><RadioTower className="h-5 w-5 text-froto-blue" /></div></CardHeader>
+          <CardContent className="space-y-3">
+            {companySpotRequirements.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No transport or storage requirements posted yet.</div> : companySpotRequirements.map((requirement) => {
+              const expired = Boolean(requirement.offersCloseAt && requirement.offersCloseAt.getTime() <= dashboardLoadedAt);
+              const state = requirement.status === "OPEN" && expired ? "OFFERS CLOSED" : requirement.status;
+              return <Link key={requirement.id} href={`/platform/spot-requirements/${requirement.id}`} className="block rounded-2xl border border-cyan-100 bg-cyan-50/25 p-4 transition-colors hover:bg-cyan-50/60"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><p className="font-semibold text-froto-navy">{requirement.title}</p><Badge className="border border-froto-blue/15 bg-white text-froto-blue">{requirement._count.offers} private offer{requirement._count.offers === 1 ? "" : "s"}</Badge></div><p className="mt-2 text-sm text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin ?? "Origin"} → ${requirement.destination ?? "Destination"}` : requirement.location ?? "Storage location"}</p></div><div className="flex items-center gap-3"><Badge className={state === "OPEN" ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{state}</Badge><span className="text-sm font-semibold text-froto-blue">View offers →</span></div></div></Link>;
+            })}
+          </CardContent>
+        </Card>
 
         <Card className="rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Capacity controls</p><CardTitle className="mt-1 text-xl text-froto-navy">My listings</CardTitle></div><PackageCheck className="h-5 w-5 text-froto-blue" /></div></CardHeader>
