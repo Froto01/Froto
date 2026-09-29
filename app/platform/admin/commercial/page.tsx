@@ -46,6 +46,7 @@ export default async function CommercialAdminPage() {
       include: {
         listing: { select: { title: true } },
         tender: { select: { title: true } },
+        spotRequirement: { select: { title: true } },
         buyerCompany: { select: { name: true } },
         providerCompany: { select: { name: true } },
       },
@@ -179,7 +180,7 @@ export default async function CommercialAdminPage() {
                   <tbody>
                     {fees.map((fee) => {
                       const job = jobById.get(fee.sourceId);
-                      const title = job?.listing?.title ?? job?.tender?.title ?? fee.transactionType.replaceAll("_", " ");
+                      const title = job?.listing?.title ?? job?.tender?.title ?? job?.spotRequirement?.title ?? fee.transactionType.replaceAll("_", " ");
                       return (
                         <tr key={fee.id} className="border-b border-slate-100 align-top">
                           <td className="px-3 py-4">
