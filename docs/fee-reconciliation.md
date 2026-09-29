@@ -32,3 +32,5 @@ UAT Test 3's copied $16.50 fee advanced EARNED → INVOICED → PAID with SIMULA
 Method: executed the existing recordBilling and requirePlatformAdmin source with simulated Clerk session context and stubbed Next cache calls. Prisma reads and conditional writes were bridged through the Neon SQL connector because direct driver connections were unavailable. This verifies backend logic and persistence; browser forms, real Clerk sessions, Prisma transport, and cache refresh remain unverified.
 
 Production fee `cmu6epvot000204i9booqpknb` was independently checked after testing: still EARNED, with invoicedAt and paidAt null. The isolated branch retains simulated payment data for review and is not connected to the existing preview. Browser UAT against this branch remains pending.
+
+The billing-uat preview received a branch-specific DATABASE_URL override on 30 September 2026. A fresh deployment is required before browser checks. Validate the copied UAT Test 3 fee shows PAID ($16.50 total) and admin totals show $15.00 paid / $67.92 outstanding ex GST before conducting further simulated billing tests.
