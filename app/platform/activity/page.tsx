@@ -85,7 +85,7 @@ export default async function ActivityPage() {
 
   const company = membership.company;
 
-  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers] = await Promise.all([
+  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers, jobFees] = await Promise.all([
     prisma.listing.findMany({
       where: { companyId: company.id },
       orderBy: { createdAt: "desc" },
@@ -158,9 +158,15 @@ export default async function ActivityPage() {
     }),
     prisma.spotRequirement.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { _count: { select: { offers: true } } }, take: 50 }),
     prisma.spotOffer.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { spotRequirement: { include: { company: { select: { name: true } } } } }, take: 100 }),
+    prisma.transactionFee.findMany({
+      where: { transactionType: "MARKETPLACE_JOB", sourceId: { in: jobs.map((job) => job.id) } },
+      orderBy: { calculatedAt: "desc" },
+      take: 100,
+    }),
   ]);
 
   const guestFeeByAuctionId = new Map(guestFees.map((fee) => [fee.sourceId, fee]));
+  const jobFeeByJobId = new Map(jobFees.map((fee) => [fee.sourceId, fee]));
   const completedJobs = jobs.filter((job) => job.status === "COMPLETED");
   const completedGuestAuctions = guestAuctions.filter((auction) => auction.status === "COMPLETED");
   const wonBids = bids.filter((bid) => bid.listing.awardedBidId === bid.id).length;
@@ -270,7 +276,8 @@ export default async function ActivityPage() {
               const counterparty = isBuyer ? job.providerCompany.name : job.buyerCompany.name;
               const sourceTitle = job.listing?.title ?? job.tender?.title ?? job.spotRequirement?.title ?? "Froto transaction";
               const sourceType = job.tender ? "Tender" : job.spotRequirement ? "Spot requirement" : "Marketplace";
-              return <Link key={job.id} href={`/platform/jobs/${job.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-froto-green/20 hover:bg-emerald-50/30"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{sourceTitle}</p><Badge className={job.status === "COMPLETED" ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{prettyStatus(job.status)}</Badge><Badge className="border border-slate-200 bg-white text-slate-600">{sourceType}</Badge></div><p className="mt-1 text-sm text-slate-500">{counterpartyRole} · {counterparty}</p><p className="mt-1 text-xs text-slate-500">Awarded {formatDateTime(job.createdAt)} · {job.events.length} lifecycle event{job.events.length === 1 ? "" : "s"}</p></div><div className="text-left sm:text-right"><p className="text-xs text-slate-500">Agreed value</p><p className="font-semibold text-froto-blue">{formatAUD(Number(job.amount))}</p>{job.status === "COMPLETED" ? <p className="mt-1 flex items-center gap-1 text-xs font-medium text-froto-green sm:justify-end"><CheckCircle2 className="h-3.5 w-3.5" />Completed</p> : null}</div></div></Link>;
+              const fee = jobFeeByJobId.get(job.id);
+              return <Link key={job.id} href={`/platform/jobs/${job.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-froto-green/20 hover:bg-emerald-50/30"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{sourceTitle}</p><Badge className={job.status === "COMPLETED" ? "bg-froto-green text-white" : "bg-froto-navy text-white"}>{prettyStatus(job.status)}</Badge><Badge className="border border-slate-200 bg-white text-slate-600">{sourceType}</Badge></div><p className="mt-1 text-sm text-slate-500">{counterpartyRole} · {counterparty}</p><p className="mt-1 text-xs text-slate-500">Awarded {formatDateTime(job.createdAt)} · {job.events.length} lifecycle event{job.events.length === 1 ? "" : "s"}</p>{fee ? <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600"><span>Froto fee {formatAUDCents(Number(fee.feeExGst))} ex GST</span><span>GST {formatAUDCents(Number(fee.gstAmount))}</span><span>Total {formatAUDCents(Number(fee.feeIncGst))}</span><span className="font-semibold text-froto-green">{prettyStatus(fee.status)}</span></div> : null}</div><div className="text-left sm:text-right"><p className="text-xs text-slate-500">Agreed value</p><p className="font-semibold text-froto-blue">{formatAUD(Number(job.amount))}</p>{job.status === "COMPLETED" ? <p className="mt-1 flex items-center gap-1 text-xs font-medium text-froto-green sm:justify-end"><CheckCircle2 className="h-3.5 w-3.5" />Completed</p> : null}</div></div></Link>;
             })}
           </CardContent>
         </Card>
