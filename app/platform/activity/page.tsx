@@ -85,7 +85,7 @@ export default async function ActivityPage() {
 
   const company = membership.company;
 
-  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers, jobFees] = await Promise.all([
+  const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers] = await Promise.all([
     prisma.listing.findMany({
       where: { companyId: company.id },
       orderBy: { createdAt: "desc" },
@@ -158,12 +158,13 @@ export default async function ActivityPage() {
     }),
     prisma.spotRequirement.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { _count: { select: { offers: true } } }, take: 50 }),
     prisma.spotOffer.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { spotRequirement: { include: { company: { select: { name: true } } } } }, take: 100 }),
-    prisma.transactionFee.findMany({
-      where: { transactionType: "MARKETPLACE_JOB", sourceId: { in: jobs.map((job) => job.id) } },
-      orderBy: { calculatedAt: "desc" },
-      take: 100,
-    }),
   ]);
+
+  const jobFees = await prisma.transactionFee.findMany({
+    where: { transactionType: "MARKETPLACE_JOB", sourceId: { in: jobs.map((job) => job.id) } },
+    orderBy: { calculatedAt: "desc" },
+    take: 100,
+  });
 
   const guestFeeByAuctionId = new Map(guestFees.map((fee) => [fee.sourceId, fee]));
   const jobFeeByJobId = new Map(jobFees.map((fee) => [fee.sourceId, fee]));
