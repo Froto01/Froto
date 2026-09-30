@@ -1,6 +1,6 @@
 # Private job company access UAT — 30 September 2026
 
-Status: isolated fixture prepared and database isolation verified. Live signed-in access checks pending.
+Status: unrelated-company browser denial PASS from user screenshot; authorised-company control check pending.
 
 Preview: https://froto-cpyhrpywz-david-froto-project.vercel.app/platform/jobs/uat-private-job-20260930
 Git branch: billing-uat, commit bef1f9f04010101781af2c1b901675a439b46d35.
@@ -17,3 +17,9 @@ No lifecycle action is required for these read-only checks. Leave the simulated 
 Database verification after fixture creation found one job, one AWARDED event and zero fee snapshots on the isolated branch. The original branch br-sparkling-flower-ax1kb2y2 contained zero matching jobs and requirements. Direct fixture creation did not generate notifications and does not test the award flow.
 
 Automated handler permission tests already pass; real-session browser evidence remains pending. Concurrent award HTTP requests remain a separate open check.
+
+## Browser evidence — 1 October 2026, 07:17 Brisbane
+
+User attachment image(20260930-211729).png shows a signed-in header (Sign out button) and the expected red message “This job does not belong to your company.” No job price, party names, private event or lifecycle actions are visible. This passes the unrelated-company browser denial check in the instructed Hardlywork test context. The screenshot itself does not display the company name or URL. A follow-up request-log retrieval timed out, so no independent HTTP 403 evidence is claimed for this attempt.
+
+The earlier attempt at 07:10 Brisbane returned API 401 before sign-in; it was not a tenant-access result. Froto test company's positive access control remains pending. Do not mark dashboard-wide tenant isolation complete from this one job-page check.
