@@ -24,8 +24,8 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | JOB-07 | Review unlock | Reviews available only after completion | PASSED in prior UAT |
 | TND-01 | Create tender | Tender persists and is visible while open | TODO |
 | TND-02 | Submit tender response | Response persists for responding company | TODO |
-| TND-03 | Award tender response | Tender becomes AWARDED and exactly one Job is created | TODO |
-| TND-04 | Double-award tender | Second award is rejected; no duplicate Job | TODO |
+| TND-03 | Award tender response | Tender becomes AWARDED and exactly one Job is created | PASSED — isolated authenticated tender award + one Job verified |
+| TND-04 | Double-award tender | Second award is rejected; no duplicate Job | PASSED — concurrent loser returned 409; exactly one Job/event/fee verified |
 | TND-05 | Tender award with no active fee rule | Award succeeds; no TransactionFee snapshot is created | TODO |
 | GST-01 | Guest auction create/bid/award | Existing guest auction flow remains functional | TODO |
 | GST-02 | Guest silent-auction privacy | Competing bid values are not exposed before award | ROUTE REGRESSION PASS — bidder sees own bid only; poster sees comparison; browser UAT pending |
@@ -51,7 +51,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
 | FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | ROUTE REGRESSION PASS — repeat rejection in all award paths; marketplace/spot successful-then-repeat tested; browser double-click pending |
-| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PARTIAL — spot and marketplace concurrent HTTP UAT PASS with one job/event/fee each; tender live concurrency pending |
+| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PASSED — two concurrent authenticated HTTP requests for spot, marketplace and tender; one job/event/fee each |
 | FAIL-03 | Stale page bids after close | Server rejects bid | ROUTE REGRESSION PASS — marketplace POST and spot POST/PATCH; live negative UAT pending |
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
@@ -70,7 +70,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | ONB-03 | Company verification submit/review | Correct status transitions and permissions | TODO |
 | NTF-01 | Marketplace win notification | Correct recipient and deep link | PASSED in prior UAT |
 | NTF-02 | Marketplace unsuccessful notification | Only losing bidders notified | TODO |
-| NTF-03 | Tender win/unsuccessful notifications | Correct recipients and links | TODO |
+| NTF-03 | Tender win/unsuccessful notifications | Correct recipients and links | DATABASE PASS — one win and one unsuccessful notification with correct recipients; bell/deep-link UI pending |
 | NTF-04 | Opportunity alert matching | Only matching active preferences generate notification | TODO |
 | NTF-05 | Read/unread handling | Correct per-user/company state | TODO |
 
@@ -139,3 +139,9 @@ Authenticated browser test sent both real award requests 1 ms apart. One succeed
 ## Marketplace simultaneous HTTP award UAT — 1 October 2026
 
 User screenshot shows two requests initiated 1 ms apart with overlapping client intervals: Tree of Life 200, Hardlywork 409. Independent isolated-database reads verify one $300 Job (Tree of Life buyer, Froto test company provider), one AWARDED event, one CALCULATED fee snapshot and correct single winner/loser notifications. Original database has zero matching listings/Jobs. See remaining-award-concurrency-uat.md. Tender live concurrency remains pending.
+
+## Tender simultaneous HTTP award UAT — 1 October 2026
+
+User screenshot shows two requests initiated 1 ms apart with overlapping client intervals: Hardlywork 200, Tree of Life 409 with refresh guidance. Independent isolated-database reads verify one $500 Job (Froto test company buyer, Hardlywork provider), one AWARDED event, one CALCULATED fee snapshot, correct awarded/unsuccessful response states and single winner/loser notifications. Original database has zero matching tender/Job/fee records. See remaining-award-concurrency-uat.md.
+
+FAIL-02 is passed for the planned pair of simultaneously initiated authenticated HTTP requests on each of spot, marketplace and tender. This does not claim larger-burst load testing or guest-auction concurrency. Overall launch hardening remains incomplete; remaining matrix rows and transaction failure rollback must still be addressed.
