@@ -50,8 +50,8 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | TODO |
-| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | TODO |
+| FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | ROUTE REGRESSION PASS — repeat rejection in all award paths; marketplace/spot successful-then-repeat tested; browser double-click pending |
+| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PARTIAL — guarded claims and conflict responses tested; SQL repeat creates no duplicate; true overlapping requests pending |
 | FAIL-03 | Stale page bids after close | Server rejects bid | ROUTE REGRESSION PASS — marketplace POST and spot POST/PATCH; live negative UAT pending |
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
@@ -117,3 +117,13 @@ These tests verify handler logic with stubs. They do not prove real Clerk sessio
 Added 33 handler tests: marketplace and spot valid-cent prices, invalid precision, closed windows, own-company rejection, marketplace minimum bid, unsigned spot requests, and company-scoped spot revisions. Both spot POST/PATCH and marketplace POST incorrectly rejected valid values such as 19.99 and 0.29 because multiplying by 100 produced floating-point residue. Regression tests reproduced all six failures before the fix. Validation now checks the canonical numeric decimal representation rather than exact equality after multiplication; nonpositive, nonfinite and excess-precision values remain rejected.
 
 All 78 individual tests pass (66 route + 12 fee), along with ESLint on changed files, TypeScript checking and whitespace checks. These are handler tests with synthetic identities/database stubs. No real database writes or notifications occurred during the automated tests. Live negative UAT and concurrent awards remain pending. Browser display evidence for the isolated spot privacy fixture is in sealed-offer-browser-uat.md.
+
+## Award race safeguards — 30 September 2026
+
+Marketplace and spot award transactions now claim their source with updateMany filtered by source ID, open/active status and null awarded identifier. A zero-count claim returns HTTP 409 before job, fee or notification writes. Prisma P2034 serialization/deadlock conflicts also return HTTP 409 with refresh guidance. Unexpected errors remain observable. Tender already had guarded claims and P2034 handling.
+
+Thirteen additional handler tests cover all three paths' P2034 responses, duplicate rejection and unexpected errors, plus marketplace/spot lost claims and successful-then-repeat sequences. All 91 tests pass (79 route + 12 fee), with changed-file ESLint, TypeScript and whitespace checks passing. Successful handler tests use stubs for database operations and fee/notification calls.
+
+Two isolated Neon SQL fixtures (uat-award-race-20260930 and uat-award-overlap-20260930) exercised Serializable transactions with the same guarded spot claim and unique Job source relationship. Each first attempt claimed one requirement and inserted one Job; each subsequent attempt claimed zero and inserted zero. Independent reads found one job per source. The original database contained zero matching requirements and jobs.
+
+Parallel connector calls did not actually overlap. In the timestamped attempt, the first transaction observed OPEN at 03:53:38.873 UTC and finished at 03:53:46.883; the second began reading at 03:53:48.183 and saw AWARDED. Consequently this proves sequential duplicate protection, not a real concurrent serialization failure. These SQL tests omit route execution, offer-state changes, events, fee snapshots and notifications; they do not constitute a complete award flow. Real simultaneous HTTP requests remain pending. The separate browser privacy fixture remains OPEN and unawarded.
