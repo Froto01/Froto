@@ -63,7 +63,7 @@ export async function POST(
     );
   }
 
-  if (Math.round(amount * 100) !== amount * 100) {
+  if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) {
     return NextResponse.json(
       { error: "Bid amounts can have no more than two decimal places." },
       { status: 400 }
