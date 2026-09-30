@@ -48,7 +48,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { amount, serviceDescription, leadTime, notes } = parseOfferBody(body);
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide an offer amount greater than zero." }, { status: 400 });
-  if (Math.round(amount * 100) !== amount * 100) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
+  if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
 
   try {
     const offer = await prisma.$transaction(async (tx) => {
@@ -84,7 +84,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { amount, serviceDescription, leadTime, notes } = parseOfferBody(body);
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide an offer amount greater than zero." }, { status: 400 });
-  if (Math.round(amount * 100) !== amount * 100) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
+  if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
 
   const offer = await prisma.spotOffer.update({
     where: { id: existing.id },

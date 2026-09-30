@@ -52,7 +52,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | --- | --- | --- | --- |
 | FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | TODO |
 | FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | TODO |
-| FAIL-03 | Stale page bids after close | Server rejects bid | TODO |
+| FAIL-03 | Stale page bids after close | Server rejects bid | ROUTE REGRESSION PASS — marketplace POST and spot POST/PATCH; live negative UAT pending |
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
 | FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | ROUTE REGRESSION PASS — COMPLETED repeat returns 409 before writes; browser UAT pending |
@@ -111,3 +111,9 @@ Guest and spot bidders receive only their own bid/offer. The poster can compare 
 All 45 individual tests pass (33 route regression + 12 existing fee tests). ESLint on the new test file, TypeScript checking and diff whitespace checks pass. All 11 exercised source files were compared with `spot-requirements` on GitHub and matched exactly. No application routes were changed by this work.
 
 These tests verify handler logic with stubs. They do not prove real Clerk sessions, database transport, browser rendering or concurrent award behaviour. Live negative UAT and concurrent award tests remain pending; the entire P0 matrix is not yet GREEN.
+
+## Bid validation and rejected offer actions — 30 September 2026
+
+Added 33 handler tests: marketplace and spot valid-cent prices, invalid precision, closed windows, own-company rejection, marketplace minimum bid, unsigned spot requests, and company-scoped spot revisions. Both spot POST/PATCH and marketplace POST incorrectly rejected valid values such as 19.99 and 0.29 because multiplying by 100 produced floating-point residue. Regression tests reproduced all six failures before the fix. Validation now checks the canonical numeric decimal representation rather than exact equality after multiplication; nonpositive, nonfinite and excess-precision values remain rejected.
+
+All 78 individual tests pass (66 route + 12 fee), along with ESLint on changed files, TypeScript checking and whitespace checks. These are handler tests with synthetic identities/database stubs. No real database writes or notifications occurred during the automated tests. Live negative UAT and concurrent awards remain pending. Browser display evidence for the isolated spot privacy fixture is in sealed-offer-browser-uat.md.
