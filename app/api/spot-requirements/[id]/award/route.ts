@@ -48,7 +48,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const offeredCompanies = await tx.spotOffer.findMany({ where: { spotRequirementId: requirement.id }, select: { companyId: true }, distinct: ["companyId"] });
     const awardedAt = new Date();
 
-    await tx.spotRequirement.update({ where: { id: requirement.id }, data: { awardedOfferId: offer.id, awardedAt, offersCloseAt: stillOpen ? awardedAt : requirement.offersCloseAt, status: "AWARDED" } });
+    const claimedAward = await tx.spotRequirement.updateMany({ where: { id: requirement.id, status: "OPEN", awardedOfferId: null }, data: { awardedOfferId: offer.id, awardedAt, offersCloseAt: stillOpen ? awardedAt : requirement.offersCloseAt, status: "AWARDED" } });
+    if (claimedAward.count !== 1) return { ok: false, status: 409, error: "This spot requirement changed while you were awarding it. Refresh and try again." };
     await tx.spotOffer.updateMany({ where: { spotRequirementId: requirement.id }, data: { status: "NOT_SELECTED" } });
     await tx.spotOffer.update({ where: { id: offer.id }, data: { status: "AWARDED" } });
 
@@ -71,7 +72,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     return { ok: true, awardedOfferId: offer.id, awardedAt: awardedAt.toISOString(), winnerCompanyName: offer.company.name, amount: Number(offer.amount), jobId: job.id, closedEarly: stillOpen };
-  }, { isolationLevel: "Serializable" });
+  }, { isolationLevel: "Serializable" }).catch((error: unknown): AwardResult => {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2034") {
+      return { ok: false, status: 409, error: "This spot requirement changed while you were awarding it. Refresh and try again." };
+    }
+    throw error;
+  });
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
   return NextResponse.json(result, { status: 200 });

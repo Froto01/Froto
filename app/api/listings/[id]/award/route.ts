@@ -170,9 +170,11 @@ export async function POST(
 
       const awardedAt = new Date();
 
-      await tx.listing.update({
+      const claimedAward = await tx.listing.updateMany({
         where: {
           id: listing.id,
+          status: "ACTIVE",
+          awardedBidId: null,
         },
         data: {
           awardedBidId: bid.id,
@@ -180,6 +182,10 @@ export async function POST(
           status: "AWARDED",
         },
       });
+
+      if (claimedAward.count !== 1) {
+        return { ok: false, status: 409, error: "This listing changed while you were awarding it. Refresh and try again." };
+      }
 
       const job = await tx.job.create({
         data: {
@@ -259,7 +265,12 @@ export async function POST(
     {
       isolationLevel: "Serializable",
     }
-  );
+  ).catch((error: unknown): AwardResult => {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2034") {
+      return { ok: false, status: 409, error: "This listing changed while you were awarding it. Refresh and try again." };
+    }
+    throw error;
+  });
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
