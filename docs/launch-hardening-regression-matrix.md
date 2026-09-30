@@ -51,7 +51,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
 | FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | ROUTE REGRESSION PASS — repeat rejection in all award paths; marketplace/spot successful-then-repeat tested; browser double-click pending |
-| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PARTIAL — spot concurrent HTTP UAT PASS with one job/event/fee; marketplace and tender live concurrency pending |
+| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PARTIAL — spot and marketplace concurrent HTTP UAT PASS with one job/event/fee each; tender live concurrency pending |
 | FAIL-03 | Stale page bids after close | Server rejects bid | ROUTE REGRESSION PASS — marketplace POST and spot POST/PATCH; live negative UAT pending |
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
@@ -135,3 +135,7 @@ User screenshots confirm the unrelated-company denial screen shows no private jo
 ## Spot simultaneous HTTP award UAT — 1 October 2026
 
 Authenticated browser test sent both real award requests 1 ms apart. One succeeded (200), the other was rejected (409); request intervals overlapped. Independent isolated-database reads verified one Job, one AWARDED event, one CALCULATED fee snapshot, consistent winner/loser offer state and exactly one notification for each outcome. Original database had zero matching records. See concurrent-http-award-uat.md for screenshot evidence, IDs and limitations. FAIL-02 remains partial because marketplace and tender live concurrency have not been tested.
+
+## Marketplace simultaneous HTTP award UAT — 1 October 2026
+
+User screenshot shows two requests initiated 1 ms apart with overlapping client intervals: Tree of Life 200, Hardlywork 409. Independent isolated-database reads verify one $300 Job (Tree of Life buyer, Froto test company provider), one AWARDED event, one CALCULATED fee snapshot and correct single winner/loser notifications. Original database has zero matching listings/Jobs. See remaining-award-concurrency-uat.md. Tender live concurrency remains pending.
