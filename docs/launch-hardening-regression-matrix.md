@@ -51,7 +51,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
 | FAIL-01 | Double-click award | Idempotent/rejected duplicate; one Job only | ROUTE REGRESSION PASS — repeat rejection in all award paths; marketplace/spot successful-then-repeat tested; browser double-click pending |
-| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PARTIAL — guarded claims and conflict responses tested; SQL repeat creates no duplicate; true overlapping requests pending |
+| FAIL-02 | Concurrent award requests | Serializable/constraint protection leaves one winner | PARTIAL — spot concurrent HTTP UAT PASS with one job/event/fee; marketplace and tender live concurrency pending |
 | FAIL-03 | Stale page bids after close | Server rejects bid | ROUTE REGRESSION PASS — marketplace POST and spot POST/PATCH; live negative UAT pending |
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
@@ -131,3 +131,7 @@ Parallel connector calls did not actually overlap. In the timestamped attempt, t
 ## Private job browser access — 1 October 2026
 
 User screenshots confirm the unrelated-company denial screen shows no private job content and the authorised Froto test company buyer can load the same $432.10 job, parties and AWARDED event. See private-job-access-uat.md for evidence and scope. This closes the prepared private job read-access browser check, not dashboard-wide isolation or lifecycle write permissions.
+
+## Spot simultaneous HTTP award UAT — 1 October 2026
+
+Authenticated browser test sent both real award requests 1 ms apart. One succeeded (200), the other was rejected (409); request intervals overlapped. Independent isolated-database reads verified one Job, one AWARDED event, one CALCULATED fee snapshot, consistent winner/loser offer state and exactly one notification for each outcome. Original database had zero matching records. See concurrent-http-award-uat.md for screenshot evidence, IDs and limitations. FAIL-02 remains partial because marketplace and tender live concurrency have not been tested.
