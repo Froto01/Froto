@@ -1,6 +1,6 @@
 # Marketplace and tender HTTP award concurrency UAT — 1 October 2026
 
-Status: fixtures and browser runners prepared; live requests and database reconciliation pending.
+Status: marketplace concurrent HTTP award UAT PASS with database reconciliation; tender live execution and reconciliation pending.
 
 Isolated Neon branch: br-fancy-heart-axjf1fzn.
 Runner Git branch: billing-uat, commit 4b0571eef8fdb8e34441228bec17ab4e991b0a7b.
@@ -30,3 +30,11 @@ Expected for each: one HTTP 200 and one HTTP 409. The page shows request start/f
 For each source: one Job, matching awarded submission ID, one AWARDED event, one CALCULATED TransactionFee snapshot, correct buyer/provider roles and amount, one winner and one unsuccessful-company notification. Tender response states should agree with the winning response. Original database must remain free of the simulated source and Job.
 
 The earlier spot concurrency result remains PASS and does not need to be repeated. Larger request bursts, guest award concurrency and rollback on fee/notification failures remain outside this two-request exercise.
+
+## Marketplace result — 1 October 2026, 07:58 Brisbane
+
+Screenshot image(20260930-215805).png shows Tree of Life HTTP 200 (started 1 ms, finished 1207 ms) and Hardlywork HTTP 409 (started 0 ms, finished 2237 ms), with “This listing has already been awarded.” Browser request intervals overlap.
+
+Independent isolated-database reads found listing AWARDED to uat-http-marketplace-b-20261001 and exactly one Job cmuonc4ma000004l26fwqe2nl at $300, with matching awardedBidId. Buyer is Tree of Life; provider is Froto test company. Exactly one AWARDED event and one CALCULATED fee snapshot exist; fee payer Froto test company, $10 ex GST + $1 GST = $11 under the minimum-fee rule. Notifications contain exactly one MARKETPLACE_AWARD_WON for Tree of Life and one MARKETPLACE_AWARD_UNSUCCESSFUL for Hardlywork.
+
+Original branch contained zero matching listings and Jobs. Marketplace two-request HTTP UAT is PASS. This proves concurrently outstanding browser requests and correct persisted outcome; a real overlapping database snapshot or P2034 is not inferred. Tender screenshot and database reconciliation remain pending. Leave the marketplace job AWARDED.
