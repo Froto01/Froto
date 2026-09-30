@@ -1,6 +1,6 @@
 # Sealed offer browser UAT — 30 September 2026
 
-Status: fixture prepared and database isolation verified; signed-in browser checks pending.
+Status: Hardlywork bidder screen PASS from user screenshot; poster comparison and signed-in API privacy checks pending.
 
 ## Environment
 
@@ -27,3 +27,7 @@ Record the signed-in company, expected/actual result and screenshot or API evide
 Database reads after insertion found exactly one requirement and two offers in the isolated branch. Original branch br-sparkling-flower-ax1kb2y2 contained zero matching requirements and zero matching offers.
 
 Route regression coverage and remaining launch checks are documented in launch-hardening-regression-matrix.md. Concurrent awards, live negative permission checks and dashboard-wide tenant isolation remain pending.
+
+## Browser evidence — 30 September 2026, 12:43 Brisbane
+
+User attachment image(20260930-024317).png shows the prepared OPEN requirement, a single “Your private offer” card at $250.00, SIMULATED Hardlywork offer, marker UAT-HARDLYWORK-PRIVATE-250, and Revise private offer. The screenshot contains no competing provider, $987.65 price or competing private marker. This passes the bidder screen display check. The account identity is inferred from the fixture's own-offer content; account header and address bar are not visible. It does not establish absence of competing data from signed-in API responses. Poster comparison, Tree of Life screen, and live negative permission checks remain pending.
