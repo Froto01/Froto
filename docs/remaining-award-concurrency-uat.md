@@ -1,6 +1,6 @@
 # Marketplace and tender HTTP award concurrency UAT — 1 October 2026
 
-Status: marketplace concurrent HTTP award UAT PASS with database reconciliation; tender live execution and reconciliation pending.
+Status: PASS for marketplace and tender two-request HTTP award concurrency, with independent database reconciliation.
 
 Isolated Neon branch: br-fancy-heart-axjf1fzn.
 Runner Git branch: billing-uat, commit 4b0571eef8fdb8e34441228bec17ab4e991b0a7b.
@@ -38,3 +38,11 @@ Screenshot image(20260930-215805).png shows Tree of Life HTTP 200 (started 1 ms,
 Independent isolated-database reads found listing AWARDED to uat-http-marketplace-b-20261001 and exactly one Job cmuonc4ma000004l26fwqe2nl at $300, with matching awardedBidId. Buyer is Tree of Life; provider is Froto test company. Exactly one AWARDED event and one CALCULATED fee snapshot exist; fee payer Froto test company, $10 ex GST + $1 GST = $11 under the minimum-fee rule. Notifications contain exactly one MARKETPLACE_AWARD_WON for Tree of Life and one MARKETPLACE_AWARD_UNSUCCESSFUL for Hardlywork.
 
 Original branch contained zero matching listings and Jobs. Marketplace two-request HTTP UAT is PASS. This proves concurrently outstanding browser requests and correct persisted outcome; a real overlapping database snapshot or P2034 is not inferred. Tender screenshot and database reconciliation remain pending. Leave the marketplace job AWARDED.
+
+## Tender result — 1 October 2026, 08:01 Brisbane
+
+Screenshot image(20260930-220122).png shows Hardlywork HTTP 200 (started 0 ms, finished 1279 ms) and Tree of Life HTTP 409 (started 1 ms, finished 1299 ms), with “This tender changed while you were awarding it. Refresh and try again.” Browser request intervals overlap. This message is the tender handler's P2034 conflict response; no raw database error is claimed from the screenshot alone.
+
+Independent isolated-database reads found tender AWARDED to uat-http-tender-a-20261001 and exactly one Job cmuongbw0000004jmtreloew9 at $500, with matching awardedTenderResponseId. Buyer is Froto test company; provider is Hardlywork. Exactly one AWARDED event and one CALCULATED fee snapshot exist; fee payer Hardlywork, $15 ex GST + $1.50 GST = $16.50. Responses are Hardlywork AWARDED and Tree of Life UNSUCCESSFUL. Notifications contain exactly one TENDER_AWARD_WON for Hardlywork and one TENDER_AWARD_UNSUCCESSFUL for Tree of Life.
+
+Original branch contained zero matching tenders, Jobs and fee snapshots. Tender two-request HTTP UAT is PASS. Together with the earlier spot and marketplace results, the planned concurrency checks for these three award paths are complete. Larger bursts, guest award concurrency and fee/notification failure rollback remain outside this exercise. Leave all simulated Jobs AWARDED.
