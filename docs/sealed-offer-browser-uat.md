@@ -1,6 +1,6 @@
 # Sealed offer browser UAT — 30 September 2026
 
-Status: Hardlywork bidder screen PASS from user screenshot; poster comparison and signed-in API privacy checks pending.
+Status: Hardlywork bidder screen PASS from user screenshot; Froto test company poster comparison PASS from user confirmation. Signed-in API privacy and live negative permission checks pending.
 
 ## Environment
 
@@ -31,3 +31,7 @@ Route regression coverage and remaining launch checks are documented in launch-h
 ## Browser evidence — 30 September 2026, 12:43 Brisbane
 
 User attachment image(20260930-024317).png shows the prepared OPEN requirement, a single “Your private offer” card at $250.00, SIMULATED Hardlywork offer, marker UAT-HARDLYWORK-PRIVATE-250, and Revise private offer. The screenshot contains no competing provider, $987.65 price or competing private marker. This passes the bidder screen display check. The account identity is inferred from the fixture's own-offer content; account header and address bar are not visible. It does not establish absence of competing data from signed-in API responses. Poster comparison, Tree of Life screen, and live negative permission checks remain pending.
+
+## Poster comparison confirmation — 30 September 2026, 12:45 Brisbane
+
+User confirmed they first signed in as Froto test company and the fixture showed both offers. Poster comparison is PASS based on explicit user confirmation (no poster screenshot supplied). Together with the Hardlywork screenshot, both planned browser display checks pass. This does not close the signed-in API privacy, third-company private job access, post-award winner/loser access or concurrent award checks.
