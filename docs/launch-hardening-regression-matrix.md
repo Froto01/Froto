@@ -28,23 +28,23 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | TND-04 | Double-award tender | Second award is rejected; no duplicate Job | TODO |
 | TND-05 | Tender award with no active fee rule | Award succeeds; no TransactionFee snapshot is created | TODO |
 | GST-01 | Guest auction create/bid/award | Existing guest auction flow remains functional | TODO |
-| GST-02 | Guest silent-auction privacy | Competing bid values are not exposed before award | TODO |
+| GST-02 | Guest silent-auction privacy | Competing bid values are not exposed before award | ROUTE REGRESSION PASS — bidder sees own bid only; poster sees comparison; browser UAT pending |
 | GST-03 | Guest review | Guest can review awarded company only after eligible completion state | TODO |
 
 ## P0 — permissions and tenant isolation
 
 | ID | Scenario | Expected result | Status |
 | --- | --- | --- | --- |
-| SEC-01 | Unauthenticated award request | 401/redirect; no data mutation | TODO |
-| SEC-02 | Company B attempts to award Company A listing | 403; no mutation | TODO |
-| SEC-03 | Staff role attempts restricted award | 403; no mutation | TODO |
-| SEC-04 | Wrong company attempts job lifecycle action | 403; no mutation | CODE REVIEW PASS — live negative test pending |
-| SEC-05 | Buyer attempts provider-only transition | Rejected | CODE REVIEW PASS — live negative test pending |
-| SEC-06 | Provider attempts buyer-only completion submission | Rejected | CODE REVIEW PASS — live negative test pending |
-| SEC-07 | User accesses another company's private dashboard data | No tenant leakage | TODO |
-| SEC-08 | Non-admin accesses platform-admin actions | Rejected server-side | TODO |
-| SEC-09 | Review submitted for unrelated job/company | Rejected | CODE REVIEW PASS — live negative test pending |
-| SEC-10 | Notification read/update for another user/company | Rejected | TODO |
+| SEC-01 | Unauthenticated award request | 401/redirect; no data mutation | ROUTE REGRESSION PASS — marketplace, tender and spot; browser UAT pending |
+| SEC-02 | Company B attempts to award Company A listing | 403; no mutation | ROUTE REGRESSION PASS — all three award handlers; browser UAT pending |
+| SEC-03 | Staff role attempts restricted award | 403; no mutation | ROUTE REGRESSION PASS — all three award handlers; browser UAT pending |
+| SEC-04 | Wrong company attempts job lifecycle action | 403; no mutation | ROUTE REGRESSION PASS — all four transitions; browser UAT pending |
+| SEC-05 | Buyer attempts provider-only transition | Rejected | ROUTE REGRESSION PASS — buyer rejected from provider transitions; browser UAT pending |
+| SEC-06 | Provider attempts buyer-only completion submission | Rejected | ROUTE REGRESSION PASS — provider rejected from DELIVERED; browser UAT pending |
+| SEC-07 | User accesses another company's private dashboard data | No tenant leakage | PARTIAL — private job API and spot detail route tests pass; dashboard/browser coverage pending |
+| SEC-08 | Non-admin accesses platform-admin actions | Rejected server-side | ROUTE REGRESSION PASS — actual admin guard rejects regular owner and unsigned user; browser UAT pending |
+| SEC-09 | Review submitted for unrelated job/company | Rejected | ROUTE REGRESSION PASS — unrelated company rejected before writes; browser UAT pending |
+| SEC-10 | Notification read/update for another user/company | Rejected | ROUTE REGRESSION PASS — scoped list and foreign notification PATCH; browser UAT pending |
 
 ## P1 — failure states and concurrency
 
@@ -55,7 +55,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | FAIL-03 | Stale page bids after close | Server rejects bid | TODO |
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
-| FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | CODE REVIEW PASS — repeated COMPLETED has no valid transition |
+| FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | ROUTE REGRESSION PASS — COMPLETED repeat returns 409 before writes; browser UAT pending |
 | FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | TODO |
 | FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | TODO |
 | FAIL-09 | Unsupported fee payer configuration | Award fails closed | TODO |
@@ -101,3 +101,13 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 Launch hardening is GREEN when all P0 tests pass, no open Severity 1/2 defects remain, P1 failures have an explicit disposition, production rollback/recovery steps exist, and a final two-company end-to-end regression passes on the production-equivalent deployment.
 
 Commercial fee percentage, fee earning trigger, payment provider, invoicing and real charging remain separate approval gates and are not required to complete this hardening matrix unless explicitly approved.
+
+## Route regression evidence — 30 September 2026
+
+Added `lib/security-routes.test.mjs` to `npm test`: 33 tests execute the current TypeScript route handlers and platform-admin guard with synthetic Clerk identities and database rows. Unexpected database operations throw; rejected actions must return before a write. The tests cover award authentication, tenant ownership and staff roles; lifecycle party permissions; private job access; unrelated reviews; guest and spot bid privacy; losing bidder spot detail; notification scope; and platform-admin access.
+
+Guest and spot bidders receive only their own bid/offer. The poster can compare all submissions. Rival prices, company IDs and private notes are checked with sentinel values; losing spot bidders do not receive the winner's job or award metadata.
+
+All 45 individual tests pass (33 route regression + 12 existing fee tests). ESLint on the new test file, TypeScript checking and diff whitespace checks pass. All 11 exercised source files were compared with `spot-requirements` on GitHub and matched exactly. No application routes were changed by this work.
+
+These tests verify handler logic with stubs. They do not prove real Clerk sessions, database transport, browser rendering or concurrent award behaviour. Live negative UAT and concurrent award tests remain pending; the entire P0 matrix is not yet GREEN.
