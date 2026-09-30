@@ -41,7 +41,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | SEC-04 | Wrong company attempts job lifecycle action | 403; no mutation | ROUTE REGRESSION PASS — all four transitions; browser UAT pending |
 | SEC-05 | Buyer attempts provider-only transition | Rejected | ROUTE REGRESSION PASS — buyer rejected from provider transitions; browser UAT pending |
 | SEC-06 | Provider attempts buyer-only completion submission | Rejected | ROUTE REGRESSION PASS — provider rejected from DELIVERED; browser UAT pending |
-| SEC-07 | User accesses another company's private dashboard data | No tenant leakage | PARTIAL — private job API and spot detail route tests pass; dashboard/browser coverage pending |
+| SEC-07 | User accesses another company's private dashboard data | No tenant leakage | PARTIAL — private job browser denial and authorised buyer control PASS; spot detail route PASS; broader dashboard coverage pending |
 | SEC-08 | Non-admin accesses platform-admin actions | Rejected server-side | ROUTE REGRESSION PASS — actual admin guard rejects regular owner and unsigned user; browser UAT pending |
 | SEC-09 | Review submitted for unrelated job/company | Rejected | ROUTE REGRESSION PASS — unrelated company rejected before writes; browser UAT pending |
 | SEC-10 | Notification read/update for another user/company | Rejected | ROUTE REGRESSION PASS — scoped list and foreign notification PATCH; browser UAT pending |
@@ -127,3 +127,7 @@ Thirteen additional handler tests cover all three paths' P2034 responses, duplic
 Two isolated Neon SQL fixtures (uat-award-race-20260930 and uat-award-overlap-20260930) exercised Serializable transactions with the same guarded spot claim and unique Job source relationship. Each first attempt claimed one requirement and inserted one Job; each subsequent attempt claimed zero and inserted zero. Independent reads found one job per source. The original database contained zero matching requirements and jobs.
 
 Parallel connector calls did not actually overlap. In the timestamped attempt, the first transaction observed OPEN at 03:53:38.873 UTC and finished at 03:53:46.883; the second began reading at 03:53:48.183 and saw AWARDED. Consequently this proves sequential duplicate protection, not a real concurrent serialization failure. These SQL tests omit route execution, offer-state changes, events, fee snapshots and notifications; they do not constitute a complete award flow. Real simultaneous HTTP requests remain pending. The separate browser privacy fixture remains OPEN and unawarded.
+
+## Private job browser access — 1 October 2026
+
+User screenshots confirm the unrelated-company denial screen shows no private job content and the authorised Froto test company buyer can load the same $432.10 job, parties and AWARDED event. See private-job-access-uat.md for evidence and scope. This closes the prepared private job read-access browser check, not dashboard-wide isolation or lifecycle write permissions.
