@@ -1,0 +1,53 @@
+{
+  "branch": "br-fancy-heart-axjf1fzn",
+  "baseline": [
+    {
+      "id": "uat-rollback-marketplace-fee-20261001",
+      "status": "ACTIVE",
+      "closes_at": "2026-09-30T21:07:53.889",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-09-30T22:07:53.889"
+    },
+    {
+      "id": "uat-rollback-marketplace-notification-20261001",
+      "status": "ACTIVE",
+      "closes_at": "2026-09-30T21:07:53.889",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-09-30T22:07:53.889"
+    },
+    {
+      "id": "uat-rollback-spot-fee-20261001",
+      "status": "OPEN",
+      "closes_at": null,
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-09-30T22:07:53.889"
+    },
+    {
+      "id": "uat-rollback-spot-notification-20261001",
+      "status": "OPEN",
+      "closes_at": null,
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-09-30T22:07:53.889"
+    },
+    {
+      "id": "uat-rollback-tender-fee-20261001",
+      "status": "OPEN",
+      "closes_at": "2026-09-30T21:07:53.889",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-09-30T22:07:53.889"
+    },
+    {
+      "id": "uat-rollback-tender-notification-20261001",
+      "status": "OPEN",
+      "closes_at": "2026-09-30T21:07:53.889",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-09-30T22:07:53.889"
+    }
+  ]
+}
