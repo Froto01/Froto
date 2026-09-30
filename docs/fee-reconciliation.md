@@ -32,3 +32,17 @@ UAT Test 3's copied $16.50 fee advanced EARNED → INVOICED → PAID with SIMULA
 Method: executed the existing recordBilling and requirePlatformAdmin source with simulated Clerk session context and stubbed Next cache calls. Prisma reads and conditional writes were bridged through the Neon SQL connector because direct driver connections were unavailable. This verifies backend logic and persistence; browser forms, real Clerk sessions, Prisma transport, and cache refresh remain unverified.
 
 Production fee `cmu6epvot000204i9booqpknb` was independently checked after testing: still EARNED, with invoicedAt and paidAt null. The isolated branch retains simulated payment data for review and is not connected to the existing preview. Browser UAT against this branch remains pending.
+
+
+## Browser UAT completed — 30 September 2026
+
+Result: PASS for the administrator invoice/payment happy path and dashboard refresh, verified from user screenshots and independent database reads.
+
+- Preview deployment: `froto-5hojw2y6s-david-froto-project.vercel.app`, Git branch `billing-uat`, commit `55448b8`.
+- The preview's branch-specific DATABASE_URL uses isolated Neon branch `br-fancy-heart-axjf1fzn`; isolation confirmed by the preview totals and writes appearing only on that branch.
+- Tender fee test: payer Froto test company; $30.00 fee + $3.00 GST = $33.00.
+- Browser invoice reference `UAT-INVOICE-TENDER-001`, date 30 September 2026: EARNED → INVOICED; outstanding remained $33.00 including GST; exactly one invoice event.
+- Browser simulated payment reference `UAT-PAYMENT-TENDER-001`, same date: INVOICED → PAID; outstanding $0.00; exactly one invoice and one payment event.
+- Returning to Commercial performance showed Fees earned $82.92, Fees paid $45.00, Outstanding $37.92, all ex GST. Earned GST remained $8.29.
+- Post-UAT database checks confirmed the original production Tender fee test and UAT Test 3 fees both remain EARNED with no invoice/payment dates and no billing history events.
+- Simulated invoice/payment data remains only in the isolated branch. The browser happy path is complete; negative and concurrency checks remain evidenced by the earlier backend tests rather than separate browser attempts.
