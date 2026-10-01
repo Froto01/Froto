@@ -57,9 +57,9 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
 | FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | ROUTE REGRESSION PASS — COMPLETED repeat returns 409 before writes; browser UAT pending |
 | FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | PARTIAL — six browser failures left no partial records; injected-error-stage log confirmation blocked by Vercel billing limit |
-| FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | TODO |
-| FAIL-09 | Unsupported fee payer configuration | Award fails closed | TODO |
-| FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | TODO |
+| FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | HELPER REGRESSION PASS — overlapping rules rejected before snapshot writes; live invalid-configuration award pending |
+| FAIL-09 | Unsupported fee payer configuration | Award fails closed | HELPER REGRESSION PASS — unsupported payer and guest buyer-without-company rejected; live invalid-configuration award pending |
+| FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | HELPER REGRESSION PASS — existing snapshot unchanged and duplicate key reused; live concurrent awards also produced one fee each |
 
 ## P1 — onboarding, verification and notifications
 
@@ -151,3 +151,11 @@ FAIL-02 is passed for the planned pair of simultaneously initiated authenticated
 Six real HTTP award attempts under scoped isolated-database failure triggers returned 500. Independent database comparison confirmed unchanged source status, award IDs/dates, close windows and timestamps; all twelve submissions remain, with zero Jobs/events/fees/result notifications. Original database contains no test fixtures/triggers. See award-rollback-uat.md and uat/award-rollback-results.json.
 
 Rollback outcome checks pass for fee and intended loser-notification failures across spot, marketplace and tender. Vercel log retrieval failed with ExceedsBillingLimitError, preventing independent attribution to the configured injected-error messages. FAIL-07 remains partial until that evidence gap is resolved; HTTP 500 alone does not establish the failure stage.
+
+## Fee snapshot safeguards — 1 October 2026
+
+Added 25 tests executing the actual fee-snapshots.ts exports with the real fee calculator and synthetic transaction clients. They cover no-rule behaviour, overlapping active rules, unsupported payer settings, provider/buyer selection, guest buyer-rule rejection, minimum/maximum fee handling, precise amounts/GST/metadata, unsupported currency values, immutable existing snapshots, and duplicate helper calls using the same idempotency key. The query scope checks active status and the inclusive start/exclusive end of the effective window for marketplace, tender and guest types.
+
+All 116 tests pass (91 existing + 25 helper), together with ESLint on the new test file, TypeScript and whitespace checks. No application source, fee rule or database configuration was changed. Existing spot/marketplace/tender HTTP concurrency evidence independently confirms one persisted snapshot per award under ordinary valid rules.
+
+These helper tests use database stubs. They do not establish database contention for standalone upsert collisions or full award rollback under live overlapping/unsupported fee rules. Those live configuration cases remain pending; overall launch hardening is not GREEN. The rollback log evidence gap is unchanged.
