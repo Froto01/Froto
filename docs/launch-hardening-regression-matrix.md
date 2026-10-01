@@ -56,7 +56,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | FAIL-04 | Invalid job state transition | Rejected with current state unchanged | CODE REVIEW PASS — transition matrix rejects invalid path |
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
 | FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | ROUTE REGRESSION PASS — COMPLETED repeat returns 409 before writes; browser UAT pending |
-| FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | TODO |
+| FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | PARTIAL — six browser failures left no partial records; injected-error-stage log confirmation blocked by Vercel billing limit |
 | FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | TODO |
 | FAIL-09 | Unsupported fee payer configuration | Award fails closed | TODO |
 | FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | TODO |
@@ -145,3 +145,9 @@ User screenshot shows two requests initiated 1 ms apart with overlapping client 
 User screenshot shows two requests initiated 1 ms apart with overlapping client intervals: Hardlywork 200, Tree of Life 409 with refresh guidance. Independent isolated-database reads verify one $500 Job (Froto test company buyer, Hardlywork provider), one AWARDED event, one CALCULATED fee snapshot, correct awarded/unsuccessful response states and single winner/loser notifications. Original database has zero matching tender/Job/fee records. See remaining-award-concurrency-uat.md.
 
 FAIL-02 is passed for the planned pair of simultaneously initiated authenticated HTTP requests on each of spot, marketplace and tender. This does not claim larger-burst load testing or guest-auction concurrency. Overall launch hardening remains incomplete; remaining matrix rows and transaction failure rollback must still be addressed.
+
+## Award rollback data checks — 1 October 2026
+
+Six real HTTP award attempts under scoped isolated-database failure triggers returned 500. Independent database comparison confirmed unchanged source status, award IDs/dates, close windows and timestamps; all twelve submissions remain, with zero Jobs/events/fees/result notifications. Original database contains no test fixtures/triggers. See award-rollback-uat.md and uat/award-rollback-results.json.
+
+Rollback outcome checks pass for fee and intended loser-notification failures across spot, marketplace and tender. Vercel log retrieval failed with ExceedsBillingLimitError, preventing independent attribution to the configured injected-error messages. FAIL-07 remains partial until that evidence gap is resolved; HTTP 500 alone does not establish the failure stage.

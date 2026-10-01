@@ -1,6 +1,6 @@
 # Real award transaction rollback UAT — 1 October 2026
 
-Status: prepared; browser execution, injected-failure log verification and post-test reconciliation pending.
+Status: browser failures and database rollback outcome PASS for all six attempts; independent injected-error-stage log confirmation blocked by Vercel billing limit.
 
 Runner: https://froto-jthjmv63n-david-froto-project.vercel.app/platform/uat/award-rollback
 Git branch: billing-uat, commit bc144aec275eaa89dc39c8a0cb7797af5a1dec68.
@@ -33,3 +33,15 @@ For each source, confirm original OPEN/ACTIVE status, null awarded identifier/ti
 The loser-notification check must leave no winner notification or fee snapshot despite those writes occurring earlier in the transaction. This tests the complete existing handler and PostgreSQL transaction, rather than a mocked rollback or a standalone SQL approximation.
 
 Lint, TypeScript and whitespace checks passed for the two new TSX files. No award API or fee rule was modified. The existing 91-test application route suite was not changed for this runner.
+
+## Results — received 1 October 2026, 10:05 Brisbane
+
+Screenshot image(20260930-221449).png shows all six authenticated award attempts returned HTTP 500: fee creation and loser-notification failure for spot, marketplace and tender. Screenshot filename suggests the test ran around 08:14 Brisbane; the exact server execution time was not independently established.
+
+Independent Neon reads confirmed all six sources retain their original OPEN/ACTIVE status, null award ID/date, and exact pre-test closing window and updatedAt timestamp. Automated comparison against uat/award-rollback-baseline.json passed for every source. All twelve original bids/offers/responses remain; spot/tender submissions are still SUBMITTED. There are zero related Jobs, award events, fee snapshots and result notifications for every fixture, including no surviving winner notification from the intended loser-notification failure tests.
+
+Original branch contains zero rollback fixtures and zero failure triggers. The scoped test-only triggers remain on the isolated branch as documented. No cleanup was performed against production.
+
+Runtime-log retrieval for the runner deployment over 22:13–22:16 UTC on 30 September failed with ExceedsBillingLimitError. This is not evidence that logs were absent. The intended injected-error messages could not be independently retrieved for each request. Therefore database rollback outcomes and expected HTTP failures are PASS, while independent failure-stage attribution remains unresolved. Do not claim fully evidenced failure injection from HTTP 500 alone.
+
+Post-test source states and comparison results are saved in uat/award-rollback-results.json. Overall launch matrix remains incomplete.
