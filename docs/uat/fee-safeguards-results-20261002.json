@@ -43,5 +43,14 @@
         "isError": false
       }
     }
-  ]
+  ],
+  "expandedCollisionDetail": {
+    "returnedCalls": 1,
+    "expectedCalls": 2,
+    "persistedSnapshots": 1,
+    "returnedFeeId": "cmuq8k9zx000f04l6lrbuqzy7",
+    "startMs": 0,
+    "endMs": 440,
+    "rejectedErrorCode": "NOT_CAPTURED"
+  }
 }

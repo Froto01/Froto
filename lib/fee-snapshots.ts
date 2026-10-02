@@ -120,10 +120,11 @@ async function createFeeSnapshotIfApplicable({
 
   const idempotencyKey = `${transactionType}:${sourceId}`;
 
-  return tx.transactionFee.upsert({
-    where: { idempotencyKey },
-    update: {},
-    create: {
+  // Empty-update upserts can become SELECT then INSERT in Prisma. Use the
+  // PostgreSQL conflict guard so an existing snapshot is never updated.
+  await tx.transactionFee.createMany({
+    skipDuplicates: true,
+    data: {
       idempotencyKey,
       feeRuleId: rule.id,
       feeRuleCode: rule.code,
@@ -144,6 +145,8 @@ async function createFeeSnapshotIfApplicable({
       metadata: metadata ?? undefined,
     },
   });
+
+  return tx.transactionFee.findUniqueOrThrow({ where: { idempotencyKey } });
 }
 
 export async function createJobFeeSnapshotIfApplicable(input: CreateJobFeeSnapshotInput) {

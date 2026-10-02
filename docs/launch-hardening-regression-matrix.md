@@ -163,3 +163,7 @@ These helper tests use database stubs. They do not establish database contention
 ## Real database fee safeguard UAT — 2 October 2026
 
 Nine authenticated preview checks passed for overlapping rules, unsupported payer and snapshot immutability across marketplace, tender and guest fee types. Independent reads confirm unchanged fee rules and no temporary snapshot rows. Marketplace parallel standalone snapshot creation displayed REVIEW: exactly one CALCULATED snapshot persisted, but both successful caller responses have not been established. The runner stopped before tender/guest collisions. See fee-safeguards-live-uat.md and uat/fee-safeguards-results-20261002.json. Overall launch hardening remains incomplete; no application fix is claimed from this evidence.
+
+## Standalone fee collision fix — 2 October 2026
+
+The expanded live result shows 1/2 marketplace helper calls returned, with one snapshot saved. Actual Prisma SQL tracing independently reproduced a SELECT-then-INSERT path without conflict handling for the old empty-update upsert. The helper now inserts using createMany/skipDuplicates and reads the canonical snapshot without updating existing rows. All 118 tests pass, including actual Prisma SQL compilation to ON CONFLICT DO NOTHING. Live collision verification remains pending; FAIL-10 remains PARTIAL until the new preview run and independent reconciliation pass.
