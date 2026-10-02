@@ -59,7 +59,7 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | PARTIAL — six browser failures left no partial records; injected-error-stage log confirmation blocked by Vercel billing limit |
 | FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | REAL DATABASE HELPER PASS — overlapping rules rejected with zero snapshots for all three types; full invalid-configuration award pending |
 | FAIL-09 | Unsupported fee payer configuration | Award fails closed | REAL DATABASE HELPER PASS — unsupported GUEST payer rejected for all three types; full invalid-configuration award pending |
-| FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | PARTIAL — real database immutable snapshot checks passed for all three types; marketplace standalone collision returned REVIEW despite one persisted fee; tender/guest collisions did not run |
+| FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | PASS — post-fix real database immutability and parallel duplicate helper checks passed for all three types; one persisted fee per source confirmed independently |
 
 ## P1 — onboarding, verification and notifications
 
@@ -167,3 +167,7 @@ Nine authenticated preview checks passed for overlapping rules, unsupported paye
 ## Standalone fee collision fix — 2 October 2026
 
 The expanded live result shows 1/2 marketplace helper calls returned, with one snapshot saved. Actual Prisma SQL tracing independently reproduced a SELECT-then-INSERT path without conflict handling for the old empty-update upsert. The helper now inserts using createMany/skipDuplicates and reads the canonical snapshot without updating existing rows. All 118 tests pass, including actual Prisma SQL compilation to ON CONFLICT DO NOTHING. Live collision verification remains pending; FAIL-10 remains PARTIAL until the new preview run and independent reconciliation pass.
+
+## Post-fix live fee collision verification — 2 October 2026
+
+All twelve fee-helper database checks passed in authenticated UAT on commit 6ea91ec9ab788028bddec6d2af32e4462cf91ec2. Independent reads confirm exactly one correctly calculated immutable fee for each marketplace, tender and guest collision source; unchanged rule values; zero temporary snapshot/rule artifacts; and zero matching artifacts on the original database. FAIL-10 passes for the prepared acceptance scope. Full invalid-configuration award tests (FAIL-08/09), injected error-stage attribution (FAIL-07), guest workflow and remaining launch rows are still pending. See fee-safeguards-live-uat.md and uat/fee-safeguards-passed-20261002.json.

@@ -1,6 +1,6 @@
 # Real database fee safeguards UAT — 2 October 2026
 
-Status: PARTIAL — nine real-database checks passed; marketplace parallel duplicate creation needs review. Tender and guest collision checks did not run.
+Status: PASS for the prepared real-database fee-helper scope after the collision fix. Full invalid-configuration award integration remains pending.
 
 This runner exists only on `billing-uat`. The POST endpoint requires Vercel preview environment, that exact Git branch, same-origin request, an authenticated Froto test company OWNER/ADMIN/MANAGER, and a marker fixture that exists only on the isolated Neon branch `br-fancy-heart-axjf1fzn`.
 
@@ -46,3 +46,11 @@ The expanded result confirms 1/2 marketplace calls returned and one snapshot per
 The helper now uses createMany with skipDuplicates, followed by findUniqueOrThrow for the canonical key. The actual query compiler regression verifies INSERT ON CONFLICT DO NOTHING, followed by SELECT, without an existing-row UPDATE. No existing fee fields or timestamps are updated. Unexpected database errors propagate; Serializable conflicts still reach the award handlers' existing 409 handling. Read Committed duplicate callers can read the winning row after the guarded insertion completes.
 
 All 118 tests pass, including unchanged snapshot semantics, insert-error propagation without querying an aborted transaction, and actual Prisma SQL generation. TypeScript and ESLint pass with one pre-existing unused-parameter warning in the guest wrapper. The new UAT runner reports safe Prisma error codes for any rejected collision call. Live verification of this fix is pending; a new preview run uses fresh source IDs and retains the first run's evidence.
+
+## Post-fix execution — 2 October 2026
+
+Screenshot `image(20261002-005531).png` confirms all twelve checks passed for run `uat-fee-safeguards-20261002-e8d29181-cd55-4b9d-9d61-82db8b1d1f56`, using preview commit `6ea91ec9ab788028bddec6d2af32e4462cf91ec2`. Each collision PASS requires both helper calls to return the same fee ID and an independent in-run query to count one CALCULATED row. Request timing details were not expanded in this screenshot, so no precise database overlap is claimed.
+
+Independent connector reads confirm exactly three rows for the new run, one per fee type, all CALCULATED, with $500 transaction amount, $15 ex GST, $1.50 GST and $16.50 inclusive. IDs: marketplace `cmuq94a2h000i04jnn9om6x41`, tender `cmuq94a5y000k04jnnw7g1c9f`, guest `cmuq94a8v000m04jncjy8iln3`. No temporary overlap/payer/immutable fee rows remain. All five rules exactly match the prior rule-value baseline; no temporary rules remain. Original database has zero matching fee/rule records. Evidence: `uat/fee-safeguards-passed-20261002.json`.
+
+The first failed run remains recorded separately. The standalone collision fix is now verified for the planned pair of parallel calls in Read Committed transactions for all three fee types. This closes the prepared fee-helper test scope and FAIL-10 acceptance. It does not close full invalid-configuration award rollback, guest auction browser workflow, or the other launch-hardening rows.
