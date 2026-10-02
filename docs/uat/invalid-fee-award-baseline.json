@@ -1,0 +1,263 @@
+{
+  "branch": "br-fancy-heart-axjf1fzn",
+  "sources": [
+    {
+      "id": "uat-invalid-fee-marketplace-overlap-20261002",
+      "status": "ACTIVE",
+      "closes_at": "2026-10-02T00:41:20.285Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:41:20.285Z"
+    },
+    {
+      "id": "uat-invalid-fee-marketplace-payer-20261002",
+      "status": "ACTIVE",
+      "closes_at": "2026-10-02T00:41:20.285Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:41:20.285Z"
+    },
+    {
+      "id": "uat-invalid-fee-spot-overlap-20261002",
+      "status": "OPEN",
+      "closes_at": null,
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:41:20.285Z"
+    },
+    {
+      "id": "uat-invalid-fee-spot-payer-20261002",
+      "status": "OPEN",
+      "closes_at": null,
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:41:20.285Z"
+    },
+    {
+      "id": "uat-invalid-fee-tender-overlap-20261002",
+      "status": "OPEN",
+      "closes_at": "2026-10-02T00:41:20.285Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:41:20.285Z"
+    },
+    {
+      "id": "uat-invalid-fee-tender-payer-20261002",
+      "status": "OPEN",
+      "closes_at": "2026-10-02T00:41:20.285Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:41:20.285Z"
+    }
+  ],
+  "submissions": [
+    {
+      "kind": "marketplace",
+      "source_id": "uat-invalid-fee-marketplace-overlap-20261002",
+      "id": "uat-invalid-fee-marketplace-overlap-20261002-a",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "marketplace",
+      "source_id": "uat-invalid-fee-marketplace-overlap-20261002",
+      "id": "uat-invalid-fee-marketplace-overlap-20261002-b",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "marketplace",
+      "source_id": "uat-invalid-fee-marketplace-payer-20261002",
+      "id": "uat-invalid-fee-marketplace-payer-20261002-a",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "marketplace",
+      "source_id": "uat-invalid-fee-marketplace-payer-20261002",
+      "id": "uat-invalid-fee-marketplace-payer-20261002-b",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-invalid-fee-spot-overlap-20261002",
+      "id": "uat-invalid-fee-spot-overlap-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-invalid-fee-spot-overlap-20261002",
+      "id": "uat-invalid-fee-spot-overlap-20261002-b",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-invalid-fee-spot-payer-20261002",
+      "id": "uat-invalid-fee-spot-payer-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-invalid-fee-spot-payer-20261002",
+      "id": "uat-invalid-fee-spot-payer-20261002-b",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-invalid-fee-tender-overlap-20261002",
+      "id": "uat-invalid-fee-tender-overlap-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-invalid-fee-tender-overlap-20261002",
+      "id": "uat-invalid-fee-tender-overlap-20261002-b",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-invalid-fee-tender-payer-20261002",
+      "id": "uat-invalid-fee-tender-payer-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-invalid-fee-tender-payer-20261002",
+      "id": "uat-invalid-fee-tender-payer-20261002-b",
+      "status": "SUBMITTED"
+    }
+  ],
+  "feeRules": [
+    {
+      "id": "fee_rule_guest_launch_v1",
+      "code": "FROTO_GUEST_AUCTION_SUCCESS",
+      "version": 1,
+      "transactionType": "GUEST_AUCTION",
+      "percentageBps": 300,
+      "minimumFee": "10.00",
+      "maximumFee": "500.00",
+      "gstBps": 1000,
+      "payerType": "PROVIDER",
+      "active": true,
+      "effectiveFrom": "2026-09-13T07:22:27.786Z",
+      "effectiveTo": null,
+      "notes": "Approved launch policy: 3% ex GST, $10 minimum, $500 maximum; winning provider pays; guest customer pays no fee; earned after guest-confirmed completion.",
+      "createdAt": "2026-09-13T07:22:27.786Z",
+      "updatedAt": "2026-09-13T07:22:27.786Z"
+    },
+    {
+      "id": "fee_rule_marketplace_launch_v1",
+      "code": "FROTO_MARKETPLACE_SUCCESS",
+      "version": 1,
+      "transactionType": "MARKETPLACE_JOB",
+      "percentageBps": 300,
+      "minimumFee": "10.00",
+      "maximumFee": "500.00",
+      "gstBps": 1000,
+      "payerType": "PROVIDER",
+      "active": true,
+      "effectiveFrom": "2026-09-04T00:45:12.378Z",
+      "effectiveTo": null,
+      "notes": "Approved launch policy: 3% ex GST, $10 minimum, $500 maximum, provider pays, earned on confirmed completion",
+      "createdAt": "2026-09-04T00:45:12.378Z",
+      "updatedAt": "2026-09-04T00:45:12.378Z"
+    },
+    {
+      "id": "fee_rule_tender_launch_v1",
+      "code": "FROTO_TENDER_SUCCESS",
+      "version": 1,
+      "transactionType": "TENDER_JOB",
+      "percentageBps": 300,
+      "minimumFee": "10.00",
+      "maximumFee": "500.00",
+      "gstBps": 1000,
+      "payerType": "PROVIDER",
+      "active": true,
+      "effectiveFrom": "2026-09-04T00:45:12.378Z",
+      "effectiveTo": null,
+      "notes": "Approved launch policy: 3% ex GST, $10 minimum, $500 maximum, provider pays, earned on confirmed completion",
+      "createdAt": "2026-09-04T00:45:12.378Z",
+      "updatedAt": "2026-09-04T00:45:12.378Z"
+    },
+    {
+      "id": "provisional-marketplace-5pct-v1",
+      "code": "PROVISIONAL_5_PERCENT_MARKETPLACE",
+      "version": 1,
+      "transactionType": "MARKETPLACE_JOB",
+      "percentageBps": 500,
+      "minimumFee": null,
+      "maximumFee": null,
+      "gstBps": 1000,
+      "payerType": "PROVIDER",
+      "active": false,
+      "effectiveFrom": null,
+      "effectiveTo": null,
+      "notes": "Provisional 5% test rule. Inactive in production pending commercial approval.",
+      "createdAt": "2026-08-26T22:52:10.447Z",
+      "updatedAt": "2026-08-26T22:52:10.447Z"
+    },
+    {
+      "id": "provisional-tender-5pct-v1",
+      "code": "PROVISIONAL_5_PERCENT_TENDER",
+      "version": 1,
+      "transactionType": "TENDER_JOB",
+      "percentageBps": 500,
+      "minimumFee": null,
+      "maximumFee": null,
+      "gstBps": 1000,
+      "payerType": "PROVIDER",
+      "active": false,
+      "effectiveFrom": null,
+      "effectiveTo": null,
+      "notes": "Provisional 5% test rule. Inactive in production pending commercial approval.",
+      "createdAt": "2026-08-26T22:52:10.447Z",
+      "updatedAt": "2026-08-26T22:52:10.447Z"
+    }
+  ],
+  "receipts": [
+    {
+      "fixture": "spot-overlap",
+      "hits": "0"
+    },
+    {
+      "fixture": "spot-payer",
+      "hits": "0"
+    },
+    {
+      "fixture": "marketplace-overlap",
+      "hits": "0"
+    },
+    {
+      "fixture": "marketplace-payer",
+      "hits": "0"
+    },
+    {
+      "fixture": "tender-overlap",
+      "hits": "0"
+    },
+    {
+      "fixture": "tender-payer",
+      "hits": "0"
+    }
+  ],
+  "artifacts": [
+    {
+      "jobs": "0",
+      "events": "0",
+      "fees": "0",
+      "notifications": "0"
+    }
+  ],
+  "original": [
+    {
+      "fixtures": "0",
+      "invalid_rules": "0",
+      "counters": "0",
+      "triggers": "0"
+    }
+  ],
+  "queries": [
+    "SELECT id,status::text,\"offersCloseAt\" AS closes_at,\"awardedAt\" AS awarded_at,\"awardedOfferId\" AS awarded_id,\"updatedAt\" AS updated_at FROM \"SpotRequirement\" WHERE id LIKE 'uat-invalid-fee-%-20261002' UNION ALL SELECT id,status::text,\"biddingClosesAt\",\"awardedAt\",\"awardedBidId\",\"updatedAt\" FROM \"Listing\" WHERE id LIKE 'uat-invalid-fee-%-20261002' UNION ALL SELECT id,status::text,\"responseClosesAt\",\"awardedAt\",\"awardedResponseId\",\"updatedAt\" FROM \"Tender\" WHERE id LIKE 'uat-invalid-fee-%-20261002' ORDER BY id",
+    "SELECT 'spot' AS kind,\"spotRequirementId\" AS source_id,id,status FROM \"SpotOffer\" WHERE \"spotRequirementId\" LIKE 'uat-invalid-fee-%-20261002' UNION ALL SELECT 'marketplace',\"listingId\",id,'PRESENT' FROM \"Bid\" WHERE \"listingId\" LIKE 'uat-invalid-fee-%-20261002' UNION ALL SELECT 'tender',\"tenderId\",id,status FROM \"TenderResponse\" WHERE \"tenderId\" LIKE 'uat-invalid-fee-%-20261002' ORDER BY source_id,id",
+    "SELECT * FROM \"FeeRule\" ORDER BY id",
+    "SELECT 'spot-overlap' AS fixture, CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_config_spot_overlap_20261002 UNION ALL SELECT 'spot-payer' AS fixture, CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_config_spot_payer_20261002 UNION ALL SELECT 'marketplace-overlap' AS fixture, CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_config_marketplace_overlap_20261002 UNION ALL SELECT 'marketplace-payer' AS fixture, CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_config_marketplace_payer_20261002 UNION ALL SELECT 'tender-overlap' AS fixture, CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_config_tender_overlap_20261002 UNION ALL SELECT 'tender-payer' AS fixture, CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_config_tender_payer_20261002"
+  ],
+  "artifactQuery": "SELECT (SELECT count(*) FROM \"Job\" WHERE COALESCE(\"spotRequirementId\",\"listingId\",\"tenderId\") LIKE 'uat-invalid-fee-%-20261002') AS jobs,(SELECT count(*) FROM \"JobEvent\" e JOIN \"Job\" j ON j.id=e.\"jobId\" WHERE COALESCE(j.\"spotRequirementId\",j.\"listingId\",j.\"tenderId\") LIKE 'uat-invalid-fee-%-20261002') AS events,(SELECT count(*) FROM \"TransactionFee\" WHERE COALESCE(metadata->>'spotRequirementId',metadata->>'listingId',metadata->>'tenderId') LIKE 'uat-invalid-fee-%-20261002') AS fees,(SELECT count(*) FROM \"Notification\" WHERE COALESCE(metadata->>'spotRequirementId',metadata->>'listingId',metadata->>'tenderId') LIKE 'uat-invalid-fee-%-20261002') AS notifications"
+}
