@@ -57,9 +57,9 @@ Purpose: protect the proven core marketplace while commercial decisions remain g
 | FAIL-05 | Repeated completion submission | No duplicate lifecycle event/state corruption | CODE REVIEW PASS — repeated DELIVERED has no valid transition |
 | FAIL-06 | Repeated completion confirmation | No duplicate completion/state corruption | ROUTE REGRESSION PASS — COMPLETED repeat returns 409 before writes; browser UAT pending |
 | FAIL-07 | Notification creation failure inside transaction-critical operation | Transaction behaviour documented and tested | PARTIAL — six browser failures left no partial records; injected-error-stage log confirmation blocked by Vercel billing limit |
-| FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | HELPER REGRESSION PASS — overlapping rules rejected before snapshot writes; live invalid-configuration award pending |
-| FAIL-09 | Unsupported fee payer configuration | Award fails closed | HELPER REGRESSION PASS — unsupported payer and guest buyer-without-company rejected; live invalid-configuration award pending |
-| FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | HELPER REGRESSION PASS — existing snapshot unchanged and duplicate key reused; live concurrent awards also produced one fee each |
+| FAIL-08 | Overlapping active fee rules | Award fails closed rather than selecting arbitrary rule | REAL DATABASE HELPER PASS — overlapping rules rejected with zero snapshots for all three types; full invalid-configuration award pending |
+| FAIL-09 | Unsupported fee payer configuration | Award fails closed | REAL DATABASE HELPER PASS — unsupported GUEST payer rejected for all three types; full invalid-configuration award pending |
+| FAIL-10 | Existing fee snapshot/idempotency collision | No duplicate fee record | PARTIAL — real database immutable snapshot checks passed for all three types; marketplace standalone collision returned REVIEW despite one persisted fee; tender/guest collisions did not run |
 
 ## P1 — onboarding, verification and notifications
 
@@ -159,3 +159,7 @@ Added 25 tests executing the actual fee-snapshots.ts exports with the real fee c
 All 116 tests pass (91 existing + 25 helper), together with ESLint on the new test file, TypeScript and whitespace checks. No application source, fee rule or database configuration was changed. Existing spot/marketplace/tender HTTP concurrency evidence independently confirms one persisted snapshot per award under ordinary valid rules.
 
 These helper tests use database stubs. They do not establish database contention for standalone upsert collisions or full award rollback under live overlapping/unsupported fee rules. Those live configuration cases remain pending; overall launch hardening is not GREEN. The rollback log evidence gap is unchanged.
+
+## Real database fee safeguard UAT — 2 October 2026
+
+Nine authenticated preview checks passed for overlapping rules, unsupported payer and snapshot immutability across marketplace, tender and guest fee types. Independent reads confirm unchanged fee rules and no temporary snapshot rows. Marketplace parallel standalone snapshot creation displayed REVIEW: exactly one CALCULATED snapshot persisted, but both successful caller responses have not been established. The runner stopped before tender/guest collisions. See fee-safeguards-live-uat.md and uat/fee-safeguards-results-20261002.json. Overall launch hardening remains incomplete; no application fix is claimed from this evidence.

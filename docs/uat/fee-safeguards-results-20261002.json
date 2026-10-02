@@ -1,0 +1,47 @@
+{
+  "runId": "uat-fee-safeguards-20261002-52e4d593-87c5-4f64-9496-fe67eb661ab9",
+  "screenshotFileId": "file_00000000357081fa9fe41e6e4a2f4a1a",
+  "previewCommit": "4f645d9838432d11644d9c336cdaa05dbf7749e4",
+  "firstNineChecks": "PASS",
+  "marketplaceCollision": "REVIEW",
+  "tenderGuestCollisions": "NOT_RUN",
+  "cause": "NOT_ESTABLISHED",
+  "database": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[\n  {\n    \"id\": \"cmuq8k9zx000f04l6lrbuqzy7\",\n    \"sourceId\": \"uat-fee-safeguards-20261002-52e4d593-87c5-4f64-9496-fe67eb661ab9-MARKETPLACE_JOB-collision\",\n    \"idempotencyKey\": \"MARKETPLACE_JOB:uat-fee-safeguards-20261002-52e4d593-87c5-4f64-9496-fe67eb661ab9-MARKETPLACE_JOB-collision\",\n    \"transactionType\": \"MARKETPLACE_JOB\",\n    \"status\": \"CALCULATED\",\n    \"transactionAmount\": \"500.00\",\n    \"feeExGst\": \"15.00\",\n    \"gstAmount\": \"1.50\",\n    \"feeIncGst\": \"16.50\",\n    \"metadata\": {\n      \"uat\": \"SIMULATED_FEE_SAFEGUARDS_20261002\"\n    }\n  }\n]"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[\n  {\n    \"id\": \"fee_rule_guest_launch_v1\",\n    \"code\": \"FROTO_GUEST_AUCTION_SUCCESS\",\n    \"version\": 1,\n    \"transactionType\": \"GUEST_AUCTION\",\n    \"payerType\": \"PROVIDER\",\n    \"active\": true,\n    \"percentageBps\": 300,\n    \"minimumFee\": \"10.00\",\n    \"maximumFee\": \"500.00\",\n    \"effectiveFrom\": \"2026-09-13T07:22:27.786Z\",\n    \"effectiveTo\": null\n  },\n  {\n    \"id\": \"fee_rule_marketplace_launch_v1\",\n    \"code\": \"FROTO_MARKETPLACE_SUCCESS\",\n    \"version\": 1,\n    \"transactionType\": \"MARKETPLACE_JOB\",\n    \"payerType\": \"PROVIDER\",\n    \"active\": true,\n    \"percentageBps\": 300,\n    \"minimumFee\": \"10.00\",\n    \"maximumFee\": \"500.00\",\n    \"effectiveFrom\": \"2026-09-04T00:45:12.378Z\",\n    \"effectiveTo\": null\n  },\n  {\n    \"id\": \"fee_rule_tender_launch_v1\",\n    \"code\": \"FROTO_TENDER_SUCCESS\",\n    \"version\": 1,\n    \"transactionType\": \"TENDER_JOB\",\n    \"payerType\": \"PROVIDER\",\n    \"active\": true,\n    \"percentageBps\": 300,\n    \"minimumFee\": \"10.00\",\n    \"maximumFee\": \"500.00\",\n    \"effectiveFrom\": \"2026-09-04T00:45:12.378Z\",\n    \"effectiveTo\": null\n  },\n  {\n    \"id\": \"provisional-marketplace-5pct-v1\",\n    \"code\": \"PROVISIONAL_5_PERCENT_MARKETPLACE\",\n    \"version\": 1,\n    \"transactionType\": \"MARKETPLACE_JOB\",\n    \"payerType\": \"PROVIDER\",\n    \"active\": false,\n    \"percentageBps\": 500,\n    \"minimumFee\": null,\n    \"maximumFee\": null,\n    \"effectiveFrom\": null,\n    \"effectiveTo\": null\n  },\n  {\n    \"id\": \"provisional-tender-5pct-v1\",\n    \"code\": \"PROVISIONAL_5_PERCENT_TENDER\",\n    \"version\": 1,\n    \"transactionType\": \"TENDER_JOB\",\n    \"payerType\": \"PROVIDER\",\n    \"active\": false,\n    \"percentageBps\": 500,\n    \"minimumFee\": null,\n    \"maximumFee\": null,\n    \"effectiveFrom\": null,\n    \"effectiveTo\": null\n  }\n]"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "[\n  {\n    \"fees\": \"0\",\n    \"rules\": \"0\"\n  }\n]"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}
