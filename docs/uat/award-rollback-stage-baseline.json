@@ -1,0 +1,147 @@
+{
+  "branch": "br-fancy-heart-axjf1fzn",
+  "sources": [
+    {
+      "id": "uat-rollback-marketplace-fee-20261002",
+      "status": "ACTIVE",
+      "closes_at": "2026-10-02T00:14:11.042Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:14:11.042Z"
+    },
+    {
+      "id": "uat-rollback-marketplace-notification-20261002",
+      "status": "ACTIVE",
+      "closes_at": "2026-10-02T00:14:11.042Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:14:11.042Z"
+    },
+    {
+      "id": "uat-rollback-spot-fee-20261002",
+      "status": "OPEN",
+      "closes_at": null,
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:14:11.042Z"
+    },
+    {
+      "id": "uat-rollback-spot-notification-20261002",
+      "status": "OPEN",
+      "closes_at": null,
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:14:11.042Z"
+    },
+    {
+      "id": "uat-rollback-tender-fee-20261002",
+      "status": "OPEN",
+      "closes_at": "2026-10-02T00:14:11.042Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:14:11.042Z"
+    },
+    {
+      "id": "uat-rollback-tender-notification-20261002",
+      "status": "OPEN",
+      "closes_at": "2026-10-02T00:14:11.042Z",
+      "awarded_at": null,
+      "awarded_id": null,
+      "updated_at": "2026-10-02T01:14:11.042Z"
+    }
+  ],
+  "submissions": [
+    {
+      "kind": "marketplace",
+      "source_id": "uat-rollback-marketplace-fee-20261002",
+      "id": "uat-rollback-marketplace-fee-20261002-a",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "marketplace",
+      "source_id": "uat-rollback-marketplace-fee-20261002",
+      "id": "uat-rollback-marketplace-fee-20261002-b",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "marketplace",
+      "source_id": "uat-rollback-marketplace-notification-20261002",
+      "id": "uat-rollback-marketplace-notification-20261002-a",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "marketplace",
+      "source_id": "uat-rollback-marketplace-notification-20261002",
+      "id": "uat-rollback-marketplace-notification-20261002-b",
+      "status": "PRESENT"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-rollback-spot-fee-20261002",
+      "id": "uat-rollback-spot-fee-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-rollback-spot-fee-20261002",
+      "id": "uat-rollback-spot-fee-20261002-b",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-rollback-spot-notification-20261002",
+      "id": "uat-rollback-spot-notification-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "spot",
+      "source_id": "uat-rollback-spot-notification-20261002",
+      "id": "uat-rollback-spot-notification-20261002-b",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-rollback-tender-fee-20261002",
+      "id": "uat-rollback-tender-fee-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-rollback-tender-fee-20261002",
+      "id": "uat-rollback-tender-fee-20261002-b",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-rollback-tender-notification-20261002",
+      "id": "uat-rollback-tender-notification-20261002-a",
+      "status": "SUBMITTED"
+    },
+    {
+      "kind": "tender",
+      "source_id": "uat-rollback-tender-notification-20261002",
+      "id": "uat-rollback-tender-notification-20261002-b",
+      "status": "SUBMITTED"
+    }
+  ],
+  "artifactCounts": [
+    {
+      "jobs": "0",
+      "events": "0",
+      "fees": "0",
+      "notifications": "0"
+    }
+  ],
+  "initialStageHits": 0,
+  "originalDatabase": {
+    "content": [
+      {
+        "type": "text",
+        "text": "[\n  {\n    \"fixture_count\": \"0\",\n    \"sequence_count\": \"0\"\n  }\n]"
+      }
+    ],
+    "isError": false
+  },
+  "query": "SELECT id,status::text, \"offersCloseAt\" AS closes_at,\"awardedAt\" AS awarded_at,\"awardedOfferId\" AS awarded_id,\"updatedAt\" AS updated_at FROM \"SpotRequirement\" WHERE id LIKE 'uat-rollback-%-20261002'\nUNION ALL SELECT id,status::text,\"biddingClosesAt\",\"awardedAt\",\"awardedBidId\",\"updatedAt\" FROM \"Listing\" WHERE id LIKE 'uat-rollback-%-20261002'\nUNION ALL SELECT id,status::text,\"responseClosesAt\",\"awardedAt\",\"awardedResponseId\",\"updatedAt\" FROM \"Tender\" WHERE id LIKE 'uat-rollback-%-20261002' ORDER BY id",
+  "receiptsQuery": "SELECT 'spot-fee' AS fixture,CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_stage_spot_fee_20261002 UNION ALL SELECT 'spot-notification' AS fixture,CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_stage_spot_notification_20261002 UNION ALL SELECT 'marketplace-fee' AS fixture,CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_stage_marketplace_fee_20261002 UNION ALL SELECT 'marketplace-notification' AS fixture,CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_stage_marketplace_notification_20261002 UNION ALL SELECT 'tender-fee' AS fixture,CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_stage_tender_fee_20261002 UNION ALL SELECT 'tender-notification' AS fixture,CASE WHEN is_called THEN last_value ELSE 0 END AS hits FROM froto_uat_stage_tender_notification_20261002"
+}

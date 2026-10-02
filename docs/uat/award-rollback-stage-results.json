@@ -1,0 +1,191 @@
+{
+  "outcome": "PASS",
+  "scope": "Fee and loser-notification injected failure rollback for spot, marketplace and tender",
+  "previewCommit": "9f3e3306c9bae726ec105bc8fa009c8f776cf125",
+  "screenshotFileId": "file_00000000c4c481fa86979783e63124e9",
+  "screenshot": "image(20261002-012143).png",
+  "httpStatuses": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+  ],
+  "comparisons": {
+    "sourceStatesExact": true,
+    "submissionsExact": true,
+    "allSixStagesReachedOnce": true,
+    "noPersistedArtifacts": true,
+    "originalDatabaseNoArtifacts": true
+  },
+  "after": {
+    "sources": [
+      {
+        "id": "uat-rollback-marketplace-fee-20261002",
+        "status": "ACTIVE",
+        "closes_at": "2026-10-02T00:14:11.042Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:14:11.042Z"
+      },
+      {
+        "id": "uat-rollback-marketplace-notification-20261002",
+        "status": "ACTIVE",
+        "closes_at": "2026-10-02T00:14:11.042Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:14:11.042Z"
+      },
+      {
+        "id": "uat-rollback-spot-fee-20261002",
+        "status": "OPEN",
+        "closes_at": null,
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:14:11.042Z"
+      },
+      {
+        "id": "uat-rollback-spot-notification-20261002",
+        "status": "OPEN",
+        "closes_at": null,
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:14:11.042Z"
+      },
+      {
+        "id": "uat-rollback-tender-fee-20261002",
+        "status": "OPEN",
+        "closes_at": "2026-10-02T00:14:11.042Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:14:11.042Z"
+      },
+      {
+        "id": "uat-rollback-tender-notification-20261002",
+        "status": "OPEN",
+        "closes_at": "2026-10-02T00:14:11.042Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:14:11.042Z"
+      }
+    ],
+    "receipts": [
+      {
+        "fixture": "spot-fee",
+        "hits": "1"
+      },
+      {
+        "fixture": "spot-notification",
+        "hits": "1"
+      },
+      {
+        "fixture": "marketplace-fee",
+        "hits": "1"
+      },
+      {
+        "fixture": "marketplace-notification",
+        "hits": "1"
+      },
+      {
+        "fixture": "tender-fee",
+        "hits": "1"
+      },
+      {
+        "fixture": "tender-notification",
+        "hits": "1"
+      }
+    ],
+    "submissions": [
+      {
+        "kind": "marketplace",
+        "source_id": "uat-rollback-marketplace-fee-20261002",
+        "id": "uat-rollback-marketplace-fee-20261002-a",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "marketplace",
+        "source_id": "uat-rollback-marketplace-fee-20261002",
+        "id": "uat-rollback-marketplace-fee-20261002-b",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "marketplace",
+        "source_id": "uat-rollback-marketplace-notification-20261002",
+        "id": "uat-rollback-marketplace-notification-20261002-a",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "marketplace",
+        "source_id": "uat-rollback-marketplace-notification-20261002",
+        "id": "uat-rollback-marketplace-notification-20261002-b",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-rollback-spot-fee-20261002",
+        "id": "uat-rollback-spot-fee-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-rollback-spot-fee-20261002",
+        "id": "uat-rollback-spot-fee-20261002-b",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-rollback-spot-notification-20261002",
+        "id": "uat-rollback-spot-notification-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-rollback-spot-notification-20261002",
+        "id": "uat-rollback-spot-notification-20261002-b",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-rollback-tender-fee-20261002",
+        "id": "uat-rollback-tender-fee-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-rollback-tender-fee-20261002",
+        "id": "uat-rollback-tender-fee-20261002-b",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-rollback-tender-notification-20261002",
+        "id": "uat-rollback-tender-notification-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-rollback-tender-notification-20261002",
+        "id": "uat-rollback-tender-notification-20261002-b",
+        "status": "SUBMITTED"
+      }
+    ],
+    "artifacts": [
+      {
+        "jobs": "0",
+        "events": "0",
+        "fees": "0",
+        "notifications": "0"
+      }
+    ],
+    "original": [
+      {
+        "fixtures": "0",
+        "jobs": "0",
+        "fees": "0",
+        "notifications": "0",
+        "sequences": "0"
+      }
+    ]
+  }
+}

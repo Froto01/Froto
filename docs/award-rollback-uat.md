@@ -45,3 +45,7 @@ Original branch contains zero rollback fixtures and zero failure triggers. The s
 Runtime-log retrieval for the runner deployment over 22:13–22:16 UTC on 30 September failed with ExceedsBillingLimitError. This is not evidence that logs were absent. The intended injected-error messages could not be independently retrieved for each request. Therefore database rollback outcomes and expected HTTP failures are PASS, while independent failure-stage attribution remains unresolved. Do not claim fully evidenced failure injection from HTTP 500 alone.
 
 Post-test source states and comparison results are saved in uat/award-rollback-results.json. Overall launch matrix remains incomplete.
+
+## Evidence gap closed by fresh stage-receipt run — 2 October 2026
+
+Fresh 20261002 fixtures reached all six intended injected failure stages, proven by dedicated database counters that advance immediately before raising the configured errors. Post-run independent reads and exact baseline comparison confirm complete rollback for the prepared scope. See award-rollback-stage-uat.md and uat/award-rollback-stage-results.json. FAIL-07 now passes; the earlier runtime logs remain unavailable and no retrospective attribution is claimed for the first run.
