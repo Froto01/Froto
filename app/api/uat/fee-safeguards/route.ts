@@ -78,8 +78,9 @@ export async function POST(request: Request) {
     }));
     const rows = await prisma.transactionFee.findMany({ where: { sourceId } });
     const values = calls.flatMap(call => call.status === "fulfilled" ? [call.value] : []);
+    const failures = calls.flatMap(call => call.status === "rejected" ? [{ code: typeof call.reason?.code === "string" && /^P\d{4}$/.test(call.reason.code) ? call.reason.code : "UNKNOWN" }] : []);
     const pass = values.length === 2 && rows.length === 1 && values.every(value => value.feeId === rows[0].id) && rows[0].status === "CALCULATED";
-    results.push({ name: `${type}: parallel duplicate creation`, pass, detail: `${values.length}/2 calls returned; ${rows.length} persisted snapshot(s). Timing: ${JSON.stringify(values)}. Source: ${sourceId}` });
+    results.push({ name: `${type}: parallel duplicate creation`, pass, detail: `${values.length}/2 calls returned; ${rows.length} persisted snapshot(s). Timing: ${JSON.stringify(values)}. Failures: ${JSON.stringify(failures)}. Source: ${sourceId}` });
     if (!pass) return NextResponse.json({ runId, results, complete: false });
   }
   return NextResponse.json({ runId, results, complete: true });
