@@ -1,5 +1,7 @@
 "use client";
 
+import { LOGISTICS_UNITS, type LogisticsUnit } from "@/lib/logistics-units";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, CheckCircle2, Clock3, PackagePlus, Truck, Warehouse } from "lucide-react";
@@ -17,7 +19,7 @@ type CreateListingForm = {
   origin: string;
   destination: string;
   capacityAmount: string;
-  capacityUnit: "pallets" | "parcels" | "sqm" | "cbm";
+  capacityUnit: LogisticsUnit;
   temperatureClass:
     | "ambient"
     | "chilled"
@@ -319,10 +321,7 @@ export default function CreateListingPage() {
                       onChange={(event) => updateField("capacityUnit", event.target.value)}
                       className={selectClass}
                     >
-                      <option value="pallets">pallets</option>
-                      <option value="parcels">parcels</option>
-                      <option value="sqm">sqm</option>
-                      <option value="cbm">cbm</option>
+                      {LOGISTICS_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                     </select>
                   </label>
 

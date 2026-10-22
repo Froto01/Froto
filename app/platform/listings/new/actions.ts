@@ -1,5 +1,7 @@
 "use server";
 
+import { isLogisticsUnit, type LogisticsUnit } from "@/lib/logistics-units";
+
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -15,7 +17,7 @@ type CreateListingInput = {
   origin: string;
   destination: string;
   capacityAmount: string;
-  capacityUnit: "pallets" | "parcels" | "sqm" | "cbm";
+  capacityUnit: LogisticsUnit;
   temperatureClass:
     | "ambient"
     | "chilled"
@@ -56,6 +58,7 @@ export async function createListing(input: CreateListingInput) {
   const availableTo = new Date(`${input.availableTo}T00:00:00.000Z`);
   const biddingClosesAt = new Date(input.biddingClosesAt);
 
+  if (!isLogisticsUnit(input.capacityUnit)) throw new Error("Choose a valid capacity unit.");
   if (!input.title.trim()) throw new Error("A listing title is required.");
   if (!Number.isInteger(capacityAmount) || capacityAmount <= 0) throw new Error("Capacity must be greater than zero.");
   if (!Number.isFinite(startingBid) || startingBid < 0) throw new Error("Starting bid must be zero or greater.");
