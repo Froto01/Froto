@@ -1,3 +1,5 @@
+import { isLogisticsUnit } from "@/lib/logistics-units";
+
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -281,14 +283,13 @@ export async function PATCH(
   const biddingClosesAt = typeof body.biddingClosesAt === "string" ? new Date(body.biddingClosesAt) : null;
   const notes = typeof body.notes === "string" ? body.notes.trim() : "";
 
-  const allowedUnits = new Set(["pallets", "parcels", "sqm", "cbm"]);
   const allowedTemperatures = new Set(["ambient", "chilled", "frozen", "dangerous goods", "other"]);
 
   if (!title) return NextResponse.json({ error: "A listing title is required." }, { status: 400 });
   if (!Number.isInteger(capacityAmount) || capacityAmount <= 0) {
     return NextResponse.json({ error: "Capacity must be greater than zero." }, { status: 400 });
   }
-  if (!allowedUnits.has(capacityUnit)) {
+  if (!isLogisticsUnit(capacityUnit)) {
     return NextResponse.json({ error: "Choose a valid capacity unit." }, { status: 400 });
   }
   if (!allowedTemperatures.has(temperatureClass)) {

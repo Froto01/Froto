@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LOGISTICS_UNITS } from "@/lib/logistics-units";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -50,7 +51,7 @@ export default function NewSpotRequirementPage() {
       <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700">{isTransport?"Transport needed":"Storage needed"}</p><h2 className="mt-1 text-xl font-bold text-slate-950">{isTransport?"Transport spot requirement":"Storage spot requirement"}</h2></div>
       <label className={label}>Requirement title<input className={input} name="title" required maxLength={140} placeholder={isTransport?"22 pallets Brisbane to Gold Coast":"40 pallet spaces in Brisbane for 3 weeks"}/></label>
       {isTransport?<div className="grid gap-4 md:grid-cols-2"><label className={label}>Origin<input className={input} name="origin" required/></label><label className={label}>Destination<input className={input} name="destination" required/></label></div>:<label className={label}>Storage location<input className={input} name="location" required placeholder="Brisbane, QLD"/></label>}
-      <div className="grid gap-4 md:grid-cols-2"><label className={label}>Quantity<input className={input} name="quantity" type="number" min="1" step="1" required/></label><label className={label}>Unit<input className={input} name="quantityUnit" required placeholder={isTransport?"pallets, tonnes, m³":"pallets, m², m³"}/></label></div>
+      <div className="grid gap-4 md:grid-cols-2"><label className={label}>Quantity<input className={input} name="quantity" type="number" min="1" step="1" required/></label><label className={label}>Unit<select className={input} name="quantityUnit" required defaultValue=""><option value="" disabled>Select a unit</option>{LOGISTICS_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}</select></label></div>
       <label className={label}>Temperature / handling class <span className="font-normal text-slate-500">Optional</span><input className={input} name="temperatureClass" placeholder="Ambient, chilled, frozen..."/></label>
       <div className="grid gap-4 md:grid-cols-2"><label className={label}>{isTransport?"Pickup / required from":"Storage required from"}<input className={input} name="requiredFrom" type="datetime-local" required/></label><label className={label}>{isTransport?"Required until":"Storage required until"} <span className="font-normal text-slate-500">Optional</span><input className={input} name="requiredTo" type="datetime-local"/></label></div>
       <label className={label}>Private offers close <span className="font-normal text-slate-500">Optional</span><input className={input} name="offersCloseAt" type="datetime-local"/></label>

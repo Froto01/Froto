@@ -1,5 +1,7 @@
 "use client";
 
+import { LOGISTICS_UNITS, type LogisticsUnit } from "@/lib/logistics-units";
+
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -16,7 +18,7 @@ type ListingForm = {
   origin: string;
   destination: string;
   capacityAmount: string;
-  capacityUnit: "pallets" | "parcels" | "sqm" | "cbm";
+  capacityUnit: LogisticsUnit;
   temperatureClass: "ambient" | "chilled" | "frozen" | "dangerous goods" | "other";
   availableFrom: string;
   availableTo: string;
@@ -280,7 +282,7 @@ export default function EditListingPage() {
                 <label className="space-y-2 text-sm font-medium text-froto-navy">Capacity<Input disabled={!listing.canEdit} type="number" min="1" value={form.capacityAmount} onChange={(e) => updateField("capacityAmount", e.target.value)} className={fieldClass} /></label>
                 <label className="space-y-2 text-sm font-medium text-froto-navy">Capacity unit
                   <select disabled={!listing.canEdit} value={form.capacityUnit} onChange={(e) => updateField("capacityUnit", e.target.value)} className={selectClass}>
-                    <option value="pallets">pallets</option><option value="parcels">parcels</option><option value="sqm">sqm</option><option value="cbm">cbm</option>
+                    {LOGISTICS_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                   </select>
                 </label>
                 <label className="space-y-2 text-sm font-medium text-froto-navy">Temperature class

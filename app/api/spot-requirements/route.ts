@@ -1,3 +1,5 @@
+import { isLogisticsUnit } from "@/lib/logistics-units";
+
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
@@ -40,6 +42,7 @@ export async function POST(request: Request) {
 
   if (!["TRANSPORT", "STORAGE"].includes(requirementType)) return NextResponse.json({ error: "Requirement type must be TRANSPORT or STORAGE." }, { status: 400 });
   if (!title || !Number.isInteger(quantity) || quantity <= 0 || !quantityUnit || !requiredFrom) return NextResponse.json({ error: "Title, quantity, quantity unit and required-from date are required." }, { status: 400 });
+  if (!isLogisticsUnit(quantityUnit)) return NextResponse.json({ error: "Choose a valid quantity unit from the list." }, { status: 400 });
   if (requirementType === "TRANSPORT" && (!origin || !destination)) return NextResponse.json({ error: "Transport requirements need an origin and destination." }, { status: 400 });
   if (requirementType === "STORAGE" && !location) return NextResponse.json({ error: "Storage requirements need a location." }, { status: 400 });
   if (requiredTo && requiredTo.getTime() < requiredFrom.getTime()) return NextResponse.json({ error: "Required-to date cannot be before required-from date." }, { status: 400 });
