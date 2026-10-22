@@ -1,0 +1,280 @@
+{
+  "outcome": "PASS",
+  "dateBrisbane": "2026-10-23",
+  "scope": "Full existing spot, marketplace and tender award handlers invoked through authenticated UAT wrapper; overlap and unsupported payer",
+  "previewCommit": "387676c835c289846be2f12b36d9c69ea94fb8b1",
+  "screenshot": "image(20261022-214317).png",
+  "screenshotFileId": "file_000000002be081faae511936054aaa69",
+  "httpStatuses": [
+    500,
+    500,
+    500,
+    500,
+    500,
+    500
+  ],
+  "checks": {
+    "sourceStatesUnchanged": true,
+    "allTwelveSubmissionsUnchanged": true,
+    "allFeeRulesRestoredExactly": true,
+    "allSixConfigurationsInjectedOnce": true,
+    "noPersistedAwardArtifacts": true,
+    "originalDatabaseClear": true
+  },
+  "after": [
+    [
+      {
+        "id": "uat-invalid-fee-marketplace-overlap-20261002",
+        "status": "ACTIVE",
+        "closes_at": "2026-10-02T00:41:20.285Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:41:20.285Z"
+      },
+      {
+        "id": "uat-invalid-fee-marketplace-payer-20261002",
+        "status": "ACTIVE",
+        "closes_at": "2026-10-02T00:41:20.285Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:41:20.285Z"
+      },
+      {
+        "id": "uat-invalid-fee-spot-overlap-20261002",
+        "status": "OPEN",
+        "closes_at": null,
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:41:20.285Z"
+      },
+      {
+        "id": "uat-invalid-fee-spot-payer-20261002",
+        "status": "OPEN",
+        "closes_at": null,
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:41:20.285Z"
+      },
+      {
+        "id": "uat-invalid-fee-tender-overlap-20261002",
+        "status": "OPEN",
+        "closes_at": "2026-10-02T00:41:20.285Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:41:20.285Z"
+      },
+      {
+        "id": "uat-invalid-fee-tender-payer-20261002",
+        "status": "OPEN",
+        "closes_at": "2026-10-02T00:41:20.285Z",
+        "awarded_at": null,
+        "awarded_id": null,
+        "updated_at": "2026-10-02T01:41:20.285Z"
+      }
+    ],
+    [
+      {
+        "kind": "marketplace",
+        "source_id": "uat-invalid-fee-marketplace-overlap-20261002",
+        "id": "uat-invalid-fee-marketplace-overlap-20261002-a",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "marketplace",
+        "source_id": "uat-invalid-fee-marketplace-overlap-20261002",
+        "id": "uat-invalid-fee-marketplace-overlap-20261002-b",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "marketplace",
+        "source_id": "uat-invalid-fee-marketplace-payer-20261002",
+        "id": "uat-invalid-fee-marketplace-payer-20261002-a",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "marketplace",
+        "source_id": "uat-invalid-fee-marketplace-payer-20261002",
+        "id": "uat-invalid-fee-marketplace-payer-20261002-b",
+        "status": "PRESENT"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-invalid-fee-spot-overlap-20261002",
+        "id": "uat-invalid-fee-spot-overlap-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-invalid-fee-spot-overlap-20261002",
+        "id": "uat-invalid-fee-spot-overlap-20261002-b",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-invalid-fee-spot-payer-20261002",
+        "id": "uat-invalid-fee-spot-payer-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "spot",
+        "source_id": "uat-invalid-fee-spot-payer-20261002",
+        "id": "uat-invalid-fee-spot-payer-20261002-b",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-invalid-fee-tender-overlap-20261002",
+        "id": "uat-invalid-fee-tender-overlap-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-invalid-fee-tender-overlap-20261002",
+        "id": "uat-invalid-fee-tender-overlap-20261002-b",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-invalid-fee-tender-payer-20261002",
+        "id": "uat-invalid-fee-tender-payer-20261002-a",
+        "status": "SUBMITTED"
+      },
+      {
+        "kind": "tender",
+        "source_id": "uat-invalid-fee-tender-payer-20261002",
+        "id": "uat-invalid-fee-tender-payer-20261002-b",
+        "status": "SUBMITTED"
+      }
+    ],
+    [
+      {
+        "id": "fee_rule_guest_launch_v1",
+        "code": "FROTO_GUEST_AUCTION_SUCCESS",
+        "version": 1,
+        "transactionType": "GUEST_AUCTION",
+        "percentageBps": 300,
+        "minimumFee": "10.00",
+        "maximumFee": "500.00",
+        "gstBps": 1000,
+        "payerType": "PROVIDER",
+        "active": true,
+        "effectiveFrom": "2026-09-13T07:22:27.786Z",
+        "effectiveTo": null,
+        "notes": "Approved launch policy: 3% ex GST, $10 minimum, $500 maximum; winning provider pays; guest customer pays no fee; earned after guest-confirmed completion.",
+        "createdAt": "2026-09-13T07:22:27.786Z",
+        "updatedAt": "2026-09-13T07:22:27.786Z"
+      },
+      {
+        "id": "fee_rule_marketplace_launch_v1",
+        "code": "FROTO_MARKETPLACE_SUCCESS",
+        "version": 1,
+        "transactionType": "MARKETPLACE_JOB",
+        "percentageBps": 300,
+        "minimumFee": "10.00",
+        "maximumFee": "500.00",
+        "gstBps": 1000,
+        "payerType": "PROVIDER",
+        "active": true,
+        "effectiveFrom": "2026-09-04T00:45:12.378Z",
+        "effectiveTo": null,
+        "notes": "Approved launch policy: 3% ex GST, $10 minimum, $500 maximum, provider pays, earned on confirmed completion",
+        "createdAt": "2026-09-04T00:45:12.378Z",
+        "updatedAt": "2026-09-04T00:45:12.378Z"
+      },
+      {
+        "id": "fee_rule_tender_launch_v1",
+        "code": "FROTO_TENDER_SUCCESS",
+        "version": 1,
+        "transactionType": "TENDER_JOB",
+        "percentageBps": 300,
+        "minimumFee": "10.00",
+        "maximumFee": "500.00",
+        "gstBps": 1000,
+        "payerType": "PROVIDER",
+        "active": true,
+        "effectiveFrom": "2026-09-04T00:45:12.378Z",
+        "effectiveTo": null,
+        "notes": "Approved launch policy: 3% ex GST, $10 minimum, $500 maximum, provider pays, earned on confirmed completion",
+        "createdAt": "2026-09-04T00:45:12.378Z",
+        "updatedAt": "2026-09-04T00:45:12.378Z"
+      },
+      {
+        "id": "provisional-marketplace-5pct-v1",
+        "code": "PROVISIONAL_5_PERCENT_MARKETPLACE",
+        "version": 1,
+        "transactionType": "MARKETPLACE_JOB",
+        "percentageBps": 500,
+        "minimumFee": null,
+        "maximumFee": null,
+        "gstBps": 1000,
+        "payerType": "PROVIDER",
+        "active": false,
+        "effectiveFrom": null,
+        "effectiveTo": null,
+        "notes": "Provisional 5% test rule. Inactive in production pending commercial approval.",
+        "createdAt": "2026-08-26T22:52:10.447Z",
+        "updatedAt": "2026-08-26T22:52:10.447Z"
+      },
+      {
+        "id": "provisional-tender-5pct-v1",
+        "code": "PROVISIONAL_5_PERCENT_TENDER",
+        "version": 1,
+        "transactionType": "TENDER_JOB",
+        "percentageBps": 500,
+        "minimumFee": null,
+        "maximumFee": null,
+        "gstBps": 1000,
+        "payerType": "PROVIDER",
+        "active": false,
+        "effectiveFrom": null,
+        "effectiveTo": null,
+        "notes": "Provisional 5% test rule. Inactive in production pending commercial approval.",
+        "createdAt": "2026-08-26T22:52:10.447Z",
+        "updatedAt": "2026-08-26T22:52:10.447Z"
+      }
+    ],
+    [
+      {
+        "fixture": "spot-overlap",
+        "hits": "1"
+      },
+      {
+        "fixture": "spot-payer",
+        "hits": "1"
+      },
+      {
+        "fixture": "marketplace-overlap",
+        "hits": "1"
+      },
+      {
+        "fixture": "marketplace-payer",
+        "hits": "1"
+      },
+      {
+        "fixture": "tender-overlap",
+        "hits": "1"
+      },
+      {
+        "fixture": "tender-payer",
+        "hits": "1"
+      }
+    ],
+    [
+      {
+        "jobs": "0",
+        "events": "0",
+        "fees": "0",
+        "notifications": "0"
+      }
+    ]
+  ],
+  "original": [
+    {
+      "fixtures": "0",
+      "jobs": "0",
+      "invalid_rules": "0",
+      "counters": "0",
+      "triggers": "0"
+    }
+  ]
+}
