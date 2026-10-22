@@ -87,8 +87,8 @@ export async function POST(
 
     const awardedAt = new Date();
 
-    await tx.guestAuction.update({
-      where: { id: auction.id },
+    const claimedAward = await tx.guestAuction.updateMany({
+      where: { id: auction.id, status: "OPEN", awardedBidId: null },
       data: {
         awardedBidId: bid.id,
         awardedAt,
@@ -96,6 +96,10 @@ export async function POST(
         status: "AWARDED",
       },
     });
+
+    if (claimedAward.count !== 1) {
+      return { ok: false as const, status: 409, error: "This guest job changed while you were awarding it. Refresh and try again." };
+    }
 
     await tx.guestAuctionBid.updateMany({
       where: { guestAuctionId: auction.id },
@@ -145,6 +149,11 @@ export async function POST(
       awardedAt: awardedAt.toISOString(),
       closedEarly: stillOpen,
     };
+  }, { isolationLevel: "Serializable" }).catch((error: unknown) => {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2034") {
+      return { ok: false as const, status: 409, error: "This guest job changed while you were awarding it. Refresh and try again." };
+    }
+    throw error;
   });
 
   if (!result.ok) {

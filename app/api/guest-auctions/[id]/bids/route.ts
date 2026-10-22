@@ -30,6 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const leadTime = typeof body.leadTime === "string" ? body.leadTime.trim().slice(0, 250) : "";
   const notes = typeof body.notes === "string" ? body.notes.trim().slice(0, 1000) : "";
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide a bid amount greater than zero." }, { status: 400 });
+  if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) return NextResponse.json({ error: "Bid amounts must have no more than two decimal places." }, { status: 400 });
 
   try {
     const bid = await prisma.guestAuctionBid.create({ data: { guestAuctionId: auction.id, bidderCompanyId: membership.companyId, placedByUserId: user.id, amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null } });
