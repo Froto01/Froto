@@ -1,12 +1,12 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { api, screenshot, activate } from './helpers';
-import { db, one, companyId, companyName, readManifest, writeManifest, type FeeRow } from './environment';
+import { db, one, companyId, companyName, readManifest, writeManifest, fixtureTitle, type FeeRow } from './environment';
 export type Kind = 'marketplace' | 'tender';
 export type Source = { id: string; close: number; kind: Kind; path: string; award: string; ids: string[] };
 // Brisbane has UTC+10 throughout the year. datetime-local inputs contain local wall time.
 const local = (time: number) => new Date(time + 10 * 3600000).toISOString().slice(0, 16);
 export async function createBusiness(page: Page, kind: Kind): Promise<Source> {
-  const manifest = readManifest(); const title = `SIMULATED ${manifest.runId} ${kind}`;
+  const manifest = readManifest(); const title = fixtureTitle(kind);
   await page.goto(kind === 'marketplace' ? '/platform/listings/new' : '/platform/tenders/new');
   let id: string; let close: number;
   if (kind === 'marketplace') {

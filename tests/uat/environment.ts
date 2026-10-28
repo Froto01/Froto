@@ -37,10 +37,15 @@ export function readManifest(): Manifest {
   if (!existsSync(path)) {
     const root: Manifest = JSON.parse(readFileSync('playwright/.auth/manifest.json', 'utf8'));
     const info = test.info();
-    writeManifest({ ...root, runId: `${root.runId}_${info.project.name}_${basename(info.file).replaceAll('.', '_')}_${testKey()}`, auctions: [], requirements: [], listings: [], tenders: [] });
+    writeManifest({ ...root, runId: `${root.runId} ${info.project.name} ${basename(info.file).replaceAll('.', '_')} ${testKey()}`, auctions: [], requirements: [], listings: [], tenders: [] });
   }
   return JSON.parse(readFileSync(path, 'utf8'));
 }
+export function fixtureTitle(suffix = '') {
+  const key = createHash('sha256').update(readManifest().runId).digest('hex').slice(0, 20).match(/.{5}/g)!.join(' ');
+  return `SIMULATED UAT ${key} ${suffix}`.trimEnd();
+}
+
 export function writeManifest(manifest: Manifest) { writeFileSync(manifestPath(), JSON.stringify(manifest), { mode: 0o600 }); }
 
 export async function seedActors() {
@@ -49,7 +54,7 @@ export async function seedActors() {
   const marker = await one<{ marker: string }>("SELECT shobj_description(oid, 'pg_database') AS marker FROM pg_database WHERE datname=current_database()", []);
   if (marker.marker !== 'FROTO_AUTOMATED_UAT_ONLY_V1') throw new Error('UAT database marker absent; no fixture writes permitted');
   mkdirSync('playwright/.auth', { recursive: true, mode: 0o700 });
-  const manifest: Manifest = { runId: `AUTO_UAT_${Date.now()}_${randomUUID().slice(0, 8)}`, users: {} as Record<Actor, string>, auctions: [], requirements: [], listings: [], tenders: [] };
+  const manifest: Manifest = { runId: `AUTO UAT ${Date.now()} ${randomUUID().slice(0, 8)}`, users: {} as Record<Actor, string>, auctions: [], requirements: [], listings: [], tenders: [] };
   const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
   for (const actor of actors) {
     const found = await clerk.users.getUserList({ emailAddress: [email(actor)] });
@@ -81,14 +86,14 @@ export async function cleanupSuccessfulRun() {
     await tx.query('BEGIN');
     for (const id of manifest.auctions) {
       const source = (await tx.query<AuctionRow>('SELECT * FROM "GuestAuction" WHERE id=$1', [id])).rows[0];
-      if (!source || source.createdByUserId !== manifest.users.guest || source.notes !== manifest.runId || !source.title.startsWith(`SIMULATED ${manifest.runId}`)) throw new Error('Refusing cleanup outside current owned guest fixtures');
+      if (!source || source.createdByUserId !== manifest.users.guest || source.notes !== manifest.runId || !source.title.startsWith(fixtureTitle())) throw new Error('Refusing cleanup outside current owned guest fixtures');
       await tx.query('DELETE FROM "Notification" WHERE metadata->>\'guestAuctionId\'=$1', [id]);
       await tx.query('DELETE FROM "TransactionFee" WHERE "transactionType"=\'GUEST_AUCTION\' AND "sourceId"=$1', [id]);
       await tx.query('DELETE FROM "GuestAuction" WHERE id=$1', [id]);
     }
     for (const id of manifest.requirements) {
       const source = (await tx.query<{ companyId: string; title: string }>('SELECT "companyId",title FROM "SpotRequirement" WHERE id=$1 AND NOT EXISTS (SELECT 1 FROM "Job" WHERE "spotRequirementId"=$1)', [id])).rows[0];
-      if (!source || source.companyId !== companyId('a') || !source.title.startsWith(`SIMULATED ${manifest.runId}`)) throw new Error('Refusing cleanup outside current unawarded requirement fixtures');
+      if (!source || source.companyId !== companyId('a') || !source.title.startsWith(fixtureTitle())) throw new Error('Refusing cleanup outside current unawarded requirement fixtures');
       await tx.query('DELETE FROM "Notification" WHERE metadata->>\'spotRequirementId\'=$1', [id]);
       await tx.query('DELETE FROM "SpotRequirement" WHERE id=$1', [id]);
     }
@@ -97,7 +102,7 @@ export async function cleanupSuccessfulRun() {
       const field = kind === 'listings' ? 'listingId' : 'tenderId';
       for (const id of manifest[kind]) {
         const source = (await tx.query<{companyId: string; notes: string; title: string}>(`SELECT "companyId",notes,title FROM "${table}" WHERE id=$1`, [id])).rows[0];
-        if (!source || source.companyId !== companyId('a') || source.notes !== manifest.runId || !source.title.startsWith(`SIMULATED ${manifest.runId}`)) throw new Error('Refusing cleanup outside current business fixtures');
+        if (!source || source.companyId !== companyId('a') || source.notes !== manifest.runId || !source.title.startsWith(fixtureTitle())) throw new Error('Refusing cleanup outside current business fixtures');
         const jobs = (await tx.query<{id: string; buyerCompanyId: string; providerCompanyId: string}>(`SELECT id,"buyerCompanyId","providerCompanyId" FROM "Job" WHERE "${field}"=$1`, [id])).rows;
         for (const job of jobs) {
           const owned = [companyId('a'), companyId('b'), companyId('outsider')];

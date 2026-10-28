@@ -1,7 +1,7 @@
 import type { Browser, Page, TestInfo, Locator } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright';
-import { authFile, email, type Actor, readManifest, writeManifest } from './environment';
+import { authFile, email, type Actor, readManifest, writeManifest, fixtureTitle } from './environment';
 
 export async function signedPage(browser: Browser, actor: Actor) {
   const { viewport, userAgent, isMobile, hasTouch, deviceScaleFactor } = test.info().project.use;
@@ -13,6 +13,12 @@ export async function signedPage(browser: Browser, actor: Actor) {
     await page.goto('/auth-test');
     // Sign in using this engine/device; Chromium cookies are not portable to every profile.
     await clerk.signIn({ page, emailAddress: email(actor) });
+    // setActive resolves before every engine finishes synchronising its server cookie.
+    // Observe a real signed-in API response before starting server-side navigation.
+    await expect.poll(async () => {
+      try { return await page.evaluate(async () => (await fetch('/api/guest-auctions', { cache: 'no-store' })).status); }
+      catch { return 0; } // A Clerk session-sync navigation may replace this document.
+    }, { timeout: 30000 }).toBe(200);
     await page.goto('/start');
     await expect(page).toHaveURL(actor === 'guest' ? /\/platform\/guest-auctions$/ : /\/platform\/dashboard$/);
     await context.storageState({ path: authFile(actor) });
@@ -37,7 +43,7 @@ export async function screenshot(page: Page, info: TestInfo, name: string) {
 
 export async function createGuestJob(page: Page) {
   const manifest = readManifest();
-  const title = `SIMULATED ${manifest.runId} ${manifest.auctions.length + 1}`;
+  const title = fixtureTitle(`guest ${manifest.auctions.length + 1}`);
   await page.goto('/platform/guest-auctions');
   await page.getByPlaceholder('Job title', { exact: true }).fill(title);
   await page.getByPlaceholder('Describe the item(s), size, weight and handling needs').fill('Two simulated packed boxes; no transport required.');

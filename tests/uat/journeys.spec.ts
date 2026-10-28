@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { db, closeDatabase, companyId, companyName, readManifest, writeManifest, finishTest, one, type AuctionRow, type FeeRow, type BidRow } from './environment';
+import { db, closeDatabase, companyId, companyName, readManifest, fixtureTitle, writeManifest, finishTest, one, type AuctionRow, type FeeRow, type BidRow } from './environment';
 import { api, bid, createGuestJob, screenshot, signedPage, activate } from './helpers';
 
 test.afterEach(async ({}, info) => { await finishTest(info); });
@@ -28,7 +28,7 @@ test('dashboard is compact and requirement units persist canonically', async ({ 
     await screenshot(page, info, 'compact-dashboard');
     await page.goto('/platform/spot-requirements/new');
     await expect(page.locator('select[name="quantityUnit"] option')).toHaveText(['Select a unit', 'Pallets', 'Parcels', 'Slots', 'Tonnes', 'Square metres (m²)', 'Cubic metres (m³)']);
-    await page.getByLabel('Requirement title').fill(`SIMULATED ${readManifest().runId} slots`);
+    await page.getByLabel('Requirement title').fill(fixtureTitle('slots'));
     await page.locator('[name="origin"]').fill('Brisbane QLD');
     await page.locator('[name="destination"]').fill('Gold Coast QLD');
     await page.locator('[name="quantity"]').fill('2');
