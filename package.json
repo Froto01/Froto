@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/fee-engine.test.mjs lib/fee-billing.test.mjs lib/security-routes.test.mjs lib/fee-snapshots.test.mjs lib/fee-snapshot-sql.test.mjs lib/logistics-units.test.mjs lib/uat-safety.test.mjs",
+    "test": "node --test lib/fee-engine.test.mjs lib/fee-billing.test.mjs lib/security-routes.test.mjs lib/fee-snapshots.test.mjs lib/fee-snapshot-sql.test.mjs lib/logistics-units.test.mjs lib/uat-safety.test.mjs lib/uat-totp.test.mjs",
     "postinstall": "prisma generate",
     "uat:check": "node scripts/uat-preflight.mjs",
     "uat": "node scripts/run-uat.mjs",

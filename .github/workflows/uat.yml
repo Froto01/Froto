@@ -48,6 +48,18 @@ jobs:
         run: npx playwright install --with-deps chromium firefox webkit
       - name: Build and run real browser journeys
         run: npm run uat
+      - name: Record separately gated deployment and real authentication coverage
+        if: always()
+        env:
+          UAT_REAL_AUTH_ENABLED: ${{ vars.UAT_REAL_AUTH_ENABLED }}
+          UAT_AUTH_FIXTURE_CONFIRMED: ${{ vars.UAT_AUTH_FIXTURE_CONFIRMED }}
+          UAT_EMAIL_ADDRESS: ${{ secrets.UAT_EMAIL_ADDRESS }}
+          UAT_TEST_INBOX_URL: ${{ secrets.UAT_TEST_INBOX_URL }}
+          UAT_TEST_INBOX_TOKEN: ${{ secrets.UAT_TEST_INBOX_TOKEN }}
+          UAT_MFA_EMAIL: ${{ secrets.UAT_MFA_EMAIL }}
+          UAT_MFA_PASSWORD: ${{ secrets.UAT_MFA_PASSWORD }}
+          UAT_TOTP_SECRET: ${{ secrets.UAT_TOTP_SECRET }}
+        run: node scripts/uat-optional.mjs
       - name: Upload UAT results and screenshots
         if: always()
         uses: actions/upload-artifact@v4

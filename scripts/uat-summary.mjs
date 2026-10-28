@@ -16,3 +16,8 @@ const matrixIncomplete = Object.entries(UAT_MATRIX).some(([name, count]) => obse
 console.log('Profile coverage: ' + Object.entries(UAT_MATRIX).map(([name, count]) => `${name} ${observed[name] ?? 0}/${count}`).join('; ') + '\n');
 console.log(result.errors?.length || stats.unexpected || stats.skipped || stats.flaky || stats.expected !== Object.values(UAT_MATRIX).reduce((a,b)=>a+b,0) || matrixIncomplete ? '**REVIEW REQUIRED.** An incomplete, empty or skipped run does not establish UAT acceptance.' : '**Executed checks passed.** Review the report for exact scope; this is not a claim that every launch acceptance item has passed.');
 console.log('\nDownload the run artifact for the HTML report, screenshots, JSON and JUnit results. Auth state and credentials are excluded.');
+
+if (existsSync('uat-results/optional-coverage.json')) {
+  const optional=JSON.parse(readFileSync('uat-results/optional-coverage.json','utf8'));
+  console.log(`\nAdditional coverage — deployment smoke: ${optional.deployment.status}; actual email/MFA: ${optional.realAuthentication.status}. BLOCKED coverage is not a pass; see optional-coverage.json for requirements.`);
+}

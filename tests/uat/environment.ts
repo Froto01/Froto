@@ -14,7 +14,8 @@ export const companyId = (actor: Exclude<Actor, 'guest'>) => `auto-uat-company-$
 export const companyName = (actor: Exclude<Actor, 'guest'>) => `SIMULATED AUTO UAT PROVIDER ${actor.toUpperCase()}`;
 export const email = (actor: Actor) => `froto-uat-${actor}+clerk_test@example.com`;
 export const authFile = (actor: Actor) => `playwright/.auth/${actor}.json`;
-export const db = new Pool({ connectionString: process.env.DATABASE_URL });
+export let db = new Pool({ connectionString: process.env.DATABASE_URL });
+export async function closeDatabase() { const previous = db; db = new Pool({ connectionString: process.env.DATABASE_URL }); await previous.end(); }
 export type Manifest = { runId: string; users: Record<Actor, string>; auctions: string[]; requirements: string[]; listings: string[]; tenders: string[] };
 export interface AuctionRow extends QueryResultRow { id: string; createdByUserId: string; notes: string | null; title: string; status: string; awardedBidId: string | null }
 export interface FeeRow extends QueryResultRow { id: string; payerCompanyId: string; status: string; transactionAmount: string; feeExGst: string; gstAmount: string; feeIncGst: string; earnedAt: Date | null; invoicedAt: Date | null; paidAt: Date | null }

@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { signedPage } from './helpers';
-import { db, one, cleanupSuccessfulRun } from './environment';
+import { db, closeDatabase, one, cleanupSuccessfulRun } from './environment';
 import { createBusiness, quote, waitForClose, awardBody, type Kind } from './business-helpers';
 let failed=false;
 test.afterEach(async({},info)=>{if(info.status!=='passed')failed=true;});
-test.afterAll(async()=>{try{if(!failed)await cleanupSuccessfulRun();}finally{await db.end();}});
+test.afterAll(async()=>{try{if(!failed)await cleanupSuccessfulRun();}finally{await closeDatabase();}});
 for(const kind of ['marketplace','tender'] as Kind[])test(`${kind}: simultaneous awards persist one coherent job and fee`,async({browser},info)=>{
   test.setTimeout(240000);
   const a=await signedPage(browser,'a');const b=await signedPage(browser,'b');const other=await signedPage(browser,'outsider');

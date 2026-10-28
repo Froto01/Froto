@@ -1,6 +1,6 @@
 import { test as setup, expect } from '@playwright/test';
 import { clerk, clerkSetup } from '@clerk/testing/playwright';
-import { actors, authFile, db, email, seedActors } from './environment';
+import { actors, authFile, closeDatabase, email, seedActors } from './environment';
 
 setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   setup.setTimeout(180000);
@@ -18,5 +18,5 @@ setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
       await context.storageState({ path: authFile(actor) });
     } finally { await context.close(); }
   }
-  await db.end();
+  await closeDatabase();
 });
