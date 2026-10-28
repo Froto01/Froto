@@ -25,19 +25,42 @@ export async function signedPage(browser: Browser, actor: Actor) {
 // log the decorated URL: it may contain transient authentication credentials.
 export async function establishSession(page: Page, actor: Actor) {
   let serverStatus = 0;
+  let stage = 'load';
+  const destination = actor === 'guest' ? '/platform/guest-auctions' : '/platform/dashboard';
   try {
     await page.goto('/auth-test');
-    await clerk.signIn({ page, emailAddress: email(actor) });
-    await page.evaluate(() => {
-      const sdk = (window as unknown as { Clerk: { redirectWithAuth(to: string): Promise<unknown> } }).Clerk;
-      void sdk.redirectWithAuth('/start').catch(() => {});
-    });
-    const destination = actor === 'guest' ? '/platform/guest-auctions' : '/platform/dashboard';
+    if (page.context().browser()?.browserType().name() === 'webkit') {
+      // Exercise the actual app/Clerk UI. Reserved +clerk_test identities never
+      // receive email; 424242 is Clerk's documented synthetic verification code.
+      stage = 'UI identifier';
+      await activate(page.getByRole('button', { name: 'Sign in', exact: true }));
+      await page.locator('input[name="identifier"]').fill(email(actor));
+      await activate(page.getByRole('button', { name: 'Continue', exact: true }));
+      stage = 'UI test code';
+      await page.locator('input[autocomplete="one-time-code"]').fill('424242');
+      // Current Clerk UI auto-submits a complete code; support a visible submit
+      // control too. Final page and server checks still have to succeed.
+      try {
+        const submit = page.getByRole('button', { name: /^(Continue|Verify)$/ });
+        if (await submit.count() === 1 && await submit.isVisible() && await submit.isEnabled()) {
+          await submit.click({ timeout: 1000 });
+        }
+      } catch { /* Auto-submit may already have closed the form; readiness below is mandatory. */ }
+    } else {
+      stage = 'helper sign-in';
+      await clerk.signIn({ page, emailAddress: email(actor) });
+      await page.evaluate(() => {
+        const sdk = (window as unknown as { Clerk: { redirectWithAuth(to: string): Promise<unknown> } }).Clerk;
+        void sdk.redirectWithAuth('/start').catch(() => {});
+      });
+    }
+    stage = 'local destination';
     // Boolean readiness keeps decorated URLs out of assertion errors/artifacts.
     await expect.poll(() => {
       const url = new URL(page.url());
       return url.origin === 'http://localhost:3100' && url.pathname === destination && !url.search;
     }, { timeout: 30000 }).toBe(true);
+    stage = 'server session';
     await expect.poll(async () => {
       try { serverStatus = await page.evaluate(async () => (await fetch('/api/guest-auctions', { cache: 'no-store' })).status); }
       catch { serverStatus = 0; }
@@ -45,7 +68,11 @@ export async function establishSession(page: Page, actor: Actor) {
     }, { timeout: 30000 }).toBe(200);
   } catch {
     // Raw navigation errors can include the SDK's transient authentication URL.
-    throw new Error(`Owned development sign-in did not establish the expected local page and server session (HTTP ${serverStatus}); no authentication URL or credentials recorded.`);
+    const url = new URL(page.url());
+    const local = url.origin === 'http://localhost:3100';
+    const destinationReached = local && url.pathname === destination;
+    const clientSignedIn = local ? await page.evaluate(() => Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session)).catch(() => false) : false;
+    throw new Error(`Owned development sign-in failed at ${stage} (HTTP ${serverStatus}, local=${local}, expectedPage=${destinationReached}, clientSignedIn=${clientSignedIn}); authentication URLs and credentials redacted.`);
   }
 }
 

@@ -17,10 +17,10 @@ export default defineConfig({
   webServer: { command: 'npm run start -- --hostname localhost --port 3100', url: 'http://localhost:3100/auth-test', timeout: 120000, reuseExistingServer: false, env: { RESEND_API_KEY: '', FROTO_EMAIL_FROM: '', UAT_BASE_URL: 'http://localhost:3100' } },
   projects: [
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
-    { name: 'chromium', testMatch: /.*\.spec\.ts/, dependencies: ['setup'], use: { ...devices['Desktop Chrome'] } },
     ...[
-      ['firefox', 'Desktop Firefox'], ['webkit', 'Desktop Safari'],
-      ['mobile-chromium', 'Pixel 7'], ['mobile-webkit', 'iPhone 13'],
+      ['webkit', 'Desktop Safari'], ['mobile-webkit', 'iPhone 13'],
+      ['firefox', 'Desktop Firefox'], ['mobile-chromium', 'Pixel 7'],
     ].map(([name, device]) => ({ name, testMatch: /.*\.spec\.ts/, testIgnore: /concurrency\.spec\.ts/, dependencies: ['setup'], use: { ...devices[device] } })),
+    { name: 'chromium', testMatch: /.*\.spec\.ts/, dependencies: ['setup'], use: { ...devices['Desktop Chrome'] } },
   ],
 });
