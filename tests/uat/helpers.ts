@@ -1,12 +1,27 @@
-import type { Browser, Page, TestInfo } from '@playwright/test';
+import type { Browser, Page, TestInfo, Locator } from '@playwright/test';
 import { expect, test } from '@playwright/test';
-import { authFile, type Actor, readManifest, writeManifest } from './environment';
+import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright';
+import { authFile, email, type Actor, readManifest, writeManifest } from './environment';
 
 export async function signedPage(browser: Browser, actor: Actor) {
   const { viewport, userAgent, isMobile, hasTouch, deviceScaleFactor } = test.info().project.use;
-  const context = await browser.newContext({ viewport, userAgent, isMobile, hasTouch, deviceScaleFactor, baseURL: 'http://localhost:3100', timezoneId: 'Australia/Brisbane', storageState: authFile(actor) });
+  const context = await browser.newContext({ viewport, userAgent, isMobile, hasTouch, deviceScaleFactor, baseURL: 'http://localhost:3100', timezoneId: 'Australia/Brisbane' });
   context.setDefaultTimeout(15000); context.setDefaultNavigationTimeout(30000);
-  return { context, page: await context.newPage() };
+  await setupClerkTestingToken({ context });
+  const page = await context.newPage();
+  try {
+    await page.goto('/auth-test');
+    // Sign in using this engine/device; Chromium cookies are not portable to every profile.
+    await clerk.signIn({ page, emailAddress: email(actor) });
+    await page.goto('/start');
+    await expect(page).toHaveURL(actor === 'guest' ? /\/platform\/guest-auctions$/ : /\/platform\/dashboard$/);
+    await context.storageState({ path: authFile(actor) });
+  } catch(error) {
+    const capture = await page.screenshot().catch(()=>null);
+    if(capture) await test.info().attach(`auth-${test.info().project.name}-${actor}`, { body: capture, contentType: 'image/png' });
+    await context.close(); throw error;
+  }
+  return { context, page };
 }
 
 export async function api(page: Page, path: string, body?: unknown) {
@@ -31,7 +46,7 @@ export async function createGuestJob(page: Page) {
   await page.getByLabel('Auction closes').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
   await page.getByPlaceholder('Optional notes', { exact: true }).fill(manifest.runId);
   const pending = page.waitForResponse(r => r.url().endsWith('/api/guest-auctions') && r.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Post silent-auction job' }).click();
+  await activate(page.getByRole('button', { name: 'Post silent-auction job' }));
   const response = await pending;
   expect(response.status()).toBe(201);
   const result = await response.json();
@@ -48,10 +63,24 @@ export async function bid(page: Page, auctionId: string, amount: number, private
   await page.getByPlaceholder("Describe your service and what's included").fill(privateNote);
   await page.getByPlaceholder('Lead time / timing').fill('Simulated next-day service');
   const pending = page.waitForResponse(r => r.url().endsWith(`/guest-auctions/${auctionId}/bids`) && r.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Submit sealed bid' }).click();
+  await activate(page.getByRole('button', { name: 'Submit sealed bid' }));
   const response = await pending;
   expect(response.status()).toBe(201);
   const result = await response.json();
   await expect(page.getByText('Your submitted offer')).toBeVisible();
   return result.id as string;
+}
+
+export async function activate(target: Locator) {
+  await target.scrollIntoViewIfNeeded();
+  let previous = ''; let stable = 0;
+  await expect.poll(async () => {
+    const box = await target.boundingBox();
+    if (!box) return false;
+    const current = [box.x, box.y, box.width, box.height].map(Math.round).join(',');
+    stable = current === previous ? stable + 1 : 0; previous = current;
+    return stable >= 3;
+  }, { timeout: 10000, intervals: [100] }).toBe(true);
+  // Normal touch input retains hit-testing; no forced click or synthetic handler dispatch.
+  if (test.info().project.use.isMobile) await target.tap(); else await target.click();
 }

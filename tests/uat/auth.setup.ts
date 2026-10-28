@@ -1,5 +1,5 @@
 import { test as setup, expect } from '@playwright/test';
-import { clerk, clerkSetup } from '@clerk/testing/playwright';
+import { clerk, clerkSetup, setupClerkTestingToken } from '@clerk/testing/playwright';
 import { actors, authFile, closeDatabase, email, seedActors } from './environment';
 
 setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
@@ -10,6 +10,7 @@ setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   for (const actor of actors) {
     const context = await browser.newContext({ baseURL: 'http://localhost:3100' });
     try {
+      await setupClerkTestingToken({ context });
       const page = await context.newPage();
       await page.goto('/auth-test');
       await clerk.signIn({ page, emailAddress: email(actor) });

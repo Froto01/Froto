@@ -33,5 +33,5 @@ for(const kind of ['marketplace','tender'] as Kind[]) test(`${kind}: UI creation
     expect(Number(job.amount)).toBe(250);
     expect((await api(a.page,source.award,awardBody(source,first))).status).toBe(409);
     await completeJob(kind==='marketplace'?b.page:a.page,kind==='marketplace'?a.page:b.page,other.page,jobId,info);
-  } finally {await Promise.all([a.context.close(),b.context.close(),other.context.close()]);}
+  } catch(error) { await Promise.all([a.page,b.page,other.page].map((page,index)=>screenshot(page,info,`failed-${kind}-${index}`).catch(()=>{}))); throw error; } finally {await Promise.all([a.context.close(),b.context.close(),other.context.close()]);}
 });

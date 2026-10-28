@@ -13,7 +13,7 @@ export const tag = 'FROTO_AUTOMATED_UAT_V1';
 export const companyId = (actor: Exclude<Actor, 'guest'>) => `auto-uat-company-${actor}`;
 export const companyName = (actor: Exclude<Actor, 'guest'>) => `SIMULATED AUTO UAT PROVIDER ${actor.toUpperCase()}`;
 export const email = (actor: Actor) => `froto-uat-${actor}+clerk_test@example.com`;
-export const authFile = (actor: Actor) => `playwright/.auth/${actor}.json`;
+export const authFile = (actor: Actor) => `playwright/.auth/${test.info().project.name === 'setup' ? 'chromium' : test.info().project.name}-${actor}.json`;
 export let db = new Pool({ connectionString: process.env.DATABASE_URL });
 export async function closeDatabase() { const previous = db; db = new Pool({ connectionString: process.env.DATABASE_URL }); await previous.end(); }
 export type Manifest = { runId: string; users: Record<Actor, string>; auctions: string[]; requirements: string[]; listings: string[]; tenders: string[] };

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { db, closeDatabase, companyId, companyName, readManifest, writeManifest, finishTest, one, type AuctionRow, type FeeRow, type BidRow } from './environment';
-import { api, bid, createGuestJob, screenshot, signedPage } from './helpers';
+import { api, bid, createGuestJob, screenshot, signedPage, activate } from './helpers';
 
 test.afterEach(async ({}, info) => { await finishTest(info); });
 test.afterAll(async () => { await closeDatabase(); });
@@ -21,9 +21,9 @@ test('dashboard is compact and requirement units persist canonically', async ({ 
     await expect(page.getByRole('link', { name: 'Financials', exact: true })).toHaveCount(0);
     const jobs = page.locator('details').filter({ has: page.locator('summary', { hasText: 'My jobs' }) }).first();
     await expect(jobs).not.toHaveAttribute('open');
-    await jobs.locator('summary').first().click();
+    await activate(jobs.locator('summary').first());
     await expect(jobs).toHaveAttribute('open', '');
-    await jobs.locator('summary').first().click();
+    await activate(jobs.locator('summary').first());
     await expect(jobs).not.toHaveAttribute('open');
     await screenshot(page, info, 'compact-dashboard');
     await page.goto('/platform/spot-requirements/new');
@@ -35,7 +35,7 @@ test('dashboard is compact and requirement units persist canonically', async ({ 
     await page.locator('[name="quantityUnit"]').selectOption('slots');
     await page.locator('[name="requiredFrom"]').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
     const pending = page.waitForResponse(r => r.url().endsWith('/api/spot-requirements') && r.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Post transport requirement', exact: true }).click();
+    await activate(page.getByRole('button', { name: 'Post transport requirement', exact: true }));
     const response = await pending;
     expect(response.status()).toBe(201);
     const result = await response.json();
@@ -44,7 +44,7 @@ test('dashboard is compact and requirement units persist canonically', async ({ 
     expect(saved.companyId).toBe(companyId('a')); expect(saved.quantityUnit).toBe('slots'); expect(Number(saved.quantity)).toBe(2);
     const invalid = await api(page, '/api/spot-requirements', { requirementType: 'TRANSPORT', title: 'Invalid unit', origin: 'Brisbane', destination: 'Gold Coast', quantity: 1, quantityUnit: 'palets', requiredFrom: new Date(Date.now() + 86400000).toISOString() });
     expect(invalid.status).toBe(400);
-  } finally { await context.close(); }
+  } catch(error) { await screenshot(page,info,'failed-dashboard').catch(()=>{}); throw error; } finally { await context.close(); }
 });
 
 test('guest journey: create, sealed bids, award, deliver, confirm, review and reconcile', async ({ browser }, info) => {
@@ -79,7 +79,7 @@ test('guest journey: create, sealed bids, award, deliver, confirm, review and re
     await screenshot(guest.page, info, 'guest-compares-bids');
     guest.page.on('dialog', dialog => dialog.accept());
     const awardResponse = guest.page.waitForResponse(r => r.url().endsWith(`/guest-auctions/${id}/award`) && r.request().method() === 'POST');
-    await guest.page.getByRole('button', { name: `Award job to ${companyName('a')}` }).click();
+    await activate(guest.page.getByRole('button', { name: `Award job to ${companyName('a')}` }));
     expect((await awardResponse).status()).toBe(200);
     expect((await api(guest.page, `/api/guest-auctions/${id}/award`, { bidId: bidA, closeEarly: true })).status).toBe(409);
     const fee = await one<FeeRow>('SELECT * FROM "TransactionFee" WHERE "idempotencyKey"=$1', [`GUEST_AUCTION:${id}`]);
@@ -93,29 +93,29 @@ test('guest journey: create, sealed bids, award, deliver, confirm, review and re
     for (const [button, status] of [['Accept guest job', 'ACCEPTED'], ['Start job', 'IN_PROGRESS'], ['Mark delivered', 'DELIVERED']] as const) {
       await a.page.reload();
       const pending = a.page.waitForResponse(r => r.url().endsWith(`/guest-auctions/${id}/status`) && r.request().method() === 'POST');
-      await a.page.getByRole('button', { name: button, exact: true }).click();
+      await activate(a.page.getByRole('button', { name: button, exact: true }));
       expect((await pending).status()).toBe(200);
       expect((await one<AuctionRow>('SELECT * FROM "GuestAuction" WHERE id=$1', [id])).status).toBe(status);
     }
     expect((await api(a.page, `/api/guest-auctions/${id}/status`, { action: 'COMPLETE' })).status).toBe(403);
     await guest.page.reload();
     const complete = guest.page.waitForResponse(r => r.url().endsWith(`/guest-auctions/${id}/status`) && r.request().method() === 'POST');
-    await guest.page.getByRole('button', { name: 'Confirm job complete', exact: true }).click();
+    await activate(guest.page.getByRole('button', { name: 'Confirm job complete', exact: true }));
     expect((await complete).status()).toBe(200);
     expect((await api(guest.page, `/api/guest-auctions/${id}/status`, { action: 'COMPLETE' })).status).toBe(409);
     const earned = await one<FeeRow>('SELECT * FROM "TransactionFee" WHERE id=$1', [fee.id]);
     expect(earned.status).toBe('EARNED'); expect(earned.earnedAt).not.toBeNull(); expect(earned.invoicedAt).toBeNull(); expect(earned.paidAt).toBeNull();
     expect((await api(a.page, `/api/guest-auctions/${id}/review`, { rating: 5 })).status).toBe(403);
-    await guest.page.getByRole('button', { name: '5 stars', exact: true }).click();
+    await activate(guest.page.getByRole('button', { name: '5 stars', exact: true }));
     await guest.page.getByPlaceholder('Optional comment about the service').fill('SIMULATED automated UAT review; no service performed.');
     const reviewResponse = guest.page.waitForResponse(r => r.url().endsWith(`/guest-auctions/${id}/review`) && r.request().method() === 'POST');
-    await guest.page.getByRole('button', { name: 'Submit verified review', exact: true }).click();
+    await activate(guest.page.getByRole('button', { name: 'Submit verified review', exact: true }));
     expect((await reviewResponse).status()).toBe(201);
     expect((await api(guest.page, `/api/guest-auctions/${id}/review`, { rating: 5 })).status).toBe(409);
     const review = await one<{reviewedCompanyId: string; reviewerUserId: string; rating: number}>('SELECT * FROM "GuestAuctionReview" WHERE "guestAuctionId"=$1', [id]);
     expect(review.reviewedCompanyId).toBe(companyId('a')); expect(review.reviewerUserId).toBe(manifest.users.guest); expect(review.rating).toBe(5);
     await screenshot(guest.page, info, 'completed-reviewed-guest-job');
-  } finally { await Promise.all([guest.context.close(), a.context.close(), b.context.close(), outsider.context.close()]); }
+  } catch(error) { await Promise.all([guest.page,a.page,b.page,outsider.page].map((page,index)=>screenshot(page,info,`failed-guest-${index}`).catch(()=>{}))); throw error; } finally { await Promise.all([guest.context.close(), a.context.close(), b.context.close(), outsider.context.close()]); }
 });
 
 test('two real guest award requests produce one winner and one matching fee', async ({ browser }, info) => {
@@ -139,5 +139,5 @@ test('two real guest award requests produce one winner and one matching fee', as
     expect(fees).toHaveLength(1); expect(fees[0].payerCompanyId).toBe(winner.bidderCompanyId); expect(fees[0].transactionAmount.toString()).toBe(winner.amount.toString());
     expect(Number((await one<{count: string}>(`SELECT count(*) FROM "Notification" WHERE type='GUEST_AUCTION_AWARDED' AND metadata->>'guestAuctionId'=$1`, [id])).count)).toBe(1);
     await info.attach('concurrent-http-results', { body: JSON.stringify({ id, statuses: results.map(r => r.status), winner: auction.awardedBidId, feeId: fees[0].id }), contentType: 'application/json' });
-  } finally { await Promise.all([guest.context.close(), a.context.close(), b.context.close()]); }
+  } catch(error) { await Promise.all([guest.page,a.page,b.page].map((page,index)=>screenshot(page,info,`failed-guest-race-${index}`).catch(()=>{}))); throw error; } finally { await Promise.all([guest.context.close(), a.context.close(), b.context.close()]); }
 });

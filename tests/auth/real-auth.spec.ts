@@ -28,7 +28,8 @@ test('actual email OTP arrives in the dedicated inbox and authenticates',async({
     const r=await fetch(inbox,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${process.env.UAT_TEST_INBOX_TOKEN}`},body:JSON.stringify({recipient:address,receivedAfter:new Date(started).toISOString()}),signal:AbortSignal.timeout(10000)});
     if(r.status===204)return false;if(!r.ok)throw new Error('Dedicated inbox adapter unavailable');
     const value=await r.json();
-    if(value.recipient!==address||Date.parse(value.receivedAt)<started||!/^\d{6}$/.test(value.code)||!value.messageId)return false;
+    const receivedAt=Date.parse(value.receivedAt);
+    if(value.recipient!==address||!Number.isFinite(receivedAt)||receivedAt<started||typeof value.code!=='string'||!/^\d{6}$/.test(value.code)||typeof value.messageId!=='string'||!value.messageId)return false;
     code=value.code;return true;
   },{timeout:90000,intervals:[3000]}).toBe(true);
   await input.fill(code);const submit=page.getByRole('button',{name:/^(Continue|Verify)$/});if(await submit.count())await submit.click();

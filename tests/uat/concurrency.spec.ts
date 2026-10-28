@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signedPage } from './helpers';
+import { signedPage, screenshot } from './helpers';
 import { db, closeDatabase, one, finishTest } from './environment';
 import { createBusiness, quote, waitForClose, awardBody, type Kind } from './business-helpers';
 test.afterEach(async({},info)=>{await finishTest(info);});
@@ -26,5 +26,5 @@ for(const kind of ['marketplace','tender'] as Kind[])test(`${kind}: simultaneous
     expect(winner[winField]).toBe(kind==='marketplace'?job.awardedBidId:job.awardedTenderResponseId);
     expect(Number((await one<{count:string}>(`SELECT count(*) FROM "Notification" WHERE metadata->>'jobId'=$1 AND type=$2`,[job.id,kind==='marketplace'?'MARKETPLACE_AWARD_WON':'TENDER_AWARD_WON'])).count)).toBe(1);
     await info.attach('concurrent-business-awards',{body:JSON.stringify({kind,sourceId:source.id,statuses:results.map(r=>r.status),jobId:job.id,winner:winner[winField]}),contentType:'application/json'});
-  }finally{await Promise.all([a.context.close(),b.context.close(),other.context.close()]);}
+  }catch(error){await Promise.all([a.page,b.page,other.page].map((page,index)=>screenshot(page,info,`failed-race-${kind}-${index}`).catch(()=>{})));throw error;}finally{await Promise.all([a.context.close(),b.context.close(),other.context.close()]);}
 });
