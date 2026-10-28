@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:https';
@@ -37,16 +37,16 @@ async function prepareRunnerTls() {
   mkdirSync(nss, { recursive: true });
   if (!existsSync(join(nss, 'cert9.db'))) execFileSync('certutil', ['-N', '--empty-password', '-d', `sql:${nss}`]);
   execFileSync('certutil', ['-A', '-n', 'Froto UAT ephemeral localhost', '-t', 'C,,', '-i', files.root, '-d', `sql:${nss}`]);
-  const policiesPath = join(dirname(firefox.executablePath()), 'distribution/policies.json');
-  mkdirSync(dirname(policiesPath), { recursive: true });
+  const policiesPath = resolve('playwright/.auth/tls/firefox-policies.json');
   const policies = existsSync(policiesPath) ? JSON.parse(readFileSync(policiesPath, 'utf8')) : {};
   policies.policies ??= {};
   policies.policies.Certificates ??= {};
   const installed = policies.policies.Certificates.Install ?? [];
   if (!Array.isArray(installed)) throw new Error('Unexpected existing Firefox certificate policy');
   policies.policies.Certificates.Install = [...installed, files.root];
-  writeFileSync(policiesPath, JSON.stringify(policies));
-  appendFileSync(process.env.GITHUB_ENV, `NODE_EXTRA_CA_CERTS=${files.root}\n`);
+  writeFileSync(policiesPath, JSON.stringify(policies), { mode: 0o600 });
+  process.env.PLAYWRIGHT_FIREFOX_POLICIES_JSON = policiesPath;
+  appendFileSync(process.env.GITHUB_ENV, `NODE_EXTRA_CA_CERTS=${files.root}\nPLAYWRIGHT_FIREFOX_POLICIES_JSON=${policiesPath}\n`);
   // Transport-only preflight, not browser-journey evidence. Every engine must
   // accept the certificate with its normal TLS validation still enabled.
   const server = createServer({ key: readFileSync(files.key), cert: readFileSync(files.cert) }, (_req, res) => res.end('Froto UAT TLS transport probe'));
