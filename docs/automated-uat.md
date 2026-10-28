@@ -16,7 +16,7 @@ Do not use the production database, the older human UAT database, or Clerk live-
 
 ## Execution and evidence
 
-The `.github/workflows/uat.yml` workflow runs on pushes to spot-requirements or automated-uat, and supports workflow_dispatch when available on the default branch. It first runs 128 route/fee/safety regression tests and TypeScript checks. It then builds and starts the real Next.js app on 127.0.0.1:3100 inside the GitHub runner and runs Playwright Chromium against that app. No Vercel protection bypass is needed.
+The `.github/workflows/uat.yml` workflow runs on pushes to spot-requirements or automated-uat, and supports workflow_dispatch when available on the default branch. It first runs 128 route/fee/safety regression tests and TypeScript checks. It then builds and starts the real Next.js app on localhost:3100 inside the GitHub runner and runs Playwright Chromium against that app. No Vercel protection bypass is needed.
 
 Four fixed development-only Clerk identities use `+clerk_test` email addresses; the official Clerk testing helper signs them in. The runner creates their synthetic Froto users and three provider companies only after checking the pinned host, database name, database comment and fixture ownership. Real MFA/email delivery is outside this suite. Outbound application email is disabled.
 

@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { authFile, type Actor, readManifest, writeManifest } from './environment';
 
 export async function signedPage(browser: Browser, actor: Actor) {
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3100', timezoneId: 'Australia/Brisbane', storageState: authFile(actor) });
+  const context = await browser.newContext({ baseURL: 'http://localhost:3100', timezoneId: 'Australia/Brisbane', storageState: authFile(actor) });
   return { context, page: await context.newPage() };
 }
 

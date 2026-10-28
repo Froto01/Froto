@@ -8,7 +8,7 @@ setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   process.env.CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   await clerkSetup();
   for (const actor of actors) {
-    const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3100' });
+    const context = await browser.newContext({ baseURL: 'http://localhost:3100' });
     try {
       const page = await context.newPage();
       await page.goto('/auth-test');
