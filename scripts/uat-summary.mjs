@@ -8,5 +8,5 @@ if (!existsSync('uat-results/results.json')) { console.log('**INCOMPLETE — no 
 const result = JSON.parse(readFileSync('uat-results/results.json', 'utf8'));
 const stats = result.stats;
 console.log(`Passed: ${stats.expected}; failed: ${stats.unexpected}; skipped: ${stats.skipped}; flaky: ${stats.flaky}.\n`);
-console.log(stats.unexpected || stats.skipped || stats.flaky || stats.expected < 5 ? '**REVIEW REQUIRED.** An incomplete, empty or skipped run does not establish UAT acceptance.' : '**Executed checks passed.** Review the report for exact scope; this is not a claim that every launch acceptance item has passed.');
+console.log(result.errors?.length || stats.unexpected || stats.skipped || stats.flaky || stats.expected < 5 ? '**REVIEW REQUIRED.** An incomplete, empty or skipped run does not establish UAT acceptance.' : '**Executed checks passed.** Review the report for exact scope; this is not a claim that every launch acceptance item has passed.');
 console.log('\nDownload the run artifact for the HTML report, screenshots, JSON and JUnit results. Auth state and credentials are excluded.');

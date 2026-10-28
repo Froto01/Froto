@@ -36,7 +36,7 @@ test('dashboard is compact and requirement units persist canonically', async ({ 
     await page.locator('[name="quantityUnit"]').selectOption('slots');
     await page.locator('[name="requiredFrom"]').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
     const pending = page.waitForResponse(r => r.url().endsWith('/api/spot-requirements') && r.request().method() === 'POST');
-    await page.locator('button[type="submit"]').click();
+    await page.getByRole('button', { name: 'Post transport requirement', exact: true }).click();
     const response = await pending;
     expect(response.status()).toBe(201);
     const result = await response.json();
