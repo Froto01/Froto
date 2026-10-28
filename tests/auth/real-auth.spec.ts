@@ -20,7 +20,7 @@ async function hasSession(page:Page) {
 test('actual email OTP arrives in the dedicated inbox and authenticates',async({page})=>{
   const address=process.env.UAT_EMAIL_ADDRESS!;await ownedFixture(address,false);
   const inbox=new URL(process.env.UAT_TEST_INBOX_URL!);
-  if(inbox.protocol!=='https:'||inbox.username||inbox.password)throw new Error('BLOCKED: inbox adapter must use HTTPS and header authentication');
+  if(inbox.protocol!=='https:'||inbox.username||inbox.password||inbox.search)throw new Error('BLOCKED: inbox adapter must use HTTPS and header authentication');
   const started=Date.now();await begin(page,address);
   const input=page.locator('input[autocomplete="one-time-code"]');await expect(input).toBeVisible();
   let code='';

@@ -14,7 +14,7 @@ export async function createBusiness(page: Page, kind: Kind): Promise<Source> {
     await page.getByLabel('Origin', { exact: true }).fill('Brisbane QLD');
     await page.getByLabel('Destination', { exact: true }).fill('Gold Coast QLD');
     await page.getByLabel('Capacity amount', { exact: true }).fill('2');
-    await page.getByLabel('Capacity unit', { exact: true }).selectOption('parcels');
+    await page.getByRole('combobox', { name: 'Capacity unit', exact: true }).selectOption('parcels');
     await page.getByLabel('Available from date', { exact: true }).fill(new Date(Date.now()+86400000).toISOString().slice(0,10));
     await page.getByLabel('Available to date', { exact: true }).fill(new Date(Date.now()+172800000).toISOString().slice(0,10));
     await page.getByLabel('Starting bid', { exact: true }).fill('100');

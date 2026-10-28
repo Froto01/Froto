@@ -23,7 +23,7 @@ const missing=required.filter(key=>!process.env[key]);
 if(process.env.UAT_REAL_AUTH_ENABLED!=='1'||process.env.UAT_AUTH_FIXTURE_CONFIRMED!=='OWNED_DEVELOPMENT_FIXTURES'||missing.length) {
   coverage.realAuthentication={status:'BLOCKED',reason:'Dedicated owned email inbox and enrolled development MFA fixtures must be configured and explicitly enabled',missing,requiredConfirmations:['UAT_REAL_AUTH_ENABLED=1','UAT_AUTH_FIXTURE_CONFIRMED=OWNED_DEVELOPMENT_FIXTURES'],scope:'Actual email delivery and actual TOTP challenge; existing helper sign-in does not establish either'};
 } else {
-  const child=spawnSync('npx',['playwright','test','--config=playwright.auth.config.ts'],{stdio:'inherit',env:process.env});
+  const child=spawnSync('npx',['playwright','test','--config=playwright.auth.config.ts'],{stdio:'pipe',encoding:'utf8',env:process.env});
   const reportPath='playwright/.auth/real-auth/results.json';
   let stats;
   if(existsSync(reportPath))stats=JSON.parse(readFileSync(reportPath,'utf8')).stats;
