@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { signedPage } from './helpers';
-import { db, closeDatabase, one, cleanupSuccessfulRun } from './environment';
+import { db, closeDatabase, one, finishTest } from './environment';
 import { createBusiness, quote, waitForClose, awardBody, type Kind } from './business-helpers';
-test.afterEach(async({},info)=>{if(info.status==='passed')await cleanupSuccessfulRun();});
+test.afterEach(async({},info)=>{await finishTest(info);});
 test.afterAll(async()=>{await closeDatabase();});
 for(const kind of ['marketplace','tender'] as Kind[])test(`${kind}: simultaneous awards persist one coherent job and fee`,async({browser},info)=>{
   test.setTimeout(240000);

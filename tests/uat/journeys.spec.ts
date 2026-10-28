@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { db, closeDatabase, companyId, companyName, readManifest, writeManifest, cleanupSuccessfulRun, one, type AuctionRow, type FeeRow, type BidRow } from './environment';
+import { db, closeDatabase, companyId, companyName, readManifest, writeManifest, finishTest, one, type AuctionRow, type FeeRow, type BidRow } from './environment';
 import { api, bid, createGuestJob, screenshot, signedPage } from './helpers';
 
-test.afterEach(async ({}, info) => { if (info.status === 'passed') await cleanupSuccessfulRun(); });
+test.afterEach(async ({}, info) => { await finishTest(info); });
 test.afterAll(async () => { await closeDatabase(); });
 
 test('signed-out requests cannot read guest jobs or award work', async ({ page }, info) => {

@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { test } from '@playwright/test';
+import { test, type TestInfo } from '@playwright/test';
 import { basename } from 'node:path';
 import { existsSync } from 'node:fs';
 import { randomUUID, createHash } from 'node:crypto';
@@ -28,7 +28,9 @@ export async function one<T extends QueryResultRow>(sql: string, values: unknown
 function testKey() { return createHash('sha256').update(test.info().testId).digest('hex').slice(0,20); }
 function manifestPath() {
   const info = test.info();
-  return info.project.name === 'setup' ? 'playwright/.auth/manifest.json' : `playwright/.auth/${info.project.name}-${basename(info.file)}-${testKey()}.json`;
+  if (info.project.name === 'setup') return 'playwright/.auth/manifest.json';
+  const root: Manifest = JSON.parse(readFileSync('playwright/.auth/manifest.json', 'utf8'));
+  return `playwright/.auth/${root.runId}-${info.project.name}-${basename(info.file)}-${testKey()}.json`;
 }
 export function readManifest(): Manifest {
   const path = manifestPath();
@@ -113,4 +115,14 @@ export async function cleanupSuccessfulRun() {
   finally { tx.release(); }
   mkdirSync('uat-results', { recursive: true });
   writeFileSync(`uat-results/reconciliation-${test.info().project.name}-${basename(test.info().file)}-${testKey()}.json`, JSON.stringify({ runId: manifest.runId, auctionIds: manifest.auctions, requirementIds: manifest.requirements, listingIds: manifest.listings, tenderIds: manifest.tenders, cleanup: 'Current owned fixtures removed after successful assertions; fixed test identities retained.' }, null, 2));
+}
+
+function recordFailure() {
+  const { runId, auctions, requirements, listings, tenders } = readManifest();
+  mkdirSync('uat-results', { recursive: true });
+  writeFileSync(`uat-results/retained-${test.info().project.name}-${testKey()}.json`, JSON.stringify({ runId, auctions, requirements, listings, tenders, cleanup: 'Failed test fixtures retained for triage; no auth state or credentials included.' }, null, 2));
+}
+export async function finishTest(info: TestInfo) {
+  if (info.status !== 'passed') { recordFailure(); return; }
+  try { await cleanupSuccessfulRun(); } catch (error) { recordFailure(); throw error; }
 }
