@@ -1,9 +1,10 @@
 import type { Browser, Page, TestInfo } from '@playwright/test';
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { authFile, type Actor, readManifest, writeManifest } from './environment';
 
 export async function signedPage(browser: Browser, actor: Actor) {
-  const context = await browser.newContext({ baseURL: 'http://localhost:3100', timezoneId: 'Australia/Brisbane', storageState: authFile(actor) });
+  const { viewport, userAgent, isMobile, hasTouch, deviceScaleFactor } = test.info().project.use;
+  const context = await browser.newContext({ viewport, userAgent, isMobile, hasTouch, deviceScaleFactor, baseURL: 'http://localhost:3100', timezoneId: 'Australia/Brisbane', storageState: authFile(actor) });
   return { context, page: await context.newPage() };
 }
 

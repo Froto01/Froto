@@ -1,4 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { test } from '@playwright/test';
+import { basename } from 'node:path';
+import { existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { Pool, type QueryResultRow } from 'pg';
 import { createClerkClient } from '@clerk/backend';
@@ -12,7 +15,7 @@ export const companyName = (actor: Exclude<Actor, 'guest'>) => `SIMULATED AUTO U
 export const email = (actor: Actor) => `froto-uat-${actor}+clerk_test@example.com`;
 export const authFile = (actor: Actor) => `playwright/.auth/${actor}.json`;
 export const db = new Pool({ connectionString: process.env.DATABASE_URL });
-export type Manifest = { runId: string; users: Record<Actor, string>; auctions: string[]; requirements: string[] };
+export type Manifest = { runId: string; users: Record<Actor, string>; auctions: string[]; requirements: string[]; listings: string[]; tenders: string[] };
 export interface AuctionRow extends QueryResultRow { id: string; createdByUserId: string; notes: string | null; title: string; status: string; awardedBidId: string | null }
 export interface FeeRow extends QueryResultRow { id: string; payerCompanyId: string; status: string; transactionAmount: string; feeExGst: string; gstAmount: string; feeIncGst: string; earnedAt: Date | null; invoicedAt: Date | null; paidAt: Date | null }
 export interface BidRow extends QueryResultRow { id: string; bidderCompanyId: string; status: string; amount: string }
@@ -21,8 +24,20 @@ export async function one<T extends QueryResultRow>(sql: string, values: unknown
   if (result.rows.length !== 1) throw new Error('Expected exactly one database reconciliation row');
   return result.rows[0];
 }
-export function readManifest(): Manifest { return JSON.parse(readFileSync('playwright/.auth/manifest.json', 'utf8')); }
-export function writeManifest(manifest: Manifest) { writeFileSync('playwright/.auth/manifest.json', JSON.stringify(manifest), { mode: 0o600 }); }
+function manifestPath() {
+  const info = test.info();
+  return info.project.name === 'setup' ? 'playwright/.auth/manifest.json' : `playwright/.auth/${info.project.name}-${basename(info.file)}.json`;
+}
+export function readManifest(): Manifest {
+  const path = manifestPath();
+  if (!existsSync(path)) {
+    const root: Manifest = JSON.parse(readFileSync('playwright/.auth/manifest.json', 'utf8'));
+    const info = test.info();
+    writeManifest({ ...root, runId: `${root.runId}_${info.project.name}_${basename(info.file).replaceAll('.', '_')}`, auctions: [], requirements: [], listings: [], tenders: [] });
+  }
+  return JSON.parse(readFileSync(path, 'utf8'));
+}
+export function writeManifest(manifest: Manifest) { writeFileSync(manifestPath(), JSON.stringify(manifest), { mode: 0o600 }); }
 
 export async function seedActors() {
   const errors = checkUatEnvironment();
@@ -30,7 +45,7 @@ export async function seedActors() {
   const marker = await one<{ marker: string }>("SELECT shobj_description(oid, 'pg_database') AS marker FROM pg_database WHERE datname=current_database()", []);
   if (marker.marker !== 'FROTO_AUTOMATED_UAT_ONLY_V1') throw new Error('UAT database marker absent; no fixture writes permitted');
   mkdirSync('playwright/.auth', { recursive: true, mode: 0o700 });
-  const manifest: Manifest = { runId: `AUTO_UAT_${Date.now()}_${randomUUID().slice(0, 8)}`, users: {} as Record<Actor, string>, auctions: [], requirements: [] };
+  const manifest: Manifest = { runId: `AUTO_UAT_${Date.now()}_${randomUUID().slice(0, 8)}`, users: {} as Record<Actor, string>, auctions: [], requirements: [], listings: [], tenders: [] };
   const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
   for (const actor of actors) {
     const found = await clerk.users.getUserList({ emailAddress: [email(actor)] });
@@ -73,9 +88,27 @@ export async function cleanupSuccessfulRun() {
       await tx.query('DELETE FROM "Notification" WHERE metadata->>\'spotRequirementId\'=$1', [id]);
       await tx.query('DELETE FROM "SpotRequirement" WHERE id=$1', [id]);
     }
+    for (const kind of ['listings', 'tenders'] as const) {
+      const table = kind === 'listings' ? 'Listing' : 'Tender';
+      const field = kind === 'listings' ? 'listingId' : 'tenderId';
+      for (const id of manifest[kind]) {
+        const source = (await tx.query<{companyId: string; notes: string; title: string}>(`SELECT "companyId",notes,title FROM "${table}" WHERE id=$1`, [id])).rows[0];
+        if (!source || source.companyId !== companyId('a') || source.notes !== manifest.runId || !source.title.startsWith(`SIMULATED ${manifest.runId}`)) throw new Error('Refusing cleanup outside current business fixtures');
+        const jobs = (await tx.query<{id: string; buyerCompanyId: string; providerCompanyId: string}>(`SELECT id,"buyerCompanyId","providerCompanyId" FROM "Job" WHERE "${field}"=$1`, [id])).rows;
+        for (const job of jobs) {
+          const owned = [companyId('a'), companyId('b'), companyId('outsider')];
+          if (!owned.includes(job.buyerCompanyId) || !owned.includes(job.providerCompanyId)) throw new Error('Unexpected job parties; cleanup blocked');
+          await tx.query(`DELETE FROM "Notification" WHERE metadata->>'jobId'=$1`, [job.id]);
+          await tx.query(`DELETE FROM "TransactionFee" WHERE "sourceId"=$1 AND "transactionType" IN ('MARKETPLACE_JOB','TENDER_JOB')`, [job.id]);
+          await tx.query('DELETE FROM "Job" WHERE id=$1', [job.id]);
+        }
+        await tx.query(`DELETE FROM "Notification" WHERE metadata->>'${field}'=$1`, [id]);
+        await tx.query(`DELETE FROM "${table}" WHERE id=$1`, [id]);
+      }
+    }
     await tx.query('COMMIT');
   } catch (error) { await tx.query('ROLLBACK'); throw error; }
   finally { tx.release(); }
   mkdirSync('uat-results', { recursive: true });
-  writeFileSync('uat-results/reconciliation.json', JSON.stringify({ runId: manifest.runId, auctionIds: manifest.auctions, requirementIds: manifest.requirements, cleanup: 'Current owned fixtures removed after successful assertions; fixed test identities retained.' }, null, 2));
+  writeFileSync(`uat-results/reconciliation-${test.info().project.name}-${basename(test.info().file)}.json`, JSON.stringify({ runId: manifest.runId, auctionIds: manifest.auctions, requirementIds: manifest.requirements, listingIds: manifest.listings, tenderIds: manifest.tenders, cleanup: 'Current owned fixtures removed after successful assertions; fixed test identities retained.' }, null, 2));
 }

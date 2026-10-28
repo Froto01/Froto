@@ -28,7 +28,7 @@ jobs:
     name: Authenticated browser UAT
     needs: regression
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     env:
       DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.UAT_CLERK_PUBLISHABLE_KEY }}
@@ -45,7 +45,7 @@ jobs:
       - name: Validate isolated UAT configuration
         run: npm run uat:check
       - name: Install browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
       - name: Build and run real browser journeys
         run: npm run uat
       - name: Upload UAT results and screenshots
