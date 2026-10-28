@@ -24,6 +24,8 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npx tsc --noEmit
+      - name: Lint automated UAT code
+        run: npx eslint tests/uat tests/auth playwright.config.ts playwright.auth.config.ts scripts/uat*.mjs scripts/run-uat.mjs lib/uat*.cjs lib/uat*.mjs
   browser-uat:
     name: Authenticated browser UAT
     needs: regression

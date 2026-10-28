@@ -77,6 +77,29 @@ export async function establishSession(page: Page, actor: Actor) {
       // Complete the verified client's development-domain hand-off explicitly.
       stage = 'verified client hand-off';
       await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session)), { timeout: 30000 }).toBe(true);
+      stage = 'owned localhost fixture metadata';
+      const repaired = await page.evaluate(({ expectedEmail, expectedOrigin }) => {
+        const sdk = (window as unknown as { Clerk: {
+          publishableKey: string; session: { id: string } | null;
+          user: { primaryEmailAddress?: { emailAddress: string } } | null;
+          client: { updatedAt: Date; signedInSessions: Array<{ id: string }> };
+        } }).Clerk;
+        if (location.origin !== expectedOrigin || location.hostname !== 'localhost' || location.protocol !== 'https:' ||
+            !sdk.publishableKey.startsWith('pk_test_') || !expectedEmail.endsWith('+clerk_test@example.com') ||
+            sdk.user?.primaryEmailAddress?.emailAddress !== expectedEmail || !sdk.session ||
+            !sdk.client.signedInSessions.some(session => session.id === sdk.session!.id)) throw new Error('Fixture metadata guard failed');
+        const pairs = document.cookie.split(';').map(item => item.trim());
+        if (pairs.some(item => /^__client_uat(?:_[A-Za-z0-9_-]+)?=[1-9][0-9]*/.test(item))) return false;
+        const sessionNames = pairs.map(item => item.split('=', 1)[0]).filter(name => /^__session(?:_[A-Za-z0-9_-]+)?$/.test(name));
+        const timestamp = Math.floor(sdk.client.updatedAt.getTime() / 1000);
+        if (!sessionNames.length || !Number.isSafeInteger(timestamp) || timestamp <= 0) throw new Error('Verified fixture client metadata absent');
+        // Match Clerk's real client-update timestamp. Host-only is narrower than
+        // Domain=localhost, which WebKit does not persist consistently.
+        // Never manufacture or change the signed session-token cookies.
+        for (const name of sessionNames) document.cookie = name.replace(/^__session/, '__client_uat') + '=' + timestamp + '; Path=/; Max-Age=3600; SameSite=Strict; Secure';
+        return true;
+      }, { expectedEmail: email(actor), expectedOrigin: UAT_APP_ORIGIN });
+      if (repaired) test.info().annotations.push({ type: 'fixture-bootstrap', description: 'Owned WebKit localhost client-update metadata reconstructed as host-only from the real Clerk client; credential cookies unchanged. Not actual email/MFA evidence.' });
       await page.evaluate(() => {
         const sdk = (window as unknown as { Clerk: { buildUrlWithAuth(to: string): string } }).Clerk;
         // A real document navigation allows Clerk's development handshake;

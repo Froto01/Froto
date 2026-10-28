@@ -5,9 +5,14 @@ import { api, bid, createGuestJob, screenshot, signedPage, activate } from './he
 test.afterEach(async ({}, info) => { await finishTest(info); });
 test.afterAll(async () => { await closeDatabase(); });
 
-test('signed-out requests cannot read guest jobs or award work', async ({ page }, info) => {
+test('signed-out requests cannot read guest jobs or award work', async ({ page, browserName }, info) => {
   await page.goto('/auth-test');
   await expect(page.getByRole('heading', { name: 'Welcome to Froto' })).toBeVisible();
+  if (browserName === 'webkit') {
+    // A client-update hint is not a signed identity and must not grant access.
+    await page.evaluate(() => { document.cookie = '__client_uat=1; Path=/; Max-Age=60; SameSite=Strict; Secure'; });
+    await expect.poll(() => page.evaluate(() => document.cookie.split(';').some(item => item.trim() === '__client_uat=1'))).toBe(true);
+  }
   expect((await api(page, '/api/guest-auctions')).status).toBe(401);
   expect((await api(page, '/api/guest-auctions/unknown/award', { bidId: 'unknown' })).status).toBe(401);
   await screenshot(page, info, 'signed-out');
