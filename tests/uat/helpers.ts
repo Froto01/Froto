@@ -1,4 +1,4 @@
-import { UAT_APP_ORIGIN } from '../../lib/uat-safety.cjs';
+import { checkUatEnvironment, UAT_APP_ORIGIN } from '../../lib/uat-safety.cjs';
 import type { Browser, Page, TestInfo, Locator } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright';
@@ -8,6 +8,27 @@ export async function signedPage(browser: Browser, actor: Actor) {
   const { viewport, userAgent, isMobile, hasTouch, deviceScaleFactor } = test.info().project.use;
   const context = await browser.newContext({ viewport, userAgent, isMobile, hasTouch, deviceScaleFactor, baseURL: UAT_APP_ORIGIN, timezoneId: 'Australia/Brisbane' });
   context.setDefaultTimeout(15000); context.setDefaultNavigationTimeout(30000);
+  if (browser.browserType().name() === 'webkit') {
+    if (checkUatEnvironment().length) throw new Error('Owned development fixture environment required');
+    // Fixture compatibility: narrow only Clerk's localhost timestamp cookie.
+    // Its real value/flags and signed credential cookies are unchanged.
+    await context.addInitScript(({ origin }) => {
+      const native = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+      if (!native?.get || !native.set) throw new Error('Native cookie API unavailable');
+      Object.defineProperty(Document.prototype, 'cookie', {
+        configurable: native.configurable, enumerable: native.enumerable,
+        get: native.get,
+        set(value: string) {
+          const name = value.slice(0, value.indexOf('=')).trim();
+          if (location.origin === origin && /^__client_uat(?:_[A-Za-z0-9_-]+)?$/.test(name)) {
+            value = value.replace(/;\s*domain\s*=\s*\.?localhost(?=;|$)/ig, '');
+          }
+          native.set!.call(this, value);
+        },
+      });
+    }, { origin: UAT_APP_ORIGIN });
+    test.info().annotations.push({ type: 'fixture-bootstrap', description: 'WebKit localhost: Clerk client-update timestamp writes are host-only, with SDK values/flags preserved. Signed credential cookies untouched. Not native sign-in/email/MFA acceptance.' });
+  }
   await setupClerkTestingToken({ context });
   const page = await context.newPage();
   try {
@@ -28,7 +49,6 @@ export async function establishSession(page: Page, actor: Actor) {
   let serverStatus = 0;
   let stage = 'load';
   const destination = actor === 'guest' ? '/platform/guest-auctions' : '/platform/dashboard';
-  const webkit = page.context().browser()?.browserType().name() === 'webkit';
   const serverReady = async () => {
     stage = 'server session';
     await expect.poll(async () => {
@@ -39,77 +59,16 @@ export async function establishSession(page: Page, actor: Actor) {
   };
   try {
     await page.goto('/auth-test');
-    if (webkit) {
-      // Exercise the actual app/Clerk UI. Reserved +clerk_test identities never
-      // receive email; 424242 is Clerk's documented synthetic verification code.
-      stage = 'UI identifier';
-      await activate(page.getByRole('button', { name: 'Sign in', exact: true }));
-      await page.locator('input[name="identifier"]').fill(email(actor));
-      const prepared = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/prepare_first_factor'));
-      await activate(page.getByRole('button', { name: 'Continue', exact: true }));
-      stage = 'UI verification preparation';
-      if ((await prepared).status() !== 200) throw new Error('Development test-code preparation failed');
-      stage = 'UI test code';
-      const code = page.locator('input[autocomplete="one-time-code"]').first();
-      await expect(code).toBeVisible();
-      const firstDigit = page.getByRole('textbox', { name: 'Enter verification code. Digit 1', exact: true });
-      if (await firstDigit.isVisible() || await code.getAttribute('maxlength') === '1') {
-        await activate(await firstDigit.isVisible() ? firstDigit : code);
-        await page.keyboard.type('424242', { delay: 100 });
-      } else await code.fill('424242');
-      // Current Clerk UI auto-submits a complete code; support a visible submit
-      // control too. Final page and server checks still have to succeed.
-      try {
-        const submit = page.getByRole('button', { name: /^(Continue|Verify)$/ });
-        if (await submit.count() === 1 && await submit.isVisible() && await submit.isEnabled()) {
-          await submit.click({ timeout: 1000 });
-        }
-      } catch { /* Auto-submit may already have closed the form; readiness below is mandatory. */ }
-    } else {
-      stage = 'helper sign-in';
-      await clerk.signIn({ page, emailAddress: email(actor) });
-      await page.evaluate(() => {
-        const sdk = (window as unknown as { Clerk: { redirectWithAuth(to: string): Promise<unknown> } }).Clerk;
-        void sdk.redirectWithAuth('/start').catch(() => {});
-      });
-    }
-    if (webkit) {
-      // Complete the verified client's development-domain hand-off explicitly.
-      stage = 'verified client hand-off';
-      await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session)), { timeout: 30000 }).toBe(true);
-      stage = 'owned localhost fixture metadata';
-      const repaired = await page.evaluate(({ expectedEmail, expectedOrigin }) => {
-        const sdk = (window as unknown as { Clerk: {
-          publishableKey: string; session: { id: string } | null;
-          user: { primaryEmailAddress?: { emailAddress: string } } | null;
-          client: { updatedAt: Date; signedInSessions: Array<{ id: string }> };
-        } }).Clerk;
-        if (location.origin !== expectedOrigin || location.hostname !== 'localhost' || location.protocol !== 'https:' ||
-            !sdk.publishableKey.startsWith('pk_test_') || !expectedEmail.endsWith('+clerk_test@example.com') ||
-            sdk.user?.primaryEmailAddress?.emailAddress !== expectedEmail || !sdk.session ||
-            !sdk.client.signedInSessions.some(session => session.id === sdk.session!.id)) throw new Error('Fixture metadata guard failed');
-        const pairs = document.cookie.split(';').map(item => item.trim());
-        if (pairs.some(item => /^__client_uat(?:_[A-Za-z0-9_-]+)?=[1-9][0-9]*/.test(item))) return false;
-        const sessionNames = pairs.map(item => item.split('=', 1)[0]).filter(name => /^__session(?:_[A-Za-z0-9_-]+)?$/.test(name));
-        const timestamp = Math.floor(sdk.client.updatedAt.getTime() / 1000);
-        if (!sessionNames.length || !Number.isSafeInteger(timestamp) || timestamp <= 0) throw new Error('Verified fixture client metadata absent');
-        // Match Clerk's real client-update timestamp. Host-only is narrower than
-        // Domain=localhost, which WebKit does not persist consistently.
-        // Never manufacture or change the signed session-token cookies.
-        for (const name of sessionNames) document.cookie = name.replace(/^__session/, '__client_uat') + '=' + timestamp + '; Path=/; Max-Age=3600; SameSite=Strict; Secure';
-        return true;
-      }, { expectedEmail: email(actor), expectedOrigin: UAT_APP_ORIGIN });
-      if (repaired) test.info().annotations.push({ type: 'fixture-bootstrap', description: 'Owned WebKit localhost client-update metadata reconstructed as host-only from the real Clerk client; credential cookies unchanged. Not actual email/MFA evidence.' });
-      await page.evaluate(() => {
-        const sdk = (window as unknown as { Clerk: { buildUrlWithAuth(to: string): string } }).Clerk;
-        // A real document navigation allows Clerk's development handshake;
-        // a router fetch is not eligible for that browser-cookie hand-off.
-        window.location.assign(sdk.buildUrlWithAuth('/start'));
-      }).catch(() => { /* Navigation may replace the evaluation context; server readiness remains mandatory. */ });
-      await serverReady();
-      stage = 'server navigation';
-      await page.goto('/start');
-    }
+    stage = 'official Clerk test identity';
+    await clerk.signIn({ page, emailAddress: email(actor) });
+    stage = 'development document hand-off';
+    await page.evaluate(() => {
+      const sdk = (window as unknown as { Clerk: { buildUrlWithAuth(to: string): string } }).Clerk;
+      window.location.assign(sdk.buildUrlWithAuth('/start'));
+    }).catch(() => { /* Document navigation may replace this context; readiness below must pass. */ });
+    await serverReady();
+    stage = 'server navigation';
+    await page.goto('/start');
     stage = 'local destination';
     // Boolean readiness keeps decorated URLs out of assertion errors/artifacts.
     await expect.poll(() => {
