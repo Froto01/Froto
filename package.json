@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/fee-engine.test.mjs lib/fee-billing.test.mjs lib/security-routes.test.mjs lib/fee-snapshots.test.mjs lib/fee-snapshot-sql.test.mjs lib/logistics-units.test.mjs",
-    "postinstall": "prisma generate"
+    "test": "node --test lib/fee-engine.test.mjs lib/fee-billing.test.mjs lib/security-routes.test.mjs lib/fee-snapshots.test.mjs lib/fee-snapshot-sql.test.mjs lib/logistics-units.test.mjs lib/uat-safety.test.mjs",
+    "postinstall": "prisma generate",
+    "uat:check": "node scripts/uat-preflight.mjs",
+    "uat": "node scripts/run-uat.mjs",
+    "uat:list": "playwright test --list"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.6.3",
@@ -29,10 +32,14 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@clerk/backend": "3.26.4",
+    "@clerk/testing": "2.2.52",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.0.1",
     "tailwindcss": "^4",

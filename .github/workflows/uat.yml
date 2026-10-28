@@ -1,0 +1,61 @@
+name: Froto automated UAT
+on:
+  push:
+    branches: [spot-requirements, automated-uat]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: froto-uat-dedicated-database
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    name: Regression checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+  browser-uat:
+    name: Authenticated browser UAT
+    needs: regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.UAT_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.UAT_CLERK_SECRET_KEY }}
+      RESEND_API_KEY: ''
+      FROTO_EMAIL_FROM: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Validate isolated UAT configuration
+        run: npm run uat:check
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Build and run real browser journeys
+        run: npm run uat
+      - name: Upload UAT results and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: froto-uat-${{ github.run_id }}-${{ github.run_attempt }}
+          path: uat-results/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Write result summary
+        if: always()
+        run: node scripts/uat-summary.mjs >> "$GITHUB_STEP_SUMMARY"
