@@ -12,7 +12,7 @@ Open https://github.com/Froto01/Froto/settings/secrets/actions and add these rep
 | UAT_CLERK_PUBLISHABLE_KEY | Clerk development instance → API Keys → publishable key, beginning pk_test_ |
 | UAT_CLERK_SECRET_KEY | The same Clerk development instance → API Keys → secret key, beginning sk_test_ |
 
-Do not use the production database, the older human UAT database, or Clerk live-instance keys. Enter values directly in GitHub, never in chat. Vercel did not disclose its existing Clerk secret values to the connector. The dedicated database already has the current Prisma schema, a database-comment isolation marker and the approved three launch fee rules. It contains no copied user or company data. Its pinned pooled hostname is ep-damp-snow-axcqoelf-pooler.c-4.us-east-2.aws.neon.tech.
+Do not use the production database, the older human UAT database, or Clerk live-instance keys. Use the Copy button in Clerk: its shortened visible preview may contain an ellipsis and is not a usable key. Enter values directly in GitHub, never in chat. Vercel did not disclose its existing Clerk secret values to the connector. The dedicated database already has the current Prisma schema, a database-comment isolation marker and the approved three launch fee rules. It contains no copied user or company data. Its pinned pooled hostname is ep-damp-snow-axcqoelf-pooler.c-4.us-east-2.aws.neon.tech.
 
 ## Execution and evidence
 
