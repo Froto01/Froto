@@ -35,6 +35,7 @@ jobs:
       CLERK_SECRET_KEY: ${{ secrets.UAT_CLERK_SECRET_KEY }}
       RESEND_API_KEY: ''
       FROTO_EMAIL_FROM: ''
+      UAT_BASE_URL: 'https://localhost:3100'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,6 +47,8 @@ jobs:
         run: npm run uat:check
       - name: Install browser
         run: npx playwright install --with-deps chromium firefox webkit
+      - name: Prepare trusted local HTTPS and verify all engine certificates
+        run: node scripts/uat-tls.mjs
       - name: Build and run real browser journeys
         run: npm run uat
       - name: Record separately gated deployment and real authentication coverage

@@ -1,3 +1,4 @@
+import { UAT_APP_ORIGIN } from '../../lib/uat-safety.cjs';
 import type { Browser, Page, TestInfo, Locator } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import { clerk, setupClerkTestingToken } from '@clerk/testing/playwright';
@@ -5,7 +6,7 @@ import { authFile, email, type Actor, readManifest, writeManifest, fixtureTitle 
 
 export async function signedPage(browser: Browser, actor: Actor) {
   const { viewport, userAgent, isMobile, hasTouch, deviceScaleFactor } = test.info().project.use;
-  const context = await browser.newContext({ viewport, userAgent, isMobile, hasTouch, deviceScaleFactor, baseURL: 'http://localhost:3100', timezoneId: 'Australia/Brisbane' });
+  const context = await browser.newContext({ viewport, userAgent, isMobile, hasTouch, deviceScaleFactor, baseURL: UAT_APP_ORIGIN, timezoneId: 'Australia/Brisbane' });
   context.setDefaultTimeout(15000); context.setDefaultNavigationTimeout(30000);
   await setupClerkTestingToken({ context });
   const page = await context.newPage();
@@ -14,7 +15,7 @@ export async function signedPage(browser: Browser, actor: Actor) {
     await context.storageState({ path: authFile(actor) });
   } catch(error) {
     const location = new URL(page.url());
-    const capture = location.origin === 'http://localhost:3100' && !location.search ? await page.screenshot().catch(()=>null) : null;
+    const capture = location.origin === UAT_APP_ORIGIN && !location.search ? await page.screenshot().catch(()=>null) : null;
     if(capture) await test.info().attach(`auth-${test.info().project.name}-${actor}`, { body: capture, contentType: 'image/png' });
     await context.close(); throw error;
   }
@@ -73,13 +74,13 @@ export async function establishSession(page: Page, actor: Actor) {
     // Boolean readiness keeps decorated URLs out of assertion errors/artifacts.
     await expect.poll(() => {
       const url = new URL(page.url());
-      return url.origin === 'http://localhost:3100' && url.pathname === destination && !url.search;
+      return url.origin === UAT_APP_ORIGIN && url.pathname === destination && !url.search;
     }, { timeout: 30000 }).toBe(true);
     await serverReady();
   } catch {
     // Raw navigation errors can include the SDK's transient authentication URL.
     const url = new URL(page.url());
-    const local = url.origin === 'http://localhost:3100';
+    const local = url.origin === UAT_APP_ORIGIN;
     const destinationReached = local && url.pathname === destination;
     const diagnostic = local ? await page.evaluate(async () => ({
       clientSignedIn: Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session),

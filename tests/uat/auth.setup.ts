@@ -1,3 +1,4 @@
+import { UAT_APP_ORIGIN } from '../../lib/uat-safety.cjs';
 import { test as setup } from '@playwright/test';
 import { clerkSetup, setupClerkTestingToken } from '@clerk/testing/playwright';
 import { establishSession } from './helpers';
@@ -9,7 +10,7 @@ setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   process.env.CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   await clerkSetup();
   for (const actor of actors) {
-    const context = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const context = await browser.newContext({ baseURL: UAT_APP_ORIGIN });
     try {
       await setupClerkTestingToken({ context });
       const page = await context.newPage();
