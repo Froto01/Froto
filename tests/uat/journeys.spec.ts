@@ -58,6 +58,8 @@ test('guest journey: create, sealed bids, award, deliver, confirm, review and re
     const manifest = readManifest();
     const initial = await one<AuctionRow>('SELECT * FROM "GuestAuction" WHERE id=$1', [id]);
     expect(initial.status).toBe('OPEN'); expect(initial.createdByUserId).toBe(manifest.users.guest);
+    expect(Number((await one<{count: string}>('SELECT count(*) FROM "GuestAuctionBid" WHERE "guestAuctionId"=$1', [id])).count)).toBe(0);
+    expect(Number((await one<{count: string}>('SELECT count(*) FROM "TransactionFee" WHERE "sourceId"=$1', [id])).count)).toBe(0);
     const bidA = await bid(a.page, id, 250, `PRIVATE-A-${manifest.runId}`);
     await bid(b.page, id, 300, `PRIVATE-B-${manifest.runId}`);
     await a.page.reload(); await b.page.reload();
@@ -66,7 +68,7 @@ test('guest journey: create, sealed bids, award, deliver, confirm, review and re
     await expect(a.page.getByText('$300', { exact: true })).toHaveCount(0);
     await expect(b.page.getByText('$250', { exact: true })).toHaveCount(0);
     const sealedA = await api(a.page, `/api/guest-auctions/${id}/bids`);
-    expect(sealedA.status).toBe(200); expect(sealedA.body.bids).toHaveLength(1); expect(sealedA.body.bids[0].amount).toBe(250);
+    expect(sealedA.status).toBe(200); expect(sealedA.body.privacy).toBe('SEALED'); expect(sealedA.body.ownBid.id).toBe(bidA); expect(sealedA.body.ownBid.amount).toBe(250); expect(sealedA.body.bids).toBeUndefined();
     await screenshot(a.page, info, 'provider-a-sealed-bid');
     await outsider.page.goto(`/platform/guest-auctions/${id}`);
     expect((await api(outsider.page, `/api/guest-auctions/${id}/award`, { bidId: bidA, closeEarly: true })).status).toBe(403);
