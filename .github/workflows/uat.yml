@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: froto-uat-dedicated-database
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.ref_name == 'automated-uat' }}
 
 jobs:
   regression:
@@ -24,17 +24,20 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npx tsc --noEmit
+      - name: Lint automated UAT code
+        run: npx eslint tests/uat tests/auth playwright.config.ts playwright.auth.config.ts scripts/uat*.mjs scripts/run-uat.mjs lib/uat*.cjs lib/uat*.mjs
   browser-uat:
     name: Authenticated browser UAT
     needs: regression
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     env:
       DATABASE_URL: ${{ secrets.UAT_DATABASE_URL }}
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.UAT_CLERK_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.UAT_CLERK_SECRET_KEY }}
       RESEND_API_KEY: ''
       FROTO_EMAIL_FROM: ''
+      UAT_BASE_URL: 'https://localhost:3100'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,9 +48,23 @@ jobs:
       - name: Validate isolated UAT configuration
         run: npm run uat:check
       - name: Install browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Prepare trusted local HTTPS and verify all engine certificates
+        run: node scripts/uat-tls.mjs
       - name: Build and run real browser journeys
         run: npm run uat
+      - name: Record separately gated deployment and real authentication coverage
+        if: always()
+        env:
+          UAT_REAL_AUTH_ENABLED: ${{ vars.UAT_REAL_AUTH_ENABLED }}
+          UAT_AUTH_FIXTURE_CONFIRMED: ${{ vars.UAT_AUTH_FIXTURE_CONFIRMED }}
+          UAT_EMAIL_ADDRESS: ${{ secrets.UAT_EMAIL_ADDRESS }}
+          UAT_TEST_INBOX_URL: ${{ secrets.UAT_TEST_INBOX_URL }}
+          UAT_TEST_INBOX_TOKEN: ${{ secrets.UAT_TEST_INBOX_TOKEN }}
+          UAT_MFA_EMAIL: ${{ secrets.UAT_MFA_EMAIL }}
+          UAT_MFA_PASSWORD: ${{ secrets.UAT_MFA_PASSWORD }}
+          UAT_TOTP_SECRET: ${{ secrets.UAT_TOTP_SECRET }}
+        run: node scripts/uat-optional.mjs
       - name: Upload UAT results and screenshots
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,6 +1,8 @@
-import { test as setup, expect } from '@playwright/test';
-import { clerk, clerkSetup } from '@clerk/testing/playwright';
-import { actors, authFile, db, email, seedActors } from './environment';
+import { UAT_APP_ORIGIN } from '../../lib/uat-safety.cjs';
+import { test as setup } from '@playwright/test';
+import { clerkSetup, setupClerkTestingToken } from '@clerk/testing/playwright';
+import { establishSession } from './helpers';
+import { actors, authFile, closeDatabase, seedActors } from './environment';
 
 setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   setup.setTimeout(180000);
@@ -8,15 +10,13 @@ setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   process.env.CLERK_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   await clerkSetup();
   for (const actor of actors) {
-    const context = await browser.newContext({ baseURL: 'http://localhost:3100' });
+    const context = await browser.newContext({ baseURL: UAT_APP_ORIGIN });
     try {
+      await setupClerkTestingToken({ context });
       const page = await context.newPage();
-      await page.goto('/auth-test');
-      await clerk.signIn({ page, emailAddress: email(actor) });
-      await page.goto('/start');
-      await expect(page).toHaveURL(actor === 'guest' ? /\/platform\/guest-auctions$/ : /\/platform\/dashboard$/);
+      await establishSession(page, actor);
       await context.storageState({ path: authFile(actor) });
     } finally { await context.close(); }
   }
-  await db.end();
+  await closeDatabase();
 });
