@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { test } from '@playwright/test';
 import { basename } from 'node:path';
 import { existsSync } from 'node:fs';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { Pool, type QueryResultRow } from 'pg';
 import { createClerkClient } from '@clerk/backend';
 import { checkUatEnvironment } from '../../lib/uat-safety.cjs';
@@ -25,16 +25,17 @@ export async function one<T extends QueryResultRow>(sql: string, values: unknown
   if (result.rows.length !== 1) throw new Error('Expected exactly one database reconciliation row');
   return result.rows[0];
 }
+function testKey() { return createHash('sha256').update(test.info().testId).digest('hex').slice(0,20); }
 function manifestPath() {
   const info = test.info();
-  return info.project.name === 'setup' ? 'playwright/.auth/manifest.json' : `playwright/.auth/${info.project.name}-${basename(info.file)}.json`;
+  return info.project.name === 'setup' ? 'playwright/.auth/manifest.json' : `playwright/.auth/${info.project.name}-${basename(info.file)}-${testKey()}.json`;
 }
 export function readManifest(): Manifest {
   const path = manifestPath();
   if (!existsSync(path)) {
     const root: Manifest = JSON.parse(readFileSync('playwright/.auth/manifest.json', 'utf8'));
     const info = test.info();
-    writeManifest({ ...root, runId: `${root.runId}_${info.project.name}_${basename(info.file).replaceAll('.', '_')}`, auctions: [], requirements: [], listings: [], tenders: [] });
+    writeManifest({ ...root, runId: `${root.runId}_${info.project.name}_${basename(info.file).replaceAll('.', '_')}_${testKey()}`, auctions: [], requirements: [], listings: [], tenders: [] });
   }
   return JSON.parse(readFileSync(path, 'utf8'));
 }
@@ -111,5 +112,5 @@ export async function cleanupSuccessfulRun() {
   } catch (error) { await tx.query('ROLLBACK'); throw error; }
   finally { tx.release(); }
   mkdirSync('uat-results', { recursive: true });
-  writeFileSync(`uat-results/reconciliation-${test.info().project.name}-${basename(test.info().file)}.json`, JSON.stringify({ runId: manifest.runId, auctionIds: manifest.auctions, requirementIds: manifest.requirements, listingIds: manifest.listings, tenderIds: manifest.tenders, cleanup: 'Current owned fixtures removed after successful assertions; fixed test identities retained.' }, null, 2));
+  writeFileSync(`uat-results/reconciliation-${test.info().project.name}-${basename(test.info().file)}-${testKey()}.json`, JSON.stringify({ runId: manifest.runId, auctionIds: manifest.auctions, requirementIds: manifest.requirements, listingIds: manifest.listings, tenderIds: manifest.tenders, cleanup: 'Current owned fixtures removed after successful assertions; fixed test identities retained.' }, null, 2));
 }

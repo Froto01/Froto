@@ -2,9 +2,8 @@ import { test, expect } from '@playwright/test';
 import { api, signedPage, screenshot } from './helpers';
 import { closeDatabase, companyId, companyName, readManifest, cleanupSuccessfulRun } from './environment';
 import { createBusiness, quote, waitForClose, awardThroughUi, awardBody, reconcileAward, completeJob, type Kind } from './business-helpers';
-let failed=false;
-test.afterEach(async({},info)=>{if(info.status!=='passed') failed=true;});
-test.afterAll(async()=>{try{if(!failed)await cleanupSuccessfulRun();}finally{await closeDatabase();}});
+test.afterEach(async({},info)=>{if(info.status==='passed')await cleanupSuccessfulRun();});
+test.afterAll(async()=>{await closeDatabase();});
 for(const kind of ['marketplace','tender'] as Kind[]) test(`${kind}: UI creation, privacy, award, lifecycle, two-sided reviews and reconciliation`,async({browser},info)=>{
   test.setTimeout(240000);
   const a=await signedPage(browser,'a');const b=await signedPage(browser,'b');const other=await signedPage(browser,'outsider');
