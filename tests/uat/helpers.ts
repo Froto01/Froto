@@ -45,9 +45,18 @@ export async function establishSession(page: Page, actor: Actor) {
       stage = 'UI identifier';
       await activate(page.getByRole('button', { name: 'Sign in', exact: true }));
       await page.locator('input[name="identifier"]').fill(email(actor));
+      const prepared = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/prepare_first_factor'));
       await activate(page.getByRole('button', { name: 'Continue', exact: true }));
+      stage = 'UI verification preparation';
+      if ((await prepared).status() !== 200) throw new Error('Development test-code preparation failed');
       stage = 'UI test code';
-      await page.locator('input[autocomplete="one-time-code"]').fill('424242');
+      const code = page.locator('input[autocomplete="one-time-code"]').first();
+      await expect(code).toBeVisible();
+      const firstDigit = page.getByRole('textbox', { name: 'Enter verification code. Digit 1', exact: true });
+      if (await firstDigit.isVisible() || await code.getAttribute('maxlength') === '1') {
+        await activate(await firstDigit.isVisible() ? firstDigit : code);
+        await page.keyboard.type('424242', { delay: 100 });
+      } else await code.fill('424242');
       // Current Clerk UI auto-submits a complete code; support a visible submit
       // control too. Final page and server checks still have to succeed.
       try {
