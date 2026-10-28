@@ -74,7 +74,13 @@ export async function establishSession(page: Page, actor: Actor) {
       });
     }
     if (webkit) {
-      // The modal may finish its redirect before its first server cookie is ready.
+      // Complete the verified client's development-domain hand-off explicitly.
+      stage = 'verified client hand-off';
+      await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session)), { timeout: 30000 }).toBe(true);
+      await page.evaluate(() => {
+        const sdk = (window as unknown as { Clerk: { redirectWithAuth(to: string): Promise<unknown> } }).Clerk;
+        void sdk.redirectWithAuth('/start').catch(() => {});
+      });
       await serverReady();
       stage = 'server navigation';
       await page.goto('/start');
