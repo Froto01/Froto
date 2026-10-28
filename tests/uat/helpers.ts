@@ -27,9 +27,18 @@ export async function establishSession(page: Page, actor: Actor) {
   let serverStatus = 0;
   let stage = 'load';
   const destination = actor === 'guest' ? '/platform/guest-auctions' : '/platform/dashboard';
+  const webkit = page.context().browser()?.browserType().name() === 'webkit';
+  const serverReady = async () => {
+    stage = 'server session';
+    await expect.poll(async () => {
+      try { serverStatus = await page.evaluate(async () => (await fetch('/api/guest-auctions', { cache: 'no-store' })).status); }
+      catch { serverStatus = 0; }
+      return serverStatus;
+    }, { timeout: 30000 }).toBe(200);
+  };
   try {
     await page.goto('/auth-test');
-    if (page.context().browser()?.browserType().name() === 'webkit') {
+    if (webkit) {
       // Exercise the actual app/Clerk UI. Reserved +clerk_test identities never
       // receive email; 424242 is Clerk's documented synthetic verification code.
       stage = 'UI identifier';
@@ -54,25 +63,32 @@ export async function establishSession(page: Page, actor: Actor) {
         void sdk.redirectWithAuth('/start').catch(() => {});
       });
     }
+    if (webkit) {
+      // The modal may finish its redirect before its first server cookie is ready.
+      await serverReady();
+      stage = 'server navigation';
+      await page.goto('/start');
+    }
     stage = 'local destination';
     // Boolean readiness keeps decorated URLs out of assertion errors/artifacts.
     await expect.poll(() => {
       const url = new URL(page.url());
       return url.origin === 'http://localhost:3100' && url.pathname === destination && !url.search;
     }, { timeout: 30000 }).toBe(true);
-    stage = 'server session';
-    await expect.poll(async () => {
-      try { serverStatus = await page.evaluate(async () => (await fetch('/api/guest-auctions', { cache: 'no-store' })).status); }
-      catch { serverStatus = 0; }
-      return serverStatus;
-    }, { timeout: 30000 }).toBe(200);
+    await serverReady();
   } catch {
     // Raw navigation errors can include the SDK's transient authentication URL.
     const url = new URL(page.url());
     const local = url.origin === 'http://localhost:3100';
     const destinationReached = local && url.pathname === destination;
-    const clientSignedIn = local ? await page.evaluate(() => Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session)).catch(() => false) : false;
-    throw new Error(`Owned development sign-in failed at ${stage} (HTTP ${serverStatus}, local=${local}, expectedPage=${destinationReached}, clientSignedIn=${clientSignedIn}); authentication URLs and credentials redacted.`);
+    const diagnostic = local ? await page.evaluate(async () => ({
+      clientSignedIn: Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session),
+      localSessionCookiePresent: document.cookie.split(';').some(item => /^\s*__session(?:_[^=]+)?=/.test(item)),
+      secureContext: window.isSecureContext,
+      serverStatus: await fetch('/api/guest-auctions', { cache: 'no-store' }).then(r => r.status).catch(() => 0),
+    })).catch(() => null) : null;
+    // Only booleans/status codes leave the browser, never cookie contents or IDs.
+    throw new Error(`Owned development sign-in failed at ${stage} (HTTP ${serverStatus}, local=${local}, expectedPage=${destinationReached}, diagnostics=${JSON.stringify(diagnostic)}); authentication URLs and credentials redacted.`);
   }
 }
 
