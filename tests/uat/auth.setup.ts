@@ -1,6 +1,7 @@
-import { test as setup, expect } from '@playwright/test';
-import { clerk, clerkSetup, setupClerkTestingToken } from '@clerk/testing/playwright';
-import { actors, authFile, closeDatabase, email, seedActors } from './environment';
+import { test as setup } from '@playwright/test';
+import { clerkSetup, setupClerkTestingToken } from '@clerk/testing/playwright';
+import { establishSession } from './helpers';
+import { actors, authFile, closeDatabase, seedActors } from './environment';
 
 setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
   setup.setTimeout(180000);
@@ -12,10 +13,7 @@ setup('prepare owned fixtures and real Clerk sessions', async ({ browser }) => {
     try {
       await setupClerkTestingToken({ context });
       const page = await context.newPage();
-      await page.goto('/auth-test');
-      await clerk.signIn({ page, emailAddress: email(actor) });
-      await page.goto('/start');
-      await expect(page).toHaveURL(actor === 'guest' ? /\/platform\/guest-auctions$/ : /\/platform\/dashboard$/);
+      await establishSession(page, actor);
       await context.storageState({ path: authFile(actor) });
     } finally { await context.close(); }
   }

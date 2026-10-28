@@ -10,24 +10,43 @@ export async function signedPage(browser: Browser, actor: Actor) {
   await setupClerkTestingToken({ context });
   const page = await context.newPage();
   try {
-    await page.goto('/auth-test');
-    // Sign in using this engine/device; Chromium cookies are not portable to every profile.
-    await clerk.signIn({ page, emailAddress: email(actor) });
-    // setActive resolves before every engine finishes synchronising its server cookie.
-    // Observe a real signed-in API response before starting server-side navigation.
-    await expect.poll(async () => {
-      try { return await page.evaluate(async () => (await fetch('/api/guest-auctions', { cache: 'no-store' })).status); }
-      catch { return 0; } // A Clerk session-sync navigation may replace this document.
-    }, { timeout: 30000 }).toBe(200);
-    await page.goto('/start');
-    await expect(page).toHaveURL(actor === 'guest' ? /\/platform\/guest-auctions$/ : /\/platform\/dashboard$/);
+    await establishSession(page, actor);
     await context.storageState({ path: authFile(actor) });
   } catch(error) {
-    const capture = await page.screenshot().catch(()=>null);
+    const location = new URL(page.url());
+    const capture = location.origin === 'http://localhost:3100' && !location.search ? await page.screenshot().catch(()=>null) : null;
     if(capture) await test.info().attach(`auth-${test.info().project.name}-${actor}`, { body: capture, contentType: 'image/png' });
     await context.close(); throw error;
   }
   return { context, page };
+}
+
+// Keep Clerk's development-session hand-off inside the browser. Never return or
+// log the decorated URL: it may contain transient authentication credentials.
+export async function establishSession(page: Page, actor: Actor) {
+  let serverStatus = 0;
+  try {
+    await page.goto('/auth-test');
+    await clerk.signIn({ page, emailAddress: email(actor) });
+    await page.evaluate(() => {
+      const sdk = (window as unknown as { Clerk: { redirectWithAuth(to: string): Promise<unknown> } }).Clerk;
+      void sdk.redirectWithAuth('/start').catch(() => {});
+    });
+    const destination = actor === 'guest' ? '/platform/guest-auctions' : '/platform/dashboard';
+    // Boolean readiness keeps decorated URLs out of assertion errors/artifacts.
+    await expect.poll(() => {
+      const url = new URL(page.url());
+      return url.origin === 'http://localhost:3100' && url.pathname === destination && !url.search;
+    }, { timeout: 30000 }).toBe(true);
+    await expect.poll(async () => {
+      try { serverStatus = await page.evaluate(async () => (await fetch('/api/guest-auctions', { cache: 'no-store' })).status); }
+      catch { serverStatus = 0; }
+      return serverStatus;
+    }, { timeout: 30000 }).toBe(200);
+  } catch {
+    // Raw navigation errors can include the SDK's transient authentication URL.
+    throw new Error(`Owned development sign-in did not establish the expected local page and server session (HTTP ${serverStatus}); no authentication URL or credentials recorded.`);
+  }
 }
 
 export async function api(page: Page, path: string, body?: unknown) {
