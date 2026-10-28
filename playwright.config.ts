@@ -8,6 +8,9 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  // Stop development candidates at the first failure; a passing matrix still
+  // requires all 33 checks. The working nightly branch retains full failure collection.
+  maxFailures: process.env.CI && process.env.GITHUB_REF_NAME === 'automated-uat' ? 1 : undefined,
   forbidOnly: !!process.env.CI,
   timeout: 120000,
   globalTimeout: 2100000,
