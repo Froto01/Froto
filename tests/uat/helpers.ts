@@ -78,9 +78,11 @@ export async function establishSession(page: Page, actor: Actor) {
       stage = 'verified client hand-off';
       await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { Clerk?: { session?: unknown } }).Clerk?.session)), { timeout: 30000 }).toBe(true);
       await page.evaluate(() => {
-        const sdk = (window as unknown as { Clerk: { redirectWithAuth(to: string): Promise<unknown> } }).Clerk;
-        void sdk.redirectWithAuth('/start').catch(() => {});
-      });
+        const sdk = (window as unknown as { Clerk: { buildUrlWithAuth(to: string): string } }).Clerk;
+        // A real document navigation allows Clerk's development handshake;
+        // a router fetch is not eligible for that browser-cookie hand-off.
+        window.location.assign(sdk.buildUrlWithAuth('/start'));
+      }).catch(() => { /* Navigation may replace the evaluation context; server readiness remains mandatory. */ });
       await serverReady();
       stage = 'server navigation';
       await page.goto('/start');

@@ -26,8 +26,8 @@ export function createUatTlsServer({ key, cert, upstreamPort = 3101 }) {
         const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY, publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY });
         void clerk.authenticateRequest(request).then(state => {
           const reason = /^[a-z0-9_-]{1,120}$/i.test(state.reason || '') ? state.reason : 'unavailable';
-          console.log('UAT WebKit authentication metadata:', JSON.stringify({ reason, status: state.status, sessionCookie: present('__session'), clientUatCookie: present('__client_uat'), devBrowserCookie: present('__clerk_db_jwt') }));
-        }).catch(() => console.log('UAT WebKit authentication metadata unavailable; no sensitive error recorded.'));
+          console.error('UAT WebKit authentication metadata:', JSON.stringify({ reason, status: state.status, sessionCookie: present('__session'), clientUatCookie: present('__client_uat'), devBrowserCookie: present('__clerk_db_jwt') }));
+        }).catch(() => console.error('UAT WebKit authentication metadata unavailable; no sensitive error recorded.'));
       }
       outgoing.writeHead(response.statusCode, response.headers); response.pipe(outgoing);
     });
