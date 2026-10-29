@@ -22,9 +22,10 @@ export default function NewSpotRequirementPage() {
   const [type, setType] = useState<"TRANSPORT" | "STORAGE">(initialRequirementType);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [review, setReview] = useState<Record<string, string> | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setError("");
+    event.preventDefault(); setError("");
     const form = new FormData(event.currentTarget);
     try {
       const payload = { requirementType:type, title:form.get("title"), origin:form.get("origin"), destination:form.get("destination"), location:form.get("location"), quantity:Number(form.get("quantity")), quantityUnit:form.get("quantityUnit"), temperatureClass:form.get("temperatureClass"), requiredFrom:localDateTimeToIso(form.get("requiredFrom")), requiredTo:localDateTimeToIso(form.get("requiredTo")), offersCloseAt:localDateTimeToIso(form.get("offersCloseAt")), notes:form.get("notes") };
@@ -35,6 +36,22 @@ export default function NewSpotRequirementPage() {
       if (!Number.isFinite(from)) throw new Error("Enter a valid required-from date.");
       if (to !== null && to < from) throw new Error("Required-until cannot be earlier than required-from.");
       if (closes !== null && closes <= Date.now()) throw new Error("Offers must close at a future date and time.");
+      const summary: Record<string, string> = {
+        "Type": type === "TRANSPORT" ? "Transport" : "Storage",
+        "Title": String(payload.title ?? ""),
+        "Location": type === "TRANSPORT" ? `${payload.origin} → ${payload.destination}` : String(payload.location ?? ""),
+        "Freight": `${payload.quantity} ${payload.quantityUnit}`,
+        "Required from": String(form.get("requiredFrom") ?? ""),
+        "Required until": String(form.get("requiredTo") || "Not specified"),
+        "Offers close": String(form.get("offersCloseAt") || "Not specified"),
+        "Handling": String(payload.temperatureClass || "Not specified"),
+        "Notes": String(payload.notes || "None"),
+      };
+      if (!review || JSON.stringify(summary) !== JSON.stringify(review)) {
+        setReview(summary);
+        return;
+      }
+      setBusy(true);
       const response=await fetch("/api/spot-requirements",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Could not post spot requirement."); router.push(`/platform/spot-requirements/${data.id}`);
     } catch(err){setError(err instanceof Error?err.message:"Could not post spot requirement.");setBusy(false);}
@@ -50,11 +67,11 @@ export default function NewSpotRequirementPage() {
     <p className="mt-2 text-slate-600">Choose transport or storage. Providers submit private offers, then your company compares price, service and reputation and chooses who gets the job.</p>
 
     <div className="mt-6 grid gap-3 sm:grid-cols-2">
-      <button type="button" onClick={()=>setType("TRANSPORT")} className={`rounded-xl border p-5 text-left ${isTransport?"border-blue-600 bg-blue-50 ring-1 ring-blue-600":"border-slate-200 bg-white"}`}><span className="block text-xs font-bold uppercase tracking-[0.14em] text-blue-700">I need transport now</span><strong className="mt-2 block text-lg text-slate-950">Post a transport requirement</strong><span className="mt-1 block text-sm text-slate-600">Freight that needs moving from an origin to a destination now or soon.</span></button>
-      <button type="button" onClick={()=>setType("STORAGE")} className={`rounded-xl border p-5 text-left ${!isTransport?"border-blue-600 bg-blue-50 ring-1 ring-blue-600":"border-slate-200 bg-white"}`}><span className="block text-xs font-bold uppercase tracking-[0.14em] text-blue-700">I need storage now</span><strong className="mt-2 block text-lg text-slate-950">Post a storage requirement</strong><span className="mt-1 block text-sm text-slate-600">Warehouse or pallet space you need in a location now or for a short period.</span></button>
+      <button type="button" onClick={()=>{setType("TRANSPORT");setReview(null);}} className={`rounded-xl border p-5 text-left ${isTransport?"border-blue-600 bg-blue-50 ring-1 ring-blue-600":"border-slate-200 bg-white"}`}><span className="block text-xs font-bold uppercase tracking-[0.14em] text-blue-700">I need transport now</span><strong className="mt-2 block text-lg text-slate-950">Post a transport requirement</strong><span className="mt-1 block text-sm text-slate-600">Freight that needs moving from an origin to a destination now or soon.</span></button>
+      <button type="button" onClick={()=>{setType("STORAGE");setReview(null);}} className={`rounded-xl border p-5 text-left ${!isTransport?"border-blue-600 bg-blue-50 ring-1 ring-blue-600":"border-slate-200 bg-white"}`}><span className="block text-xs font-bold uppercase tracking-[0.14em] text-blue-700">I need storage now</span><strong className="mt-2 block text-lg text-slate-950">Post a storage requirement</strong><span className="mt-1 block text-sm text-slate-600">Warehouse or pallet space you need in a location now or for a short period.</span></button>
     </div>
 
-    <form onSubmit={submit} className="mt-6 grid gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onChange={()=>setReview(null)} onSubmit={submit} className="mt-6 grid gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-700">{isTransport?"Transport needed":"Storage needed"}</p><h2 className="mt-1 text-xl font-bold text-slate-950">{isTransport?"Transport spot requirement":"Storage spot requirement"}</h2></div>
       <label className={label}>Requirement title<input className={input} name="title" required maxLength={140} placeholder={isTransport?"22 pallets Brisbane to Gold Coast":"40 pallet spaces in Brisbane for 3 weeks"}/></label>
       {isTransport?<div className="grid gap-4 md:grid-cols-2"><label className={label}>Origin<input className={input} name="origin" required/></label><label className={label}>Destination<input className={input} name="destination" required/></label></div>:<label className={label}>Storage location<input className={input} name="location" required placeholder="Brisbane, QLD"/></label>}
@@ -65,7 +82,12 @@ export default function NewSpotRequirementPage() {
       <label className={label}>Notes <span className="font-normal text-slate-500">Optional</span><textarea className={`${input} min-h-28`} name="notes" maxLength={2000} placeholder={!isTransport?"Access requirements, racking, forklift needs, handling frequency...":undefined}/></label>
       {error?<p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>:null}
       <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600"><strong className="text-slate-900">Sealed offers:</strong> providers cannot see another provider&apos;s price or identity. Your company sees all offers and chooses the provider.</div>
-      <button disabled={busy} className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{busy?"Posting…":isTransport?"Post transport requirement":"Post storage requirement"}</button>
+      {review ? <section aria-label="Review requirement before publication" className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+        <h3 className="font-semibold text-slate-900">Review before publishing</h3>
+        <p className="mt-1 text-sm text-slate-600">Check the details below. Change any field to update this summary before posting.</p>
+        <dl className="mt-3 grid gap-2 sm:grid-cols-2">{Object.entries(review).map(([key,value])=><div key={key} className="rounded-lg bg-white p-3"><dt className="text-xs font-semibold text-slate-500">{key}</dt><dd className="mt-1 break-words text-sm text-slate-900">{value}</dd></div>)}</dl>
+      </section> : null}
+      <button disabled={busy} className="rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-50">{busy?"Posting…":review?"Confirm and publish": "Review requirement"}</button>
     </form>
   </main>;
 }
