@@ -67,9 +67,9 @@ export async function establishSession(page: Page, actor: Actor) {
       window.location.assign(sdk.buildUrlWithAuth('/start'));
     }).catch(() => { /* Document navigation may replace this context; readiness below must pass. */ });
     await serverReady();
-    stage = 'server navigation';
-    await page.goto('/start');
     stage = 'local destination';
+    // Let the authenticated document navigation finish its own redirect.
+    // A second /start navigation can interrupt the Clerk development hand-off.
     // Boolean readiness keeps decorated URLs out of assertion errors/artifacts.
     await expect.poll(() => {
       const url = new URL(page.url());
