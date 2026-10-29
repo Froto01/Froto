@@ -1,0 +1,29 @@
+name: Froto draft fix checks (no secrets)
+on:
+  push:
+    branches:
+      - 'uat-fix/**'
+  pull_request:
+    branches:
+      - automated-uat
+permissions:
+  contents: read
+concurrency:
+  group: froto-draft-fix-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  static-checks:
+    name: Secret-free regression and type checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - name: Lint UAT changes
+        run: npx eslint tests/uat tests/auth playwright.config.ts playwright.auth.config.ts scripts/uat*.mjs scripts/run-uat.mjs lib/uat*.cjs lib/uat*.mjs
