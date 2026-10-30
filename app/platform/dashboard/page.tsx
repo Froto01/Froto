@@ -169,9 +169,9 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-4">
             <Image src="/brand/froto-mark.svg" alt="Froto" width={54} height={54} className="h-12 w-12 rounded-2xl bg-froto-ice p-2 ring-1 ring-froto-blue/10" />
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Froto dashboard</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Supply chain spot market dashboard</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-froto-navy">{company.name}</h1>
-              <div className="mt-2 flex items-center gap-2"><Badge className="border border-froto-teal/15 bg-teal-50 text-froto-teal hover:bg-teal-50">{membership.role}</Badge><span className="text-sm text-slate-500">Live company activity</span></div>
+              <div className="mt-2 flex items-center gap-2"><Badge className="border border-froto-teal/15 bg-teal-50 text-froto-teal hover:bg-teal-50">{membership.role}</Badge><span className="text-sm text-slate-500">Your spot market activity</span></div>
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">

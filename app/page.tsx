@@ -56,15 +56,16 @@ export default function LandingPage() {
 
             <div className="space-y-5">
               <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.035em] text-froto-navy sm:text-5xl lg:text-6xl">
-                Logistics capacity,
+                The supply chain,
                 <span className="block bg-gradient-to-r from-froto-blue via-froto-cyan to-froto-green bg-clip-text text-transparent">
-                  matched in one marketplace.
+                  connected in one spot market.
                 </span>
               </h1>
 
               <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                Froto connects shippers, carriers and 3PL warehouses so spare transport and storage
-                capacity can be discovered, bid on and awarded with far less friction.
+                Froto is a supply chain spot market connecting transport providers, warehouses,
+                manufacturers and buyers. Discover live needs and available capacity, compare opportunities,
+                and award work in one place.
               </p>
             </div>
 

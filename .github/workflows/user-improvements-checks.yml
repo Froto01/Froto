@@ -1,0 +1,22 @@
+name: Froto improvements static checks
+on:
+  push:
+    branches: [feature/user-improvements-20261030]
+permissions:
+  contents: read
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint app/page.tsx app/platform/page.tsx app/platform/dashboard/page.tsx app/platform/spot-requirements/new/page.tsx
+      # Production build requires DATABASE_URL during Next.js page collection.
+      # Keep this draft-branch gate secret-free; build validation belongs in a trusted environment.
