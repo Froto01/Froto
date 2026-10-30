@@ -417,17 +417,17 @@ export default function PlatformPage() {
             <div className="mb-5 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Live marketplace</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live logistics marketplace</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search transport and storage needs alongside available logistics capacity. The badge shows which side of the transaction each opportunity represents.</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Supply chain spot market</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Explore open transport and storage needs first, then available capacity across the supply chain. Opportunity labels distinguish buyers from providers.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new"><Plus className="h-4 w-4" />List capacity</Link></Button>
             </div>
 
             {filteredSpotRequirements.length > 0 ? (
-              <div className="mb-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mb-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredSpotRequirements.map((requirement) => (
-                  <Card key={requirement.id} className="group rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                    <CardContent className="space-y-4 p-5">
+                  <Card key={requirement.id} className="group rounded-2xl border-froto-blue/10 bg-white shadow-sm shadow-froto-navy/5 transition-all hover:border-froto-blue/25 hover:shadow-md">
+                    <CardContent className="space-y-3 p-4">
                       <div className="flex items-start justify-between gap-3"><div><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><h2 className="mt-3 text-xl font-semibold text-froto-navy">{requirement.title}</h2></div><LockKeyhole className="h-4 w-4 shrink-0 text-slate-400" /></div>
                       <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm"><p className="font-medium text-slate-700">{requirement.quantity} {requirement.quantityUnit}{requirement.temperatureClass ? ` · ${requirement.temperatureClass}` : ""}</p><p className="mt-1 text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin} → ${requirement.destination}` : requirement.location}</p></div>
                       <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4"><div><p className="text-xs text-slate-500">Required from</p><p className="mt-1 text-sm font-medium text-froto-navy">{formatDate(requirement.requiredFrom)}</p><p className="mt-1 text-xs text-slate-500">{requirement.offersCloseAt ? `Offers close ${formatDateTime(requirement.offersCloseAt)}` : "Open for private offers"}</p></div><Button asChild className="bg-froto-blue hover:bg-[#0969ba]"><Link href={`/platform/spot-requirements/${requirement.id}`}>{requirement.ownOffer ? "View your offer" : "Submit private offer"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button></div>
