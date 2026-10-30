@@ -17,4 +17,5 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npx tsc --noEmit
-      - run: npx eslint app/platform/spot-requirements/new/page.tsx
+      - run: npx eslint app/page.tsx app/platform/page.tsx app/platform/dashboard/page.tsx app/platform/spot-requirements/new/page.tsx
+      - run: npm run build
