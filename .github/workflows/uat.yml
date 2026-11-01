@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Verify authentication output redaction
+        run: node --test lib/uat-log-redaction.test.mjs
       - run: npx tsc --noEmit
       - name: Lint automated UAT code
         run: npx eslint tests/uat tests/auth playwright.config.ts playwright.auth.config.ts scripts/uat*.mjs scripts/run-uat.mjs lib/uat*.cjs lib/uat*.mjs
