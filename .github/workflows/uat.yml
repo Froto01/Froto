@@ -29,6 +29,10 @@ jobs:
   browser-uat:
     name: Authenticated browser UAT
     needs: regression
+    # Requires manual approval and permits only the approved automated-uat branch.
+    # UAT credentials must be moved from repository secrets to this environment
+    # before this gate is considered an effective credential boundary.
+    environment: froto-uat
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
