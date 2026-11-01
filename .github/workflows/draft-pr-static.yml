@@ -1,0 +1,25 @@
+name: Froto draft PR static checks
+on:
+  pull_request:
+    branches: [spot-requirements, automated-uat]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: froto-static-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  static:
+    name: Secret-free code checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint app components lib scripts tests --no-error-on-unmatched-pattern
