@@ -6,11 +6,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRight,
   Filter,
-  LayoutDashboard,
   LockKeyhole,
   Plus,
   Search,
-  UserPlus,
   X,
 } from "lucide-react";
 
@@ -18,8 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-const showSearch = true;
 
 type MarketplaceListing = {
   id: string;
@@ -372,44 +368,22 @@ export default function PlatformPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-20">
-      <header className="sticky top-0 z-40 border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
-          <Link href="/" aria-label="Froto home" className="shrink-0 rounded-xl px-1 py-0.5 transition-opacity hover:opacity-90">
-            <Image src="/brand/froto-logo.svg" alt="Froto. Connect. Match. Move." width={168} height={42} priority className="h-10 w-auto" />
-          </Link>
-
-          {showSearch && (
-            <div className="ml-auto hidden w-[40ch] items-center gap-2 md:flex">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders, routes, products" : "Search routes, locations, capacity"} className="border-froto-blue/15 bg-froto-ice/70 pl-9 focus-visible:ring-froto-blue" />
-              </div>
-            </div>
-          )}
-
-          <Button asChild variant="outline" className="ml-auto gap-2 border-froto-blue/15 bg-white text-froto-navy md:ml-2">
-            <Link href="/platform/dashboard"><LayoutDashboard className="h-4 w-4 text-froto-blue" />Dashboard</Link>
-          </Button>
-          <Button asChild variant="outline" className="gap-2 border-froto-teal/20 bg-white text-froto-navy">
-            <Link href="/platform/listings/new"><Plus className="h-4 w-4 text-froto-teal" />List Capacity</Link>
-          </Button>
-          <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]">
-            <Link href="/platform/onboarding"><UserPlus className="h-4 w-4" />Company Profile</Link>
-          </Button>
-        </div>
-      </header>
-
+      {/* The site-wide PublicBrandHeader is the only branded navigation header. */}
       <div className="mx-auto max-w-6xl px-4 pt-7">
-        <div className="mb-5 flex w-fit items-center gap-1 rounded-full border border-froto-blue/10 bg-white p-1 shadow-sm">
-          <button className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "marketplace" ? "bg-froto-navy text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("marketplace")}>Marketplace</button>
-          <button className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "tenders" ? "bg-gradient-to-r from-froto-teal to-froto-green text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("tenders")}>Tenders</button>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-fit items-center gap-1 rounded-full border border-froto-blue/10 bg-white p-1 shadow-sm" role="group" aria-label="Marketplace views">
+            <button type="button" aria-pressed={activeTab === "marketplace"} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "marketplace" ? "bg-froto-navy text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("marketplace")}>Marketplace</button>
+            <button type="button" aria-pressed={activeTab === "tenders"} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "tenders" ? "bg-gradient-to-r from-froto-teal to-froto-green text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("tenders")}>Tenders</button>
+          </div>
+          <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
+            <Link href="/platform/onboarding">Company profile</Link>
+          </Button>
         </div>
 
-        <div className="mb-7 md:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search logistics"} className="border-froto-blue/15 bg-white pl-9" />
-          </div>
+        <div className="relative mb-7 w-full sm:max-w-xl">
+          <label htmlFor="opportunity-search" className="sr-only">Search Froto opportunities</label>
+          <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
+          <Input id="opportunity-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders, routes, products" : "Search routes, locations, capacity"} className="border-froto-blue/15 bg-white pl-9 focus-visible:ring-froto-blue" />
         </div>
 
         {activeTab === "marketplace" && (

@@ -11,7 +11,7 @@ export function PublicBrandHeader() {
 
   return (
     <header className="relative z-50 border-b bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
         <Link href="/" aria-label="Froto home" className="shrink-0">
           <Image
             src="/brand/froto-logo.svg"
@@ -23,9 +23,15 @@ export function PublicBrandHeader() {
           />
         </Link>
 
-        <nav className="ml-auto flex items-center gap-2 text-sm font-medium">
+        <nav className="ml-auto flex w-full flex-wrap items-center justify-start gap-2 text-sm font-medium sm:w-auto sm:justify-end">
           {isSignedIn ? (
             <>
+              <Link
+                href="/platform"
+                className="rounded-xl px-3 py-2 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950"
+              >
+                Marketplace
+              </Link>
               <Link
                 href="/platform/dashboard"
                 className="rounded-xl px-3 py-2 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-950"
