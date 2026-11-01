@@ -1,0 +1,22 @@
+name: UAT security change checks (no secrets)
+on:
+  push:
+    branches: [chore/uat-environment-gate-20261101]
+permissions:
+  contents: read
+jobs:
+  security-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/uat-log-redaction.test.mjs
+      - run: node --check scripts/run-uat.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint scripts/run-uat.mjs lib/uat-log-redaction.mjs lib/uat-log-redaction.test.mjs
