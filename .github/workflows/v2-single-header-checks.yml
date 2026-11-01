@@ -1,0 +1,26 @@
+name: Froto V2 single-header static checks
+on:
+  push:
+    branches: [feature/v2-single-header-20261102]
+permissions:
+  contents: read
+concurrency:
+  group: froto-v2-single-header
+  cancel-in-progress: true
+jobs:
+  checks:
+    name: Secret-free UI regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/marketplace-header.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint app/platform/page.tsx components/public-brand-header.tsx lib/marketplace-header.test.mjs
+      # No DB, Clerk credentials or live browser UAT on an unreviewed feature branch.
