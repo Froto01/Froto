@@ -18,5 +18,6 @@ jobs:
       - run: npm test
       - run: node --test lib/uat-log-redaction.test.mjs
       - run: node --check scripts/run-uat.mjs
+      - run: node --check scripts/uat-server.mjs
       - run: npx tsc --noEmit
-      - run: npx eslint scripts/run-uat.mjs lib/uat-log-redaction.mjs lib/uat-log-redaction.test.mjs
+      - run: npx eslint scripts/run-uat.mjs scripts/uat-server.mjs lib/uat-log-redaction.mjs lib/uat-log-redaction.test.mjs
