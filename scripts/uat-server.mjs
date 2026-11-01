@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createClerkClient } from '@clerk/backend';
 import { UAT_APP_ORIGIN } from '../lib/uat-safety.cjs';
+import { createLineRedactor } from '../lib/uat-log-redaction.mjs';
 
 export function createUatTlsServer({ key, cert, upstreamPort = 3101 }) {
   let diagnosedWebkit = false;
@@ -40,7 +41,12 @@ export function createUatTlsServer({ key, cert, upstreamPort = 3101 }) {
 async function startApplication() {
   const directory = resolve('playwright/.auth/tls');
   const server = createUatTlsServer({ key: readFileSync(resolve(directory, 'localhost.key')), cert: readFileSync(resolve(directory, 'localhost.crt')) });
-  const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', 'localhost', '--port', '3101'], { stdio: 'inherit', env: process.env });
+  // Filter the child server's own output as well as the outer UAT runner.
+  const app = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', 'localhost', '--port', '3101'], { stdio: ['inherit', 'pipe', 'pipe'], env: process.env });
+  const appOut = createLineRedactor(line => process.stdout.write(line));
+  const appErr = createLineRedactor(line => process.stderr.write(line));
+  app.stdout.on('data', chunk => appOut.push(chunk));
+  app.stderr.on('data', chunk => appErr.push(chunk));
   let shuttingDown = false;
   const shutdown = () => {
     if (shuttingDown) return;
@@ -50,7 +56,7 @@ async function startApplication() {
   };
   process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
   app.on('error', () => { console.error('Local built application could not start'); process.exit(1); });
-  app.on('exit', code => { if (!shuttingDown) { server.close(); process.exit(code || 1); } });
+  app.on('exit', code => { appOut.flush(); appErr.flush(); if (!shuttingDown) { server.close(); process.exit(code || 1); } });
   server.on('error', () => { console.error('Local HTTPS listener could not start'); shutdown(); process.exitCode = 1; });
   // The only public test origin is HTTPS localhost:3100. The real built Next
   // process is reached through loopback HTTP, with its canonical forwarded origin.
