@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { isOfferWindowOpen, listingBiddingState, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
 
 const showSearch = true;
 
@@ -82,6 +83,7 @@ type GuestMarketplaceAuction = {
   deliveryBy: string | null;
   auctionClosesAt: string;
   notes: string | null;
+  status: string;
   ownBid: { amount: number; status: string } | null;
 };
 
@@ -101,6 +103,7 @@ type SpotMarketplaceRequirement = {
   temperatureClass: string | null;
   requiredFrom: string;
   offersCloseAt: string | null;
+  status: string;
   ownOffer: { amount: number; status: string } | null;
 };
 
@@ -165,6 +168,7 @@ function FilterSelect({ value, onChange, label, children }: { value: string; onC
 
 export default function PlatformPage() {
   const [query, setQuery] = useState("");
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [activeTab, setActiveTab] = useState<"marketplace" | "tenders">("marketplace");
   const [marketplaceListings, setMarketplaceListings] = useState<MarketplaceListing[]>([]);
   const [listingsLoading, setListingsLoading] = useState(true);
@@ -269,6 +273,7 @@ export default function PlatformPage() {
     void loadSpotRequirements();
 
     const refreshTimer = window.setInterval(() => {
+      setNowMs(Date.now());
       void loadListings(false);
       void loadTenders(false);
       void loadGuestAuctions();
@@ -293,7 +298,7 @@ export default function PlatformPage() {
 
   const filteredListings = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return marketplaceListings.filter((listing) => {
+    return sortOpenFirst(marketplaceListings.filter((listing) => {
       const searchable = [
         listing.title,
         listing.listingType,
@@ -310,30 +315,30 @@ export default function PlatformPage() {
         searchable.includes(q) &&
         (listingType === "all" || listing.listingType === listingType) &&
         (listingTemperature === "all" || listing.temperatureClass === listingTemperature) &&
-        (listingAuctionState === "all" || listing.auctionState === listingAuctionState)
+        (listingAuctionState === "all" || listingBiddingState(listing, nowMs) === listingAuctionState)
       );
-    });
-  }, [marketplaceListings, query, listingType, listingTemperature, listingAuctionState]);
+    }), (listing) => listingBiddingState(listing, nowMs) === "OPEN");
+  }, [marketplaceListings, query, listingType, listingTemperature, listingAuctionState, nowMs]);
 
   const filteredSpotRequirements = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return spotRequirements.filter((requirement) => [requirement.title, requirement.requirementType, requirement.origin ?? "", requirement.destination ?? "", requirement.location ?? "", requirement.quantityUnit, requirement.temperatureClass ?? ""].join(" ").toLowerCase().includes(q));
-  }, [spotRequirements, query]);
+    return spotRequirements.filter((requirement) => requirement.status === "OPEN" && isOfferWindowOpen(requirement.offersCloseAt, nowMs) && [requirement.title, requirement.requirementType, requirement.origin ?? "", requirement.destination ?? "", requirement.location ?? "", requirement.quantityUnit, requirement.temperatureClass ?? ""].join(" ").toLowerCase().includes(q));
+  }, [spotRequirements, query, nowMs]);
 
   const filteredGuestAuctions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return guestAuctions;
     return guestAuctions.filter((auction) =>
+      auction.status === "OPEN" && isOfferWindowOpen(auction.auctionClosesAt, nowMs) &&
       [auction.title, auction.itemDescription, auction.pickupLocation, auction.deliveryLocation]
         .join(" ")
         .toLowerCase()
         .includes(q),
     );
-  }, [guestAuctions, query]);
+  }, [guestAuctions, query, nowMs]);
 
   const filteredTenders = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return marketplaceTenders.filter((tender) => {
+    return sortOpenFirst(marketplaceTenders.filter((tender) => {
       const searchable = [
         tender.title,
         tender.productDescription,
@@ -346,12 +351,12 @@ export default function PlatformPage() {
 
       return (
         searchable.includes(q) &&
-        (tenderStatus === "all" || tender.status === tenderStatus) &&
+        (tenderStatus === "all" || tenderResponseState(tender, nowMs) === tenderStatus) &&
         (tenderTemperature === "all" || tender.temperatureRequirement === tenderTemperature) &&
         (tenderStorage === "all" || (tenderStorage === "required" ? tender.storageRequired : !tender.storageRequired))
       );
-    });
-  }, [marketplaceTenders, query, tenderStatus, tenderTemperature, tenderStorage]);
+    }), (tender) => tenderResponseState(tender, nowMs) === "OPEN");
+  }, [marketplaceTenders, query, tenderStatus, tenderTemperature, tenderStorage, nowMs]);
 
   const marketplaceFiltersActive = query.trim() !== "" || listingType !== "all" || listingTemperature !== "all" || listingAuctionState !== "all";
   const tenderFiltersActive = query.trim() !== "" || tenderStatus !== "all" || tenderTemperature !== "all" || tenderStorage !== "all";
@@ -507,16 +512,16 @@ export default function PlatformPage() {
                       <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-froto-navy/30 to-transparent" />
                       <div className="absolute left-3 top-3 flex gap-2">
                         <Badge className="border border-white/50 bg-white/92 text-froto-navy shadow-sm">{listing.listingType === "Transport Lane" ? "TRANSPORT CAPACITY AVAILABLE" : "WAREHOUSE SPACE AVAILABLE"}</Badge>
-                        <Badge className={listing.auctionState === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-green text-white"}>{listing.auctionState === "CLOSED" ? "Bidding closed" : "Bidding open"}</Badge>
+                        <Badge className={listingBiddingState(listing, nowMs) === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-green text-white"}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "Bidding closed" : "Bidding open"}</Badge>
                       </div>
                     </div>
                     <CardContent className="space-y-4 p-5">
                       <div><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold text-froto-navy">{listing.title}</h2>{listing.isOwner ? <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue">Your listing</Badge> : null}</div><p className="mt-1 text-xs text-slate-500">Listed by {listing.companyName}{listing.companyVerified ? " · Verified" : ""}</p></div>
                       <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm"><p className="font-medium text-slate-700">{listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}</p><p className="mt-1 text-slate-500">{listingLocation(listing)}</p></div>
-                      <p className="text-xs font-medium text-slate-500">{listing.biddingClosesAt ? `${listing.auctionState === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(listing.biddingClosesAt)}` : "No bidding close time set"}</p>
+                      <p className="text-xs font-medium text-slate-500">{listing.biddingClosesAt ? `${listingBiddingState(listing, nowMs) === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(listing.biddingClosesAt)}` : "No bidding close time set"}</p>
                       <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
-                        <div><p className="text-xs text-slate-500">{listing.bidCount > 0 ? listing.auctionState === "CLOSED" ? "Final bid" : "Current bid" : "Starting bid"}</p><span className="mt-1 block text-2xl font-semibold text-froto-navy">{formatAUD(listing.currentBid)}</span><p className="text-xs text-froto-teal">{listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}</p></div>
-                        <Button asChild className={`flex items-center gap-1 rounded-xl ${listing.auctionState === "CLOSED" ? "bg-froto-navy hover:bg-[#0a356f]" : "bg-froto-blue hover:bg-[#0969ba]"}`}><Link href={`/platform/listing/${listing.id}`}>{listing.auctionState === "CLOSED" ? "View" : "Bid"}<ArrowUpRight className="h-4 w-4" /></Link></Button>
+                        <div><p className="text-xs text-slate-500">{listing.bidCount > 0 ? listingBiddingState(listing, nowMs) === "CLOSED" ? "Final bid" : "Current bid" : "Starting bid"}</p><span className="mt-1 block text-2xl font-semibold text-froto-navy">{formatAUD(listing.currentBid)}</span><p className="text-xs text-froto-teal">{listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}</p></div>
+                        <Button asChild className={`flex items-center gap-1 rounded-xl ${listingBiddingState(listing, nowMs) === "CLOSED" ? "bg-froto-navy hover:bg-[#0a356f]" : "bg-froto-blue hover:bg-[#0969ba]"}`}><Link href={`/platform/listing/${listing.id}`}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "View" : "Bid"}<ArrowUpRight className="h-4 w-4" /></Link></Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -581,7 +586,7 @@ export default function PlatformPage() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-lg font-semibold text-froto-navy">{tender.title}</p>
-                          <Badge className={tender.status === "AWARDED" ? "bg-froto-green text-white" : tender.status === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-teal text-white"}>{tender.status === "AWARDED" ? "Awarded" : tender.status === "CLOSED" ? "Responses closed" : "Open"}</Badge>
+                          <Badge className={tenderResponseState(tender, nowMs) === "AWARDED" ? "bg-froto-green text-white" : tenderResponseState(tender, nowMs) === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-teal text-white"}>{tenderResponseState(tender, nowMs) === "AWARDED" ? "Awarded" : tenderResponseState(tender, nowMs) === "CLOSED" ? "Responses closed" : "Open"}</Badge>
                           {tender.isOwner ? <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue">Your tender</Badge> : null}
                           {tender.hasResponded ? <Badge className="border border-emerald-200 bg-emerald-50 text-froto-green">Responded</Badge> : null}
                         </div>
@@ -590,7 +595,7 @@ export default function PlatformPage() {
                         <p className="mt-1 text-sm text-slate-600">{tender.volume} · {tender.origin} to {tender.destination}</p>
                         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
                           <span>Delivery {formatDate(tender.deliveryDate)}</span>
-                          <span>{tender.responseClosed ? "Closed" : "Closes"} {formatDateTime(tender.responseClosesAt)}</span>
+                          <span>{tenderResponseState(tender, nowMs) !== "OPEN" ? "Closed" : "Closes"} {formatDateTime(tender.responseClosesAt)}</span>
                           <span>{tender.responseCount} sealed {tender.responseCount === 1 ? "response" : "responses"}</span>
                           <span>{tender.storageRequired ? "Storage required" : "No storage required"}</span>
                           {tender.temperatureRequirement ? <span>{tender.temperatureRequirement}</span> : null}
@@ -600,7 +605,7 @@ export default function PlatformPage() {
                       <div className="flex min-w-44 flex-col items-stretch gap-2 md:items-end">
                         {tender.responseCount > 0 ? <p className="text-sm font-medium text-slate-500">Supplier pricing sealed</p> : <p className="text-sm text-slate-500">No responses yet</p>}
                         {tender.viewerResponseAmount !== null ? <p className="text-xs font-medium text-froto-teal">Your response: {formatAUD(tender.viewerResponseAmount)}</p> : null}
-                        <Button asChild className={tender.status === "OPEN" && !tender.isOwner && !tender.hasResponded ? "bg-froto-teal hover:bg-[#0c8d82]" : "bg-froto-navy hover:bg-[#0a356f]"}><Link href={`/platform/tenders/${tender.id}`}>{tender.status === "OPEN" && !tender.isOwner && !tender.hasResponded ? "Respond" : "View tender"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button>
+                        <Button asChild className={tenderResponseState(tender, nowMs) === "OPEN" && !tender.isOwner && !tender.hasResponded ? "bg-froto-teal hover:bg-[#0c8d82]" : "bg-froto-navy hover:bg-[#0a356f]"}><Link href={`/platform/tenders/${tender.id}`}>{tenderResponseState(tender, nowMs) === "OPEN" && !tender.isOwner && !tender.hasResponded ? "Respond" : "View tender"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button>
                       </div>
                     </div>
                   </Card>
