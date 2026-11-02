@@ -1,6 +1,7 @@
 "use client";
 
 import { LOGISTICS_UNITS, type LogisticsUnit } from "@/lib/logistics-units";
+import { validateCapacityListing } from "@/lib/capacity-listing-validation";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -80,33 +81,47 @@ export default function CreateListingPage() {
   const [form, setForm] = useState<CreateListingForm>(emptyListing);
   const [submittedListing, setSubmittedListing] =
     useState<CreateListingForm | null>(null);
+  const [reviewedForm, setReviewedForm] = useState<CreateListingForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function updateField(field: keyof CreateListingForm, value: string) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) =>
+      field === "listingType" && value !== current.listingType
+        ? { ...current, listingType: value as ListingType, origin: "", destination: "", location: "" }
+        : { ...current, [field]: value },
+    );
+    setReviewedForm(null);
+    setError(null);
   }
 
   async function submitListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSaving) return;
     setError(null);
-    setIsSaving(true);
 
+    const validationError = validateCapacityListing(form, Date.now());
+    if (validationError) {
+      setReviewedForm(null);
+      setError(validationError);
+      return;
+    }
+
+    // The first submit only displays an editable summary. Changes invalidate it.
+    if (!reviewedForm || JSON.stringify(reviewedForm) !== JSON.stringify(form)) {
+      setReviewedForm({ ...form });
+      return;
+    }
+
+    setIsSaving(true);
     try {
       const localCloseTime = new Date(form.biddingClosesAt);
-
-      if (Number.isNaN(localCloseTime.getTime())) {
-        throw new Error("Please provide a valid bidding close time.");
-      }
-
       await createListing({
         ...form,
         biddingClosesAt: localCloseTime.toISOString(),
       });
       setSubmittedListing(form);
+      setReviewedForm(null);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -250,6 +265,9 @@ export default function CreateListingPage() {
                       <option value="Transport Lane">Transport Lane</option>
                       <option value="Warehouse Space">Warehouse Space</option>
                     </select>
+                    <span className="block text-xs font-normal text-slate-500">
+                      Changing listing type clears route and location fields so the details can be reconfirmed.
+                    </span>
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy">
@@ -323,6 +341,9 @@ export default function CreateListingPage() {
                     >
                       {LOGISTICS_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                     </select>
+                    <span className="block text-xs font-normal text-slate-500">
+                      Slots are vehicle-specific; confirm the applicable dimensions with your customer.
+                    </span>
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy">
@@ -416,8 +437,34 @@ export default function CreateListingPage() {
                   </label>
                 </div>
 
+                {reviewedForm ? (
+                  <section aria-label="Review listing before publishing" className="rounded-2xl border border-froto-teal/25 bg-teal-50/60 p-5">
+                    <h3 className="text-lg font-semibold text-froto-navy">Review before publishing</h3>
+                    <p className="mt-1 text-sm text-slate-600">Check these details carefully. Editing a field above requires another review.</p>
+                    <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                      {Object.entries({
+                        Type: reviewedForm.listingType,
+                        Title: reviewedForm.title,
+                        Location: reviewedForm.listingType === "Transport Lane"
+                          ? `${reviewedForm.origin} → ${reviewedForm.destination}`
+                          : reviewedForm.location,
+                        Capacity: `${reviewedForm.capacityAmount} ${reviewedForm.capacityUnit}`,
+                        Availability: `${reviewedForm.availableFrom} to ${reviewedForm.availableTo}`,
+                        "Starting bid": reviewedForm.startingBid,
+                        "Minimum increment": reviewedForm.minimumBidIncrement,
+                        "Bidding closes": displayCloseTime(reviewedForm.biddingClosesAt),
+                      }).map(([label, value]) => (
+                        <div key={label}>
+                          <dt className="font-medium text-slate-500">{label}</dt>
+                          <dd className="mt-0.5 break-words text-froto-navy">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ) : null}
+
                 {error ? (
-                  <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <p role="alert" className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                   </p>
                 ) : null}
@@ -428,7 +475,7 @@ export default function CreateListingPage() {
                     disabled={isSaving}
                     className="bg-froto-navy hover:bg-[#0a356f]"
                   >
-                    {isSaving ? "Creating listing..." : "Create Listing"}
+                    {isSaving ? "Publishing..." : reviewedForm ? "Publish listing" : "Review listing"}
                   </Button>
                   <Button
                     asChild
