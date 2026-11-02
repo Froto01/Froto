@@ -116,7 +116,13 @@ async function createFeeSnapshotIfApplicable({
     minimumFeeCents,
     maximumFeeCents,
     gstBps: rule.gstBps,
+    policyCode: rule.code,
+    policyVersion: rule.version,
   });
+
+  if (calculated.marginalTiers && rule.payerType !== "PROVIDER") {
+    throw new Error("Marginal success fees must be provider-paid.");
+  }
 
   const idempotencyKey = `${transactionType}:${sourceId}`;
 
@@ -142,7 +148,17 @@ async function createFeeSnapshotIfApplicable({
       gstAmount: centsToDecimal(calculated.gstCents),
       feeIncGst: centsToDecimal(calculated.feeIncGstCents),
       calculatedAt,
-      metadata: metadata ?? undefined,
+      metadata: calculated.marginalTiers ? {
+        ...metadata,
+        feeCalculation: {
+          method: "MARGINAL",
+          policyCode: rule.code,
+          policyVersion: rule.version,
+          tiers: calculated.marginalTiers,
+          rounding: "SUM_TIERS_THEN_HALF_UP_CENTS",
+          percentageBpsMeaning: "FIRST_TIER_RATE",
+        },
+      } : metadata ?? undefined,
     },
   });
 

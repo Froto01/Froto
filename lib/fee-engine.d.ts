@@ -4,6 +4,8 @@ export type TransactionFeeInput = {
   minimumFeeCents?: number | null;
   maximumFeeCents?: number | null;
   gstBps?: number;
+  policyCode?: string;
+  policyVersion?: number;
 };
 
 export type TransactionFeeCalculation = {
@@ -16,6 +18,7 @@ export type TransactionFeeCalculation = {
   feeExGstCents: number;
   gstCents: number;
   feeIncGstCents: number;
+  marginalTiers?: { upperLimitCents: number | null; percentageBps: number }[];
 };
 
 export function calculateTransactionFee(
