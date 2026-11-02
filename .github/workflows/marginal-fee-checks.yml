@@ -1,0 +1,20 @@
+name: Marginal fee static checks
+on:
+  push:
+    branches: [codex/marginal-success-fees]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/fee-engine.mjs lib/fee-engine.d.ts lib/fee-snapshots.ts
