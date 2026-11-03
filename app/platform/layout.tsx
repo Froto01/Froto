@@ -9,6 +9,7 @@ import { ArrowRight, LayoutDashboard, PackageSearch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { marketplaceDirections } from "@/lib/marketplace-directions";
 
 type GuestAuction = {
   id: string;
@@ -26,32 +27,7 @@ type GuestAuctionResponse = {
 };
 
 
-const marketplaceDirections = [
-  {
-    label: "I NEED TRANSPORT NOW",
-    description: "Post freight that needs moving now or soon. Providers send private offers.",
-    href: "/platform/spot-requirements/new?type=transport",
-    badge: "TRANSPORT NEEDED",
-  },
-  {
-    label: "I NEED STORAGE NOW",
-    description: "Post a short-term warehouse or storage requirement and compare private offers.",
-    href: "/platform/spot-requirements/new?type=storage",
-    badge: "STORAGE NEEDED",
-  },
-  {
-    label: "I HAVE SPARE CAPACITY",
-    description: "List an available transport lane or warehouse space for buyers to bid on.",
-    href: "/platform/listings/new",
-    badge: "CAPACITY AVAILABLE",
-  },
-  {
-    label: "I NEED AN ONGOING LOGISTICS SERVICE",
-    description: "Create a structured tender for a recurring or contract logistics requirement.",
-    href: "/platform/tenders/new",
-    badge: "TENDER",
-  },
-] as const;
+
 
 export default function PlatformLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -135,12 +111,22 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
               <CardContent className="p-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">What do you want to do?</p>
-                  <p className="mt-1 text-sm text-slate-500">Choose the direction of the transaction first. Froto will take you into the correct marketplace workflow.</p>
+                  <p className="mt-1 text-sm text-slate-500">Buying means posting a transport, storage or procurement need. Supplying means listing spare capacity. Your business can do both.</p>
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {marketplaceDirections.map((direction) => (
-                    <Link key={direction.label} href={direction.href} className="group rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/30 hover:bg-blue-50/40">
-                      <Badge className="bg-froto-navy text-white">{direction.badge}</Badge>
+                    <Link
+                      key={direction.label}
+                      href={direction.href}
+                      aria-label={`${direction.transactionSide}: ${direction.label}`}
+                      className="group rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/30 hover:bg-blue-50/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-froto-blue"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={direction.transactionSide === "Buying" ? "bg-froto-navy text-white" : "bg-froto-teal text-white"}>
+                          {direction.transactionSide}
+                        </Badge>
+                        <span className="text-xs font-semibold text-slate-500">{direction.badge}</span>
+                      </div>
                       <p className="mt-3 text-sm font-bold text-froto-navy">{direction.label}</p>
                       <p className="mt-2 text-xs leading-5 text-slate-500">{direction.description}</p>
                       <span className="mt-3 flex items-center gap-1 text-xs font-semibold text-froto-blue">Continue <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span>
