@@ -1,0 +1,26 @@
+name: Froto Wave A compact marketplace row checks
+on:
+  push:
+    branches: [feature/v2-compact-marketplace-rows-20261105]
+permissions:
+  contents: read
+concurrency:
+  group: froto-v2-compact-marketplace-rows
+  cancel-in-progress: true
+jobs:
+  checks:
+    name: Secret-free compact row regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/marketplace-availability.test.mjs lib/marketplace-compact-rows.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint app/platform/page.tsx lib/marketplace-availability.ts lib/marketplace-compact-rows.test.mjs
+      # No credentials, deployments, database operations or authenticated browser UAT.
