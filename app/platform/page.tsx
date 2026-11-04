@@ -413,7 +413,7 @@ export default function PlatformPage() {
         <div className="mb-7 md:hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search logistics"} className="border-froto-blue/15 bg-white pl-9" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search opportunities"} className="border-froto-blue/15 bg-white pl-9" />
           </div>
         </div>
 
@@ -422,8 +422,8 @@ export default function PlatformPage() {
             <div className="mb-5 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Live marketplace</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live logistics marketplace</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search transport and storage needs alongside available logistics capacity. The badge shows which side of the transaction each opportunity represents.</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live supply chain spot market</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Explore transport and storage needs alongside available capacity. The badge shows which side of each spot-market opportunity you represent.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new"><Plus className="h-4 w-4" />List capacity</Link></Button>
             </div>
