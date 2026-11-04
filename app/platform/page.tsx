@@ -413,7 +413,7 @@ export default function PlatformPage() {
         <div className="mb-7 md:hidden">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-froto-blue" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search logistics"} className="border-froto-blue/15 bg-white pl-9" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={activeTab === "tenders" ? "Search tenders" : "Search opportunities"} className="border-froto-blue/15 bg-white pl-9" />
           </div>
         </div>
 
@@ -422,20 +422,29 @@ export default function PlatformPage() {
             <div className="mb-5 flex flex-col gap-4 rounded-[1.75rem] border border-froto-blue/10 bg-white/80 p-6 shadow-sm shadow-froto-navy/5 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Live marketplace</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live logistics marketplace</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Search transport and storage needs alongside available logistics capacity. The badge shows which side of the transaction each opportunity represents.</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-froto-navy">Live supply chain spot market</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Explore transport and storage needs alongside available capacity. The badge shows which side of each spot-market opportunity you represent.</p>
               </div>
               <Button asChild className="gap-2 rounded-xl bg-froto-navy hover:bg-[#0a356f]"><Link href="/platform/listings/new"><Plus className="h-4 w-4" />List capacity</Link></Button>
             </div>
 
             {filteredSpotRequirements.length > 0 ? (
-              <div className="mb-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mb-7 space-y-3" aria-label="Open transport and storage requirements">
                 {filteredSpotRequirements.map((requirement) => (
-                  <Card key={requirement.id} className="group rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                    <CardContent className="space-y-4 p-5">
-                      <div className="flex items-start justify-between gap-3"><div><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><h2 className="mt-3 text-xl font-semibold text-froto-navy">{requirement.title}</h2></div><LockKeyhole className="h-4 w-4 shrink-0 text-slate-400" /></div>
-                      <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm"><p className="font-medium text-slate-700">{requirement.quantity} {requirement.quantityUnit}{requirement.temperatureClass ? ` · ${requirement.temperatureClass}` : ""}</p><p className="mt-1 text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin} → ${requirement.destination}` : requirement.location}</p></div>
-                      <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4"><div><p className="text-xs text-slate-500">Required from</p><p className="mt-1 text-sm font-medium text-froto-navy">{formatDate(requirement.requiredFrom)}</p><p className="mt-1 text-xs text-slate-500">{requirement.offersCloseAt ? `Offers close ${formatDateTime(requirement.offersCloseAt)}` : "Open for private offers"}</p></div><Button asChild className="bg-froto-blue hover:bg-[#0969ba]"><Link href={`/platform/spot-requirements/${requirement.id}`}>{requirement.ownOffer ? "View your offer" : "Submit private offer"}<ArrowUpRight className="ml-1 h-4 w-4" /></Link></Button></div>
+                  <Card key={requirement.id} className="rounded-2xl border-froto-blue/10 bg-white shadow-sm transition-shadow hover:shadow-md">
+                    <CardContent className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge>
+                          <LockKeyhole aria-label="Private offers" className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <h2 className="break-words text-base font-semibold text-froto-navy">{requirement.title}</h2>
+                        <p className="break-words text-sm text-slate-600">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin ?? "Origin"} → ${requirement.destination ?? "Destination"}` : requirement.location ?? "Location not supplied"} · {requirement.quantity} {requirement.quantityUnit}{requirement.temperatureClass ? ` · ${requirement.temperatureClass}` : ""}</p>
+                        <p className="text-xs text-slate-500">Required {formatDate(requirement.requiredFrom)} · {requirement.offersCloseAt ? `Offers close ${formatDateTime(requirement.offersCloseAt)}` : "Open for private offers"}</p>
+                      </div>
+                      <Button asChild className="w-full shrink-0 bg-froto-blue hover:bg-[#0969ba] sm:w-auto">
+                        <Link href={`/platform/spot-requirements/${requirement.id}`}>{requirement.ownOffer ? "View your offer" : "Submit private offer"}<ArrowUpRight aria-hidden="true" className="ml-1 h-4 w-4" /></Link>
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -504,24 +513,30 @@ export default function PlatformPage() {
                 <Button onClick={clearMarketplaceFilters} className="mt-4 rounded-xl bg-froto-navy hover:bg-[#0a356f]">Clear filters</Button>
               </Card>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-3" aria-label="Available transport and storage capacity">
                 {filteredListings.map((listing) => (
-                  <Card key={listing.id} className="group overflow-hidden rounded-[1.6rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5 transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                    <div className="relative overflow-hidden">
-                      <Image src={listingImage(listing)} alt={listing.title} width={1200} height={800} className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]" />
-                      <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-froto-navy/30 to-transparent" />
-                      <div className="absolute left-3 top-3 flex gap-2">
-                        <Badge className="border border-white/50 bg-white/92 text-froto-navy shadow-sm">{listing.listingType === "Transport Lane" ? "TRANSPORT CAPACITY AVAILABLE" : "WAREHOUSE SPACE AVAILABLE"}</Badge>
-                        <Badge className={listingBiddingState(listing, nowMs) === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-green text-white"}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "Bidding closed" : "Bidding open"}</Badge>
+                  <Card key={listing.id} className="rounded-2xl border-froto-blue/10 bg-white shadow-sm transition-shadow hover:shadow-md">
+                    <CardContent className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center">
+                      <Image src={listingImage(listing)} alt="" width={160} height={120} className="hidden h-24 w-32 shrink-0 rounded-xl object-cover sm:block" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className="border border-froto-blue/10 bg-froto-ice text-froto-navy">{listing.listingType === "Transport Lane" ? "TRANSPORT AVAILABLE" : "WAREHOUSE SPACE AVAILABLE"}</Badge>
+                          <Badge className={listingBiddingState(listing, nowMs) === "CLOSED" ? "bg-froto-navy text-white" : "bg-froto-green text-white"}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "Bidding closed" : "Bidding open"}</Badge>
+                          {listing.isOwner ? <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue">Your listing</Badge> : null}
+                        </div>
+                        <h2 className="break-words text-base font-semibold text-froto-navy">{listing.title}</h2>
+                        <p className="break-words text-sm text-slate-600">{listingLocation(listing)} · {listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}</p>
+                        <p className="text-xs text-slate-500">Listed by {listing.companyName}{listing.companyVerified ? " · Verified" : ""} · {listing.biddingClosesAt ? `${listingBiddingState(listing, nowMs) === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(listing.biddingClosesAt)}` : "No bidding close time set"}</p>
                       </div>
-                    </div>
-                    <CardContent className="space-y-4 p-5">
-                      <div><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold text-froto-navy">{listing.title}</h2>{listing.isOwner ? <Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue">Your listing</Badge> : null}</div><p className="mt-1 text-xs text-slate-500">Listed by {listing.companyName}{listing.companyVerified ? " · Verified" : ""}</p></div>
-                      <div className="rounded-2xl bg-froto-ice px-4 py-3 text-sm"><p className="font-medium text-slate-700">{listing.capacityAmount} {listing.capacityUnit} · {listing.temperatureClass}</p><p className="mt-1 text-slate-500">{listingLocation(listing)}</p></div>
-                      <p className="text-xs font-medium text-slate-500">{listing.biddingClosesAt ? `${listingBiddingState(listing, nowMs) === "CLOSED" ? "Closed" : "Closes"} ${formatDateTime(listing.biddingClosesAt)}` : "No bidding close time set"}</p>
-                      <div className="flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
-                        <div><p className="text-xs text-slate-500">{listing.bidCount > 0 ? listingBiddingState(listing, nowMs) === "CLOSED" ? "Final bid" : "Current bid" : "Starting bid"}</p><span className="mt-1 block text-2xl font-semibold text-froto-navy">{formatAUD(listing.currentBid)}</span><p className="text-xs text-froto-teal">{listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}</p></div>
-                        <Button asChild className={`flex items-center gap-1 rounded-xl ${listingBiddingState(listing, nowMs) === "CLOSED" ? "bg-froto-navy hover:bg-[#0a356f]" : "bg-froto-blue hover:bg-[#0969ba]"}`}><Link href={`/platform/listing/${listing.id}`}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "View" : "Bid"}<ArrowUpRight className="h-4 w-4" /></Link></Button>
+                      <div className="flex w-full shrink-0 items-center justify-between gap-3 border-t border-slate-100 pt-3 sm:w-auto sm:min-w-32 sm:flex-col sm:items-end sm:border-l sm:border-t-0 sm:py-1 sm:pl-4">
+                        <div className="sm:text-right">
+                          <p className="text-xs text-slate-500">{listing.bidCount > 0 ? listingBiddingState(listing, nowMs) === "CLOSED" ? "Final bid" : "Current bid" : "Starting bid"}</p>
+                          <p className="text-lg font-semibold text-froto-navy">{formatAUD(listing.currentBid)}</p>
+                          <p className="text-xs text-froto-teal">{listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}</p>
+                        </div>
+                        <Button asChild className={listingBiddingState(listing, nowMs) === "CLOSED" ? "shrink-0 bg-froto-navy hover:bg-[#0a356f]" : "shrink-0 bg-froto-blue hover:bg-[#0969ba]"}>
+                          <Link href={`/platform/listing/${listing.id}`}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "View" : "Bid"}<ArrowUpRight aria-hidden="true" className="ml-1 h-4 w-4" /></Link>
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
