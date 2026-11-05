@@ -54,3 +54,17 @@ export function validateCapacityListing(input: CapacityListingDraft, nowMs: numb
   }
   return null;
 }
+
+/** Reuse descriptive capacity details without carrying stale availability or bid terms into a new listing.
+ * This is a local form copy only: nothing is published, stored or relisted by this helper.
+ */
+export function copyCapacityListingForNewListing<T extends CapacityListingDraft>(listing: T): T {
+  return {
+    ...listing,
+    availableFrom: "",
+    availableTo: "",
+    biddingClosesAt: "",
+    startingBid: "",
+    minimumBidIncrement: "",
+  };
+}
