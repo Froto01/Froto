@@ -1,7 +1,7 @@
 "use client";
 
 import { LOGISTICS_UNITS, type LogisticsUnit } from "@/lib/logistics-units";
-import { validateCapacityListing } from "@/lib/capacity-listing-validation";
+import { copyCapacityListingForNewListing, validateCapacityListing } from "@/lib/capacity-listing-validation";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -227,12 +227,31 @@ export default function CreateListingPage() {
                   onClick={() => {
                     setForm(emptyListing);
                     setSubmittedListing(null);
+                    setReviewedForm(null);
                     setError(null);
                   }}
                 >
                   Create another listing
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-froto-teal/15 text-froto-navy"
+                  onClick={() => {
+                    setForm(copyCapacityListingForNewListing(submittedListing));
+                    setSubmittedListing(null);
+                    setReviewedForm(null);
+                    setError(null);
+                  }}
+                >
+                  Create similar listing
+                </Button>
               </div>
+              <p className="text-sm text-slate-600" role="note">
+                Copies the description and route into a new, unpublished form. Re-enter availability,
+                bidding close time and bid amounts, then review before publishing. The previous listing
+                stays unchanged.
+              </p>
             </CardContent>
           </Card>
         ) : (
