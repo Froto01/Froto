@@ -88,14 +88,20 @@ export function readCapacityBrowserDraft(
   nowMs: number = Date.now(),
 ): { details: BrowserCapacityDraftDetails; savedAt: string } | null {
   try {
-    const raw = storage.getItem(storageKey(userId));
-    if (!raw || raw.length > MAX_STORED_LENGTH) return null;
+    const key = storageKey(userId);
+    const raw = storage.getItem(key);
+    if (!raw) return null;
+    if (raw.length > MAX_STORED_LENGTH) {
+      storage.removeItem(key);
+      return null;
+    }
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
     const record = parsed as Record<string, unknown>;
     if (record.version !== VERSION || typeof record.savedAt !== "string") return null;
     const savedTime = Date.parse(record.savedAt);
     if (!Number.isFinite(savedTime) || savedTime > nowMs || nowMs - savedTime > MAX_AGE_MS) {
+      storage.removeItem(key);
       return null;
     }
     if (!validDetails(record.details)) return null;
