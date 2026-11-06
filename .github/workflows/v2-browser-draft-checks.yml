@@ -1,0 +1,30 @@
+name: Froto Wave A browser draft safety checks
+
+on:
+  push:
+    branches: [feature/v2-browser-draft-20261107]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: froto-v2-browser-draft
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Secret-free browser draft regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/capacity-listing-validation.test.mjs lib/capacity-listing-copy.test.mjs lib/capacity-listing-browser-draft.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint app/platform/listings/new/page.tsx lib/capacity-listing-validation.ts lib/capacity-listing-copy.test.mjs lib/capacity-listing-validation.test.mjs lib/capacity-listing-browser-draft.ts lib/capacity-listing-browser-draft.test.mjs
+      # No authenticated UAT, credentials, financial changes, database writes or deployment.
