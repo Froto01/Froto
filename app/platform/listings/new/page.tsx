@@ -104,16 +104,20 @@ export default function CreateListingPage() {
 
   function restoreBrowserDraft() {
     if (!userId) return;
-    const saved = readCapacityBrowserDraft(window.localStorage, userId);
-    if (!saved) {
-      setDraftFeedback("No usable browser draft found for this account. Drafts expire after 30 days.");
-      return;
+    try {
+      const saved = readCapacityBrowserDraft(window.localStorage, userId);
+      if (!saved) {
+        setDraftFeedback("No usable browser draft found for this account. Drafts expire after 30 days.");
+        return;
+      }
+      setForm({ ...emptyListing, ...saved.details });
+      setSubmittedListing(null);
+      setReviewedForm(null);
+      setError(null);
+      setDraftFeedback("Draft restored. Re-enter dates and bid terms, then review before publishing.");
+    } catch {
+      setDraftFeedback("Browser storage is unavailable. Nothing was restored or published.");
     }
-    setForm({ ...emptyListing, ...saved.details });
-    setSubmittedListing(null);
-    setReviewedForm(null);
-    setError(null);
-    setDraftFeedback("Draft restored. Re-enter dates and bid terms, then review before publishing.");
   }
 
   function discardBrowserDraft() {
@@ -134,6 +138,7 @@ export default function CreateListingPage() {
     );
     setReviewedForm(null);
     setError(null);
+    setDraftFeedback(null);
   }
 
   async function submitListing(event: FormEvent<HTMLFormElement>) {
