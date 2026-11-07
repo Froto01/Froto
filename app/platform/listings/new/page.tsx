@@ -2,6 +2,8 @@
 
 import { LOGISTICS_UNITS, type LogisticsUnit } from "@/lib/logistics-units";
 import { copyCapacityListingForNewListing, validateCapacityListing } from "@/lib/capacity-listing-validation";
+import { saveCapacityBrowserDraft, readCapacityBrowserDraft, discardCapacityBrowserDraft } from "@/lib/capacity-listing-browser-draft";
+import { useAuth } from "@clerk/nextjs";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -78,12 +80,66 @@ const selectClass =
   "h-9 w-full rounded-md border border-froto-blue/15 bg-white px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-froto-blue focus-visible:ring-[3px] focus-visible:ring-froto-blue/20";
 
 export default function CreateListingPage() {
+  const { userId } = useAuth();
   const [form, setForm] = useState<CreateListingForm>(emptyListing);
   const [submittedListing, setSubmittedListing] =
     useState<CreateListingForm | null>(null);
   const [reviewedForm, setReviewedForm] = useState<CreateListingForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draftFeedback, setDraftFeedback] = useState<string | null>(null);
+
+  function saveBrowserDraft() {
+    if (!userId) {
+      setDraftFeedback("Sign in to save a draft on this browser.");
+      return;
+    }
+    try {
+      saveCapacityBrowserDraft(window.localStorage, userId, form);
+      setDraftFeedback("Draft saved on this browser. Dates and bid terms were not saved.");
+    } catch {
+      setDraftFeedback("Could not save a browser draft. Check storage permissions or shorten the notes.");
+    }
+  }
+
+  function restoreBrowserDraft() {
+    if (!userId) return;
+    try {
+      const saved = readCapacityBrowserDraft(window.localStorage, userId);
+      if (!saved) {
+        setDraftFeedback("No usable browser draft found for this account. Drafts expire after 30 days.");
+        return;
+      }
+      // Restoring replaces the current form, including unsaved commercial details.
+      // Require confirmation only when the user has entered or changed fields.
+      const hasEnteredDetails = Object.keys(form).some(
+        (field) => form[field as keyof CreateListingForm] !== emptyListing[field as keyof CreateListingForm],
+      );
+      if (hasEnteredDetails && !window.confirm(
+        "Restoring this draft will replace your current unsaved listing details, including dates and bid terms. Continue?",
+      )) {
+        setDraftFeedback("Restore cancelled. Your current listing details were not changed.");
+        return;
+      }
+      setForm({ ...emptyListing, ...saved.details });
+      setSubmittedListing(null);
+      setReviewedForm(null);
+      setError(null);
+      setDraftFeedback("Draft restored. Re-enter dates and bid terms, then review before publishing.");
+    } catch {
+      setDraftFeedback("Browser storage is unavailable. Nothing was restored or published.");
+    }
+  }
+
+  function discardBrowserDraft() {
+    if (!userId) return;
+    try {
+      discardCapacityBrowserDraft(window.localStorage, userId);
+      setDraftFeedback("Saved browser draft discarded. Your current form is unchanged.");
+    } catch {
+      setDraftFeedback("Could not discard this draft; check your browser storage settings.");
+    }
+  }
 
   function updateField(field: keyof CreateListingForm, value: string) {
     setForm((current) =>
@@ -93,6 +149,7 @@ export default function CreateListingPage() {
     );
     setReviewedForm(null);
     setError(null);
+    setDraftFeedback(null);
   }
 
   async function submitListing(event: FormEvent<HTMLFormElement>) {
@@ -122,6 +179,14 @@ export default function CreateListingPage() {
       });
       setSubmittedListing(form);
       setReviewedForm(null);
+      if (userId) {
+        try {
+          discardCapacityBrowserDraft(window.localStorage, userId);
+          setDraftFeedback(null);
+        } catch {
+          setDraftFeedback("Listing published, but the browser draft could not be cleared. Discard it from this browser when possible.");
+        }
+      }
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -167,6 +232,7 @@ export default function CreateListingPage() {
       </header>
 
       <div className="mx-auto max-w-5xl px-4 pt-7">
+        {draftFeedback ? <p role="status" className="mb-4 rounded-xl border border-froto-blue/15 bg-white p-3 text-sm text-froto-navy">{draftFeedback}</p> : null}
         {submittedListing ? (
           <Card className="overflow-hidden rounded-[1.8rem] border-froto-green/15 bg-white shadow-lg shadow-froto-navy/5">
             <div className="h-1.5 bg-gradient-to-r from-froto-blue via-froto-teal to-froto-green" />
@@ -273,6 +339,15 @@ export default function CreateListingPage() {
 
             <CardContent className="p-6 sm:p-7">
               <form onSubmit={submitListing} className="space-y-6">
+                <section aria-label="Browser draft controls" className="rounded-xl border border-froto-blue/10 bg-froto-ice/40 p-4">
+                  <p className="text-sm font-semibold text-froto-navy">Optional saved browser draft</p>
+                  <p className="mt-1 text-xs text-slate-600">Only descriptive details are stored for up to 30 days in this browser, not shared across devices or with your company. Dates and bid amounts are never saved. Others using this browser profile might see these details, so avoid saving sensitive notes on shared devices. Saving or restoring never publishes a listing.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" disabled={isSaving || !userId} onClick={saveBrowserDraft}>Save draft on this browser</Button>
+                    <Button type="button" variant="outline" disabled={isSaving || !userId} onClick={restoreBrowserDraft}>Restore saved draft</Button>
+                    <Button type="button" variant="outline" disabled={isSaving || !userId} onClick={discardBrowserDraft}>Discard saved draft</Button>
+                  </div>
+                </section>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <label className="space-y-2 text-sm font-medium text-froto-navy">
                     Listing type
