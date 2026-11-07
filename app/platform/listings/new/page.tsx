@@ -110,6 +110,17 @@ export default function CreateListingPage() {
         setDraftFeedback("No usable browser draft found for this account. Drafts expire after 30 days.");
         return;
       }
+      // Restoring replaces the current form, including unsaved commercial details.
+      // Require confirmation only when the user has entered or changed fields.
+      const hasEnteredDetails = Object.keys(form).some(
+        (field) => form[field as keyof CreateListingForm] !== emptyListing[field as keyof CreateListingForm],
+      );
+      if (hasEnteredDetails && !window.confirm(
+        "Restoring this draft will replace your current unsaved listing details, including dates and bid terms. Continue?",
+      )) {
+        setDraftFeedback("Restore cancelled. Your current listing details were not changed.");
+        return;
+      }
       setForm({ ...emptyListing, ...saved.details });
       setSubmittedListing(null);
       setReviewedForm(null);
