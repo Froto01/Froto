@@ -95,6 +95,13 @@ export default function CreateListingPage() {
       return;
     }
     try {
+      const existing = readCapacityBrowserDraft(window.localStorage, userId);
+      if (existing && !window.confirm(
+        "Saving now will replace your earlier browser draft for this account. Continue?",
+      )) {
+        setDraftFeedback("Save cancelled. Your earlier browser draft was not changed.");
+        return;
+      }
       saveCapacityBrowserDraft(window.localStorage, userId, form);
       setDraftFeedback("Draft saved on this browser. Dates and bid terms were not saved.");
     } catch {
