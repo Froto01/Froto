@@ -1,0 +1,28 @@
+name: UAT target guard checks (no secrets)
+on:
+  push:
+    branches: [security/uat-target-hardening-20261109]
+  pull_request:
+    branches: [chore/uat-environment-gate-20261101]
+permissions:
+  contents: read
+jobs:
+  target-guard-checks:
+    if: github.ref_name == 'security/uat-target-hardening-20261109' || github.head_ref == 'security/uat-target-hardening-20261109'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/uat-log-redaction.test.mjs lib/uat-publication-safety.test.mjs
+      - run: node --check lib/uat-safety.cjs && node --check scripts/run-uat.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/uat-safety.cjs lib/uat-safety.test.mjs lib/uat-publication-safety.test.mjs scripts/run-uat.mjs
