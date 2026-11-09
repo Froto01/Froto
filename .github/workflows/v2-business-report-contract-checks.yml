@@ -1,0 +1,26 @@
+name: Froto Wave B report contract checks (draft, no secrets)
+on:
+  push:
+    branches: [feature/v2-reporting-contract-20261110]
+permissions:
+  contents: read
+concurrency:
+  group: froto-v2-report-contract
+  cancel-in-progress: true
+jobs:
+  checks:
+    name: Synthetic reporting projection regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/business-reporting-contract.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/business-reporting-contract.mjs lib/business-reporting-contract.test.mjs
+      # No databases, tokens, external payments, credentials or deployment.
