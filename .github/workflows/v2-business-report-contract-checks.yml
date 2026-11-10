@@ -21,6 +21,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: node --test lib/business-reporting-contract.test.mjs
+      - run: node --test lib/dashboard-job-count-filters.test.mjs
       - run: npx tsc --noEmit
-      - run: npx eslint lib/business-reporting-contract.mjs lib/business-reporting-contract.test.mjs
+      - run: npx eslint lib/business-reporting-contract.mjs lib/business-reporting-contract.test.mjs lib/dashboard-job-count-filters.ts lib/dashboard-job-count-filters.test.mjs
       # No databases, tokens, external payments, credentials or deployment.
