@@ -18,3 +18,24 @@ export function buildDashboardJobCountFilters(companyId: string) {
     completed: { ...involved, status: "COMPLETED" },
   };
 }
+
+/**
+ * Count distinct listings a company has bid on which remain open for bidding.
+ * Counting Listing records (not Bid rows) prevents repeat bids inflating totals.
+ * This is a listing-opportunity metric, not an actionable decision or a payout.
+ * Date/time snapshot is explicit so dashboard and My Business can use one rule.
+ */
+export function buildOpenBidListingCountFilter(companyId: string, asOf: Date) {
+  if (typeof companyId !== "string" || !companyId.trim()) {
+    throw new TypeError("A company ID is required");
+  }
+  if (!(asOf instanceof Date) || !Number.isFinite(asOf.getTime())) {
+    throw new TypeError("A valid snapshot time is required");
+  }
+  return {
+    status: "ACTIVE",
+    awardedBidId: null,
+    OR: [{ biddingClosesAt: null }, { biddingClosesAt: { gt: asOf } }],
+    bids: { some: { bidderCompanyId: companyId } },
+  };
+}
