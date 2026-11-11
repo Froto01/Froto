@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
+import { buildOpenBidListingCountFilter } from "@/lib/dashboard-job-count-filters";
 
 function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -84,6 +85,10 @@ export default async function ActivityPage() {
   if (!membership) redirect("/start");
 
   const company = membership.company;
+  // This count uses all matching listing records, not the capped recent bids below.
+  const openBidListingCount = await prisma.listing.count({
+    where: buildOpenBidListingCountFilter(company.id, new Date()),
+  });
 
   const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers] = await Promise.all([
     prisma.listing.findMany({
@@ -172,11 +177,6 @@ export default async function ActivityPage() {
   const completedGuestAuctions = guestAuctions.filter((auction) => auction.status === "COMPLETED");
   const wonBids = bids.filter((bid) => bid.listing.awardedBidId === bid.id).length;
   const wonTenderResponses = tenderResponses.filter((response) => response.status === "AWARDED").length;
-  const activeBidListings = new Set(
-    bids
-      .filter((bid) => bid.listing.status === "ACTIVE" && !bid.listing.awardedBidId)
-      .map((bid) => bid.listingId)
-  ).size;
   const completedValue =
     completedJobs.reduce((sum, job) => sum + Number(job.amount), 0) +
     completedGuestAuctions.reduce((sum, auction) => sum + Number(auction.awardedBid?.amount ?? 0), 0);
@@ -202,7 +202,7 @@ export default async function ActivityPage() {
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card className="rounded-[1.4rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><PackageCheck className="h-5 w-5 text-froto-blue" /><p className="mt-4 text-xs font-medium text-slate-500">All listings</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{listings.length}</p></CardContent></Card>
-          <Card className="rounded-[1.4rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><BarChart3 className="h-5 w-5 text-froto-teal" /><p className="mt-4 text-xs font-medium text-slate-500">Listings bidding on</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{activeBidListings}</p></CardContent></Card>
+          <Card className="rounded-[1.4rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><BarChart3 className="h-5 w-5 text-froto-teal" /><p className="mt-4 text-xs font-medium text-slate-500">Open listings bid on</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{openBidListingCount}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-green/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><ClipboardList className="h-5 w-5 text-froto-green" /><p className="mt-4 text-xs font-medium text-slate-500">My tenders</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{tenders.length}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-cyan/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><Trophy className="h-5 w-5 text-froto-cyan" /><p className="mt-4 text-xs font-medium text-slate-500">Awards won</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{wonBids + wonTenderResponses + guestAuctions.length}</p></CardContent></Card>
           <Card className="rounded-[1.4rem] border-froto-navy/10 bg-white shadow-md shadow-froto-navy/5"><CardContent className="pt-6"><CircleDollarSign className="h-5 w-5 text-froto-navy" /><p className="mt-4 text-xs font-medium text-slate-500">Completed job value</p><p className="mt-1 text-2xl font-semibold text-froto-navy">{formatAUD(completedValue)}</p></CardContent></Card>
