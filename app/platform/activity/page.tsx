@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { buildOpenBidListingCountFilter } from "@/lib/dashboard-job-count-filters";
+import { companyListingView, listingPage } from "@/lib/my-business-listings";
 
 function formatAUD(value: number) {
   return new Intl.NumberFormat("en-AU", {
@@ -71,7 +72,8 @@ function tenderStatus(status: string, responseClosesAt: Date, awardedResponseId:
   return "Live";
 }
 
-export default async function ActivityPage() {
+export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ listingView?: string; listingPage?: string }> }) {
+  const { listingView, listingPage: pageParam } = await searchParams;
   const { userId } = await auth();
   if (!userId) redirect("/auth-test");
 
@@ -85,6 +87,7 @@ export default async function ActivityPage() {
   if (!membership) redirect("/start");
 
   const company = membership.company;
+  const listingFilter = companyListingView(company.id, listingView);
   // This count uses all matching listing records, not the capped recent bids below.
   const openBidListingCount = await prisma.listing.count({
     where: buildOpenBidListingCountFilter(company.id, new Date()),
@@ -94,16 +97,19 @@ export default async function ActivityPage() {
     prisma.listing.count({ where: { companyId: company.id } }),
     prisma.tender.count({ where: { companyId: company.id } }),
   ]);
+  const filteredListingCount = listingFilter.view === "all" ? allListingCount : await prisma.listing.count({ where: listingFilter.where });
+  const listingPagination = listingPage(pageParam, filteredListingCount);
 
   const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers] = await Promise.all([
     prisma.listing.findMany({
-      where: { companyId: company.id },
-      orderBy: { createdAt: "desc" },
+      where: listingFilter.where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: listingPagination.skip,
       include: {
         _count: { select: { bids: true } },
         awardedBid: { include: { bidderCompany: { select: { name: true } } } },
       },
-      take: 50,
+      take: listingPagination.take,
     }),
     prisma.bid.findMany({
       where: { bidderCompanyId: company.id },
@@ -226,11 +232,20 @@ export default async function ActivityPage() {
         <Card id="listings" className="scroll-mt-6 rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Supply side</p><CardTitle className="mt-1 text-xl text-froto-navy">My Listings</CardTitle></div><ListChecks className="h-5 w-5 text-froto-blue" /></div></CardHeader>
           <CardContent className="space-y-3">
-            {allListingCount > listings.length ? <p className="text-sm text-amber-700">Showing the latest {listings.length} of {allListingCount} listings. Search and pagination for older records are not available yet.</p> : null}
+            <nav aria-label="Filter my listings" className="flex flex-wrap gap-3 text-sm">
+              <Link href="/platform/activity?listingView=all#listings" aria-current={listingFilter.view === "all" ? "page" : undefined} className="underline text-froto-blue">All listings</Link>
+              <Link href="/platform/activity?listingView=active#listings" aria-current={listingFilter.view === "active" ? "page" : undefined} className="underline text-froto-blue">Active listings</Link>
+            </nav>
+            <p role="status" className="text-sm text-slate-600">Showing {listingPagination.start}–{listingPagination.end} of {filteredListingCount} {listingFilter.view === "active" ? "ACTIVE-status" : "total"} listings. Page {listingPagination.page} of {listingPagination.pageCount}. Records can change between requests.</p>
             {listings.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No listings yet.</p> : listings.map((listing) => {
               const state = listingStatus(listing.status, listing.biddingClosesAt, listing.awardedBidId);
               return <div key={listing.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{listing.title}</p><Badge className="bg-froto-navy text-white">{state}</Badge><Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue hover:bg-blue-50">{listing._count.bids} bid{listing._count.bids === 1 ? "" : "s"}</Badge></div><p className="mt-1 text-sm text-slate-500">{listing.listingType === "Transport Lane" ? `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}` : listing.location ?? "Warehouse space"}</p>{listing.awardedBid ? <p className="mt-1 text-sm text-froto-green">Awarded to {listing.awardedBid.bidderCompany.name} for {formatAUD(Number(listing.awardedBid.amount))}</p> : null}</div><div className="flex gap-2"><Button asChild variant="outline" className="border-froto-blue/15 bg-white text-froto-navy"><Link href={`/platform/listing/${listing.id}`}>View</Link></Button>{listing.status === "ACTIVE" && !listing.awardedBidId ? <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href={`/platform/listings/${listing.id}/edit`}><Pencil className="h-4 w-4" />Manage</Link></Button> : null}</div></div></div>;
             })}
+            {listingPagination.pageCount > 1 ? <nav aria-label="My Listings pagination" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
+              {listingPagination.page > 1 ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page - 1}#listings`}>Previous page</Link> : <span className="text-slate-400">Previous page</span>}
+              <span>Page {listingPagination.page} / {listingPagination.pageCount}</span>
+              {listingPagination.page < listingPagination.pageCount ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page + 1}#listings`}>Next page</Link> : <span className="text-slate-400">Next page</span>}
+            </nav> : null}
           </CardContent>
         </Card>
 

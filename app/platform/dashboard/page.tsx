@@ -139,7 +139,7 @@ export default async function DashboardPage() {
   ]);
 
   const metrics = [
-    { label: "Active listings", value: activeListingCount, detail: "Your live capacity", icon: PackageCheck, tone: "blue", href: "/platform/activity#listings" },
+    { label: "Active listings", value: activeListingCount, detail: "ACTIVE-status capacity (bid windows may have closed)", icon: PackageCheck, tone: "blue", href: "/platform/activity?listingView=active#listings" },
     { label: "Open listings bid on", value: openBidListingCount, detail: "Distinct unawarded listings with bidding still open", icon: BarChart3, tone: "teal", href: "/platform/activity#bids" },
     { label: "Unfinished jobs", value: unfinishedJobCount, detail: "Excludes completed and cancelled jobs", icon: BriefcaseBusiness, tone: "green", href: "/platform/activity#transactions" },
     { label: "Provider jobs", value: providerJobCount, detail: "Non-cancelled jobs on the supplier side", icon: RadioTower, tone: "cyan", href: "/platform/activity#transactions" },
