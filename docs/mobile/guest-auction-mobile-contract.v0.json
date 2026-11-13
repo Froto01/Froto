@@ -14,7 +14,7 @@
     { "operation": "list", "route": "GET /api/guest-auctions", "actor": "BOTH", "serverGuard": "server-scoped viewer type" },
     { "operation": "detail", "route": "GET /api/guest-auctions/[id]", "actor": "BOTH", "serverGuard": "owner or company member" },
     { "operation": "placeSealedBid", "route": "POST /api/guest-auctions/[id]/bids", "actor": "COMPANY_PROVIDER", "serverGuard": "company membership; unique bid per company" },
-    { "operation": "compareOffers", "route": "GET /api/guest-auctions/[id]/bids", "actor": "GUEST_CUSTOMER", "serverGuard": "owner sees comparable offers; company sees own offer only" },
+    { "operation": "compareOffers", "route": "GET /api/guest-auctions/[id]/bids", "actor": "BOTH", "serverGuard": "owner sees comparable offers; company sees own offer only" },
     { "operation": "award", "route": "POST /api/guest-auctions/[id]/award", "actor": "GUEST_CUSTOMER", "serverGuard": "owner; conditional serializable award" },
     { "operation": "status", "route": "POST /api/guest-auctions/[id]/status", "actor": "BOTH", "serverGuard": "awarded company for ACCEPT/START/DELIVER, guest owner for COMPLETE" },
     { "operation": "notifications", "route": "GET /api/notifications", "actor": "BOTH", "serverGuard": "viewer-scoped feed with web href" }
