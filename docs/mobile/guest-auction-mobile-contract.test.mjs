@@ -77,3 +77,8 @@ test('source inventory states zero production or native validation is provided',
   assert.match(inventory, /No existing native app is claimed/);
   assert.match(inventory, /Owner action today: NONE/);
 });
+
+test('bid comparison endpoint is shared with role-filtered response, not owner-only', () => {
+  assert.equal(route('compareOffers').actor, 'BOTH');
+  assert.match(route('compareOffers').serverGuard, /company sees own offer only/);
+});
