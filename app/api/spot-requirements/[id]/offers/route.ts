@@ -86,10 +86,34 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide an offer amount greater than zero." }, { status: 400 });
   if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
 
-  const offer = await prisma.spotOffer.update({
-    where: { id: existing.id },
-    data: { amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null, submittedByUserId: user.id },
+  // Award also uses Serializable and writes this requirement and its offers.
+  // Re-read both rows inside the same isolation boundary: a preflight check
+  // alone lets a revision overwrite an award's settled offer amount.
+  const offer = await prisma.$transaction(async (tx) => {
+    const currentRequirement = await tx.spotRequirement.findUnique({
+      where: { id: requirement.id },
+      select: { status: true, awardedOfferId: true, offersCloseAt: true },
+    });
+    if (!currentRequirement || currentRequirement.status !== "OPEN" || currentRequirement.awardedOfferId ||
+      (currentRequirement.offersCloseAt && currentRequirement.offersCloseAt.getTime() <= Date.now())) return null;
+
+    const currentOffer = await tx.spotOffer.findUnique({
+      where: { spotRequirementId_companyId: { spotRequirementId: requirement.id, companyId: membership.companyId } },
+    });
+    if (!currentOffer || currentOffer.id !== existing.id || currentOffer.status !== "SUBMITTED") return null;
+
+    const changed = await tx.spotOffer.updateMany({
+      where: { id: currentOffer.id, spotRequirementId: requirement.id, companyId: membership.companyId, status: "SUBMITTED" },
+      data: { amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null, submittedByUserId: user.id },
+    });
+    if (changed.count !== 1) return null;
+    return tx.spotOffer.findUnique({ where: { id: currentOffer.id } });
+  }, { isolationLevel: "Serializable" }).catch((error: unknown) => {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2034") return null;
+    throw error;
   });
+
+  if (!offer) return NextResponse.json({ error: "This offer or requirement changed while you were revising it. Refresh and try again." }, { status: 409 });
   return NextResponse.json({ id: offer.id, amount: Number(offer.amount), serviceDescription: offer.serviceDescription, leadTime: offer.leadTime, notes: offer.notes, status: offer.status, updatedAt: offer.updatedAt.toISOString(), privacy: "SEALED" });
 }
 

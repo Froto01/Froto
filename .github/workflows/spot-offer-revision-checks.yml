@@ -1,0 +1,26 @@
+name: Spot offer revision security checks (no secrets)
+on:
+  push:
+    branches: [security/spot-offer-revision-race-20261115]
+  pull_request:
+    branches: [spot-requirements]
+permissions:
+  contents: read
+jobs:
+  synthetic-security:
+    if: github.ref_name == 'security/spot-offer-revision-race-20261115' || github.head_ref == 'security/spot-offer-revision-race-20261115'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint 'app/api/spot-requirements/[id]/offers/route.ts' lib/security-routes.test.mjs
