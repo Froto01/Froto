@@ -4,6 +4,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { buildDashboardJobCountFilters, buildOpenBidListingCountFilter } from "@/lib/dashboard-job-count-filters";
 
 import {
   ArrowLeft,
@@ -60,13 +61,15 @@ export default async function DashboardPage() {
   const membership = user.companies[0];
   if (!membership) redirect("/company/new");
   const company = membership.company;
+  const jobCountFilters = buildDashboardJobCountFilters(company.id);
+  const openBidListingFilter = buildOpenBidListingCountFilter(company.id, new Date());
 
   const [
     activeListingCount,
     companyListings,
-    activeBidCount,
-    activeJobCount,
-    wonJobCount,
+    openBidListingCount,
+    unfinishedJobCount,
+    providerJobCount,
     completedJobCount,
     jobs,
     recentJobEvents,
@@ -82,20 +85,10 @@ export default async function DashboardPage() {
       include: { _count: { select: { bids: true } } },
       take: 12,
     }),
-    prisma.bid.count({ where: { bidderCompanyId: company.id, listing: { status: "ACTIVE" } } }),
-    prisma.job.count({
-      where: {
-        OR: [{ buyerCompanyId: company.id }, { providerCompanyId: company.id }],
-        status: { not: "COMPLETED" },
-      },
-    }),
-    prisma.job.count({ where: { buyerCompanyId: company.id } }),
-    prisma.job.count({
-      where: {
-        OR: [{ buyerCompanyId: company.id }, { providerCompanyId: company.id }],
-        status: "COMPLETED",
-      },
-    }),
+    prisma.listing.count({ where: openBidListingFilter }),
+    prisma.job.count({ where: jobCountFilters.unfinished }),
+    prisma.job.count({ where: jobCountFilters.providerJobs }),
+    prisma.job.count({ where: jobCountFilters.completed }),
     prisma.job.findMany({
       where: { OR: [{ buyerCompanyId: company.id }, { providerCompanyId: company.id }] },
       orderBy: { updatedAt: "desc" },
@@ -146,10 +139,10 @@ export default async function DashboardPage() {
   ]);
 
   const metrics = [
-    { label: "Active listings", value: activeListingCount, detail: "Your live capacity", icon: PackageCheck, tone: "blue", href: "/platform/activity#listings" },
-    { label: "Active bids", value: activeBidCount, detail: "Your bids on live listings", icon: BarChart3, tone: "teal", href: "/platform/activity#bids" },
-    { label: "Active jobs", value: activeJobCount, detail: "Marketplace + tender jobs", icon: BriefcaseBusiness, tone: "green", href: "/platform/activity#transactions" },
-    { label: "Jobs won", value: wonJobCount, detail: "Awards won by your company", icon: RadioTower, tone: "cyan", href: "/platform/activity#awards" },
+    { label: "Active listings", value: activeListingCount, detail: "ACTIVE-status capacity (bid windows may have closed)", icon: PackageCheck, tone: "blue", href: "/platform/activity?listingView=active#listings" },
+    { label: "Open listings bid on", value: openBidListingCount, detail: "Distinct unawarded listings with bidding still open", icon: BarChart3, tone: "teal", href: "/platform/activity#bids" },
+    { label: "Unfinished jobs", value: unfinishedJobCount, detail: "Excludes completed and cancelled jobs", icon: BriefcaseBusiness, tone: "green", href: "/platform/activity#transactions" },
+    { label: "Provider jobs", value: providerJobCount, detail: "Non-cancelled jobs on the supplier side", icon: RadioTower, tone: "cyan", href: "/platform/activity#transactions" },
     { label: "Completed", value: completedJobCount, detail: "Finished Froto jobs", icon: CheckCircle2, tone: "navy", href: "/platform/activity#transactions" },
   ];
   const dashboardLoadedAt = new Date().getTime();

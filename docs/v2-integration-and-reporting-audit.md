@@ -1,0 +1,42 @@
+# Froto V2 Wave A integration plan and Wave B reporting audit
+
+**10 November 2026, Brisbane | DRAFT ONLY | issue #41 (approved V2).** This document records inspected code and a proposed non-production acceptance sequence; it is **not** a completed integration, UI redesign, payment implementation, or merge approval.
+
+## Existing-feature audit (branch `spot-requirements`)
+
+- `app/platform/dashboard/page.tsx` already has summary cards, an opportunity-creation panel, recent job events, and large duplicate full-record sections for requirements/listings/jobs/tenders. Its `wonJobCount` currently counts **buyer** jobs, although being the buyer is not the same as winning a supply award. Its `activeJobCount` excludes only `COMPLETED`, so a cancelled or otherwise terminal job can be counted as active. Lists are capped (12/8/4), and their lengths are not complete business totals.
+- `app/platform/activity/page.tsx` (the existing **My Business** destination, `/platform/activity`) owns listings, bids, tenders, tender responses, transactions, spot requirements/offers and their canonical record routes. Multiple `findMany` queries have hard `take: 50` or `take: 100` caps; `listings.length`, `tenders.length`, etc. must **not** be displayed as total counts for larger companies. Existing `#listings`, `#bids`, `#tenders`, `#transactions`, `#spot-requirements`, `#awards` anchors do not constitute filtered records.
+- `app/platform/activity/page.tsx` calculates `completedValue` from `Job.amount` plus guest-auction winning offers, not from bank/provider settlement. `Job.amount` is an agreed value; treating it as revenue, paid, earned or settled is unverified. A missing guest amount currently falls back to zero. `TransactionFee` lookups are fee calculation snapshots, not evidence of payment settlement.
+- `prisma/schema.prisma` has buyer/provider company IDs, job status, `completedAt` and `JobEvent` records, but no verified completed-payment or supplier-payout evidence was established in this audit. Before a financial graph, independently verify authoritative provider reconciliation/ledger and role access. Do not invent metrics from bids, fees or amounts.
+- Both dashboard and activity take `user.companies[0]` for company context. Multi-company selection and member roles must be mapped before claiming complete tenant/role separation. Do not modify authentication/authorization in this workstream.
+
+## Wave A conflict-aware draft integration (no code merged)
+
+1. **Marketplace surface:** PR #38 (V1) and V2 PRs [#42](https://github.com/Froto01/Froto/pull/42) (single header), [#45](https://github.com/Froto01/Froto/pull/45) (expiry/open-first), [#50](https://github.com/Froto01/Froto/pull/50) (compact rows, stacked on #45) all affect `app/platform/page.tsx`. Preserve V2 over V1. Review individual diffs; combine #42 + #45 then #50 carefully, not by blind merging. Recheck every state transition and visibility rule.
+2. **Independent routing:** [#49](https://github.com/Froto01/Froto/pull/49) edits `app/platform/layout.tsx` with buying/supplying paths. Review in the integrated page, ensuring the original logo appears **once** and the Froto supply-chain spot-market description remains intact.
+3. **Capacity-form stack:** [#46](https://github.com/Froto01/Froto/pull/46) validation/review → [#51](https://github.com/Froto01/Froto/pull/51) copy with fresh dates/bids → [#52](https://github.com/Froto01/Froto/pull/52) browser-only drafts. Do not independently merge children of this stack; retest recovered draft confirmation, expiry, changed listing type, keyboard and persisted local storage on a shared device.
+4. **V1 #38 / cross-cutting gates:** V2 overrides conflicting UI. Keep useful unimplemented V1 changes for manual review, never re-add duplicate branded headers or full dashboard lists. [#40](https://github.com/Froto01/Froto/pull/40) broad lint remains failing (8 errors, 2 warnings in [Actions 41277609864](https://github.com/Froto01/Froto/actions/runs/41277609864), notably `Date.now()` purity errors). #36/#37 expanded browser UAT and #39/#53 security/UAT changes remain separately gated; successful draft static tests do not clear browser/release/security acceptance.
+
+**Actual isolated Actions evidence (not an integrated result):** [#42 run 41319256691](https://github.com/Froto01/Froto/actions/runs/41319256691), [#45 run 41353611946](https://github.com/Froto01/Froto/actions/runs/41353611946), [#46 run 41468628064](https://github.com/Froto01/Froto/actions/runs/41468628064), [#49 run 41660472129](https://github.com/Froto01/Froto/actions/runs/41660472129), [#50 run 41853468856](https://github.com/Froto01/Froto/actions/runs/41853468856), [#51 run 42050792702](https://github.com/Froto01/Froto/actions/runs/42050792702), [#52 run 42492917780](https://github.com/Froto01/Froto/actions/runs/42492917780) reported SUCCESS at their respective independent heads. **Integrated build, visual acceptance and authenticated UAT NOT RUN.**
+
+### Integration acceptance plan (not executed)
+- Responsive: 320, 375, 768 and 1280 px; text overflow, touch and image fallbacks; one visible brand logo per page and available search/filters.
+- Keyboard: header/marketplace tabs, filter controls, form validation, draft save/restore/overwrite prompts, review/publish and all listing/tender links reachable by Tab with visible focus; dialog focus return; screen-reader names.
+- State matrix: OPEN, bids/response deadline passed, PAUSED, CANCELLED, AWARDED and COMPLETED where applicable; owner versus counterparty; no award/response controls when no longer eligible. No cross-tenant offer leakage.
+- Browser: company buyer, supplier, dual-role, guest, unauthenticated, small-screen; direct refresh and record URL; expiry boundary; existing award/concurrency scenarios. Synthetic, secret-free static checks first; authenticated browser UAT only under separately authorised protected setup.
+- Rollback: keep all source branches and isolated draft PRs; revert the unmerged integration candidate as a whole on failing acceptance. No deploy.
+
+## Wave B: dashboard/My Business data contract and test matrix
+
+**Safe first increment in this PR:** `lib/business-reporting-contract.mjs` and `lib/business-reporting-contract.test.mjs`. They expose a **read-only, non-UI** company job-count projection. A caller must mark source coverage `complete` only after independent unrestricted count/query reconciliation. For `unknown` or `partial` results, counts are null, **never zero**; cross-company records are ignored; duplicate IDs cannot inflate totals; contradictory duplicate records fail closed; buyer and supplier are separate (both may count once for a dual-side record); completed is status `COMPLETED`, not "paid". Financial outputs intentionally remain null. There is no application route change.
+
+| Acceptance case | Source and required assertion | Status |
+| --- | --- | --- |
+| My Business links | Dashboard summary/action links go to `/platform/activity` and a real server-filtered result, not only a hash section; same role/company/state and accessible full history | NOT RUN |
+| Count parity | Uncapped DB count (or verified complete pagination) equals the linked filtered records; test 0, 1, 101+, cancelled and concurrent updates | NOT RUN |
+| Tenant and role | Company A cannot count/read company B, and buyer vs supplier/dual-side semantics are consistent; verify multi-company selection | Pure synthetic helper tests planned; browser NOT RUN |
+| Attention items | Count only actionable decisions, deadlines and authorised counterparty completion requests; exclude completed/cancelled unless action remains; do not infer from job status alone | BLOCKED on event/action policy audit |
+| Financial reporting | Separate agreed amount, fee snapshot, provider-confirmed funds, refund and settled amount; missing data = unknown, not 0; graph total reconciles to authoritative ledger | BLOCKED on authoritative source/field mapping |
+| Visual/mobile | No duplicated full lists on Dashboard; My Business retains searchable/filtered history, actions and applicable exports; graphs label units/date spans and source coverage | NOT RUN |
+
+**Next implementation:** add true filtered My Business URLs and reconciled source-backed action counts without changing security or finance rules; then dashboard graphs only after source/ledger proofs. Any auth, payment, migrations, production writes or merge/deploy need explicit separate approval. The public homepage refresh remains awaiting design review.
