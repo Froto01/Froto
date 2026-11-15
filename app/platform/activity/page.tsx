@@ -72,8 +72,8 @@ function tenderStatus(status: string, responseClosesAt: Date, awardedResponseId:
   return "Live";
 }
 
-export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ listingView?: string; listingPage?: string; tenderPage?: string }> }) {
-  const { listingView, listingPage: pageParam, tenderPage: tenderPageParam } = await searchParams;
+export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ listingView?: string; listingPage?: string; tenderPage?: string; requirementPage?: string }> }) {
+  const { listingView, listingPage: pageParam, tenderPage: tenderPageParam, requirementPage: requirementPageParam } = await searchParams;
   const { userId } = await auth();
   if (!userId) redirect("/auth-test");
 
@@ -93,13 +93,15 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
     where: buildOpenBidListingCountFilter(company.id, new Date()),
   });
   // Full company totals are separate from the deliberately capped recent lists below.
-  const [allListingCount, allTenderCount] = await Promise.all([
+  const [allListingCount, allTenderCount, allRequirementCount] = await Promise.all([
     prisma.listing.count({ where: { companyId: company.id } }),
     prisma.tender.count({ where: { companyId: company.id } }),
+    prisma.spotRequirement.count({ where: { companyId: company.id } }),
   ]);
   const filteredListingCount = listingFilter.view === "all" ? allListingCount : await prisma.listing.count({ where: listingFilter.where });
   const listingPagination = listingPage(pageParam, filteredListingCount);
   const tenderPagination = listingPage(tenderPageParam, allTenderCount);
+  const requirementPagination = listingPage(requirementPageParam, allRequirementCount);
 
   const [listings, bids, tenders, tenderResponses, jobs, guestAuctions, guestFees, spotRequirements, spotOffers] = await Promise.all([
     prisma.listing.findMany({
@@ -174,7 +176,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
       orderBy: { calculatedAt: "desc" },
       take: 100,
     }),
-    prisma.spotRequirement.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { _count: { select: { offers: true } } }, take: 50 }),
+    prisma.spotRequirement.findMany({ where: { companyId: company.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], skip: requirementPagination.skip, include: { _count: { select: { offers: true } } }, take: requirementPagination.take }),
     prisma.spotOffer.findMany({ where: { companyId: company.id }, orderBy: { createdAt: "desc" }, include: { spotRequirement: { include: { company: { select: { name: true } } } } }, take: 100 }),
   ]);
 
@@ -223,7 +225,15 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
 
         <Card id="spot-requirements" className="scroll-mt-6 rounded-[1.75rem] border-cyan-100 bg-white shadow-md shadow-froto-navy/5">
           <CardHeader><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-blue">Customer requirements</p><CardTitle className="mt-1 text-xl text-froto-navy">My Transport & Storage Needs</CardTitle></div></CardHeader>
-          <CardContent className="space-y-3">{spotRequirements.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No spot requirements posted yet.</p> : spotRequirements.map((requirement) => <Link key={requirement.id} href={`/platform/spot-requirements/${requirement.id}`} className="block rounded-2xl border border-cyan-100 bg-cyan-50/25 p-4 transition hover:bg-cyan-50/60"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><p className="font-semibold text-froto-navy">{requirement.title}</p><Badge className="border border-froto-blue/15 bg-white text-froto-blue">{requirement._count.offers} private offer{requirement._count.offers === 1 ? "" : "s"}</Badge></div><p className="mt-2 text-sm text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin ?? "Origin"} → ${requirement.destination ?? "Destination"}` : requirement.location ?? "Storage location"}</p></div><span className="text-sm font-semibold text-froto-blue">View offers →</span></div></Link>)}</CardContent>
+          <CardContent className="space-y-3">
+            <p role="status" className="text-sm text-slate-600">Showing {requirementPagination.start}–{requirementPagination.end} of {allRequirementCount} customer requirements. Page {requirementPagination.page} of {requirementPagination.pageCount}. Records can change between requests.</p>
+            {spotRequirements.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No spot requirements posted yet.</p> : spotRequirements.map((requirement) => <Link key={requirement.id} href={`/platform/spot-requirements/${requirement.id}`} className="block rounded-2xl border border-cyan-100 bg-cyan-50/25 p-4 transition hover:bg-cyan-50/60"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Badge className={requirement.requirementType === "TRANSPORT" ? "bg-froto-blue text-white" : "bg-froto-teal text-white"}>{requirement.requirementType === "TRANSPORT" ? "TRANSPORT NEEDED" : "STORAGE NEEDED"}</Badge><p className="font-semibold text-froto-navy">{requirement.title}</p><Badge className="border border-froto-blue/15 bg-white text-froto-blue">{requirement._count.offers} private offer{requirement._count.offers === 1 ? "" : "s"}</Badge></div><p className="mt-2 text-sm text-slate-500">{requirement.requirementType === "TRANSPORT" ? `${requirement.origin ?? "Origin"} → ${requirement.destination ?? "Destination"}` : requirement.location ?? "Storage location"}</p></div><span className="text-sm font-semibold text-froto-blue">View offers →</span></div></Link>)}
+            {requirementPagination.pageCount > 1 ? <nav aria-label="My Requirements pagination" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
+              {requirementPagination.page > 1 ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page}&tenderPage=${tenderPagination.page}&requirementPage=${requirementPagination.page - 1}#spot-requirements`}>Previous page</Link> : <span className="text-slate-400">Previous page</span>}
+              <span>Page {requirementPagination.page} / {requirementPagination.pageCount}</span>
+              {requirementPagination.page < requirementPagination.pageCount ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page}&tenderPage=${tenderPagination.page}&requirementPage=${requirementPagination.page + 1}#spot-requirements`}>Next page</Link> : <span className="text-slate-400">Next page</span>}
+            </nav> : null}
+          </CardContent>
         </Card>
 
         <Card id="spot-offers" className="scroll-mt-6 rounded-[1.75rem] border-froto-teal/10 bg-white shadow-md shadow-froto-navy/5">
@@ -244,9 +254,9 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
               return <div key={listing.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{listing.title}</p><Badge className="bg-froto-navy text-white">{state}</Badge><Badge className="border border-froto-blue/15 bg-blue-50 text-froto-blue hover:bg-blue-50">{listing._count.bids} bid{listing._count.bids === 1 ? "" : "s"}</Badge></div><p className="mt-1 text-sm text-slate-500">{listing.listingType === "Transport Lane" ? `${listing.origin ?? "Origin"} to ${listing.destination ?? "Destination"}` : listing.location ?? "Warehouse space"}</p>{listing.awardedBid ? <p className="mt-1 text-sm text-froto-green">Awarded to {listing.awardedBid.bidderCompany.name} for {formatAUD(Number(listing.awardedBid.amount))}</p> : null}</div><div className="flex gap-2"><Button asChild variant="outline" className="border-froto-blue/15 bg-white text-froto-navy"><Link href={`/platform/listing/${listing.id}`}>View</Link></Button>{listing.status === "ACTIVE" && !listing.awardedBidId ? <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href={`/platform/listings/${listing.id}/edit`}><Pencil className="h-4 w-4" />Manage</Link></Button> : null}</div></div></div>;
             })}
             {listingPagination.pageCount > 1 ? <nav aria-label="My Listings pagination" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
-              {listingPagination.page > 1 ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page - 1}&tenderPage=${tenderPagination.page}#listings`}>Previous page</Link> : <span className="text-slate-400">Previous page</span>}
+              {listingPagination.page > 1 ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page - 1}&tenderPage=${tenderPagination.page}&requirementPage=${requirementPagination.page}#listings`}>Previous page</Link> : <span className="text-slate-400">Previous page</span>}
               <span>Page {listingPagination.page} / {listingPagination.pageCount}</span>
-              {listingPagination.page < listingPagination.pageCount ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page + 1}&tenderPage=${tenderPagination.page}#listings`}>Next page</Link> : <span className="text-slate-400">Next page</span>}
+              {listingPagination.page < listingPagination.pageCount ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page + 1}&tenderPage=${tenderPagination.page}&requirementPage=${requirementPagination.page}#listings`}>Next page</Link> : <span className="text-slate-400">Next page</span>}
             </nav> : null}
           </CardContent>
         </Card>
@@ -272,9 +282,9 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
               return <div key={tender.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{tender.title}</p><Badge className="bg-froto-green text-white">{state}</Badge><Badge className="border border-froto-green/15 bg-emerald-50 text-froto-green hover:bg-emerald-50">{tender._count.responses} response{tender._count.responses === 1 ? "" : "s"}</Badge></div><p className="mt-1 text-sm text-slate-500">{tender.origin} to {tender.destination}</p><p className="mt-1 text-xs text-slate-500">Responses close {formatDateTime(tender.responseClosesAt)}</p>{tender.awardedResponse ? <p className="mt-1 text-sm text-froto-green">Awarded to {tender.awardedResponse.company.name} for {formatAUD(Number(tender.awardedResponse.amount))}</p> : null}</div><div className="flex gap-2"><Button asChild variant="outline" className="border-froto-green/15 bg-white text-froto-navy"><Link href={`/platform/tenders/${tender.id}`}>View</Link></Button>{tender.status === "OPEN" && !tender.awardedResponseId ? <Button asChild className="gap-2 bg-froto-navy hover:bg-[#0a356f]"><Link href={`/platform/tenders/${tender.id}/manage`}><Pencil className="h-4 w-4" />Manage</Link></Button> : null}</div></div></div>;
             })}
             {tenderPagination.pageCount > 1 ? <nav aria-label="My Tenders pagination" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
-              {tenderPagination.page > 1 ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page}&tenderPage=${tenderPagination.page - 1}#tenders`}>Previous page</Link> : <span className="text-slate-400">Previous page</span>}
+              {tenderPagination.page > 1 ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page}&tenderPage=${tenderPagination.page - 1}&requirementPage=${requirementPagination.page}#tenders`}>Previous page</Link> : <span className="text-slate-400">Previous page</span>}
               <span>Page {tenderPagination.page} / {tenderPagination.pageCount}</span>
-              {tenderPagination.page < tenderPagination.pageCount ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page}&tenderPage=${tenderPagination.page + 1}#tenders`}>Next page</Link> : <span className="text-slate-400">Next page</span>}
+              {tenderPagination.page < tenderPagination.pageCount ? <Link className="text-froto-blue underline" href={`/platform/activity?listingView=${listingFilter.view}&listingPage=${listingPagination.page}&tenderPage=${tenderPagination.page + 1}&requirementPage=${requirementPagination.page}#tenders`}>Next page</Link> : <span className="text-slate-400">Next page</span>}
             </nav> : null}
           </CardContent>
         </Card>
