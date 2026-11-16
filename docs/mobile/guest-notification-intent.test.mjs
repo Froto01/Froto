@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { GENERIC_PUSH, guestJobIntent, planGuestNotificationOpen } from './guest-notification-intent.v0.mjs';
+
+const href = '/platform/guest-auctions/cmidGuestAuction123';
+const owner = { httpStatus: 200, auctionId: 'cmidGuestAuction123', viewerType: 'GUEST_OWNER' };
+const provider = { httpStatus: 200, auctionId: 'cmidGuestAuction123', viewerType: 'COMPANY_BIDDER' };
+const open = (x) => planGuestNotificationOpen({ webHref: href, authenticated: true, ...x });
+
+test('parses only a guest job link', () => assert.deepEqual(guestJobIntent(href), { kind: 'GUEST_JOB', auctionId: 'cmidGuestAuction123' }));
+test('rejects external redirect destinations', () => assert.equal(guestJobIntent('https://evil.example/platform/guest-auctions/cmidGuestAuction123'), null));
+test('rejects protocol-relative links', () => assert.equal(guestJobIntent('//evil.example'), null));
+test('rejects unexpected query parameters', () => assert.equal(guestJobIntent(`${href}?redirect=evil.example`), null));
+test('rejects fragments', () => assert.equal(guestJobIntent(`${href}#offer`), null));
+test('rejects encoded traversal', () => assert.equal(guestJobIntent('/platform/guest-auctions/%2e%2e'), null));
+test('rejects path traversal and extra segments', () => assert.equal(guestJobIntent(`${href}/../admin`), null));
+test('rejects backslash and encoded separator', () => { assert.equal(guestJobIntent(`${href}\\foo`), null); assert.equal(guestJobIntent(`${href}%2Fadmin`), null); });
+test('rejects non-string and overly long links', () => { assert.equal(guestJobIntent(null), null); assert.equal(guestJobIntent('x'.repeat(181)), null); });
+test('unknown web notification falls back to in-app inbox', () => assert.equal(open({ webHref: '/platform/notifications' }).action, 'OPEN_IN_APP_INBOX'));
+test('signed out does not show private detail', () => assert.deepEqual(open({ authenticated: false, serverDetail: owner }), { action: 'SIGN_IN_THEN_REFETCH', auctionId: owner.auctionId }));
+test('signed in without fresh detail must refetch', () => assert.equal(open({}).action, 'FETCH_AUTHORITATIVE_DETAIL'));
+test('expired session must sign in and refetch', () => assert.equal(open({ serverDetail: { httpStatus: 401 } }).action, 'SIGN_IN_THEN_REFETCH'));
+test('forbidden access does not expose destination', () => assert.deepEqual(open({ serverDetail: { httpStatus: 403 } }), { action: 'OPEN_IN_APP_INBOX', reason: 'NOT_AVAILABLE' }));
+test('nonexistent record is not opened', () => assert.equal(open({ serverDetail: { httpStatus: 404 } }).action, 'OPEN_IN_APP_INBOX'));
+test('unexpected server response is not treated as authorized', () => assert.equal(open({ serverDetail: { httpStatus: 500 } }).action, 'SHOW_RETRY_OR_REFRESH'));
+test('mismatched record ID is rejected', () => assert.equal(open({ serverDetail: { ...owner, auctionId: 'other123' } }).action, 'OPEN_IN_APP_INBOX'));
+test('unknown role is rejected', () => assert.equal(open({ serverDetail: { ...owner, viewerType: 'SUPER_ADMIN' } }).action, 'OPEN_IN_APP_INBOX'));
+test('guest customer may request comparison only after matching detail', () => assert.deepEqual(open({ serverDetail: owner }), { action: 'OPEN_GUEST_JOB', auctionId: owner.auctionId, view: 'OWNER_DETAIL', canRequestComparison: true }));
+test('company bidder is limited to own-detail navigation', () => assert.deepEqual(open({ serverDetail: provider }), { action: 'OPEN_GUEST_JOB', auctionId: owner.auctionId, view: 'PROVIDER_OWN_DETAIL', canRequestComparison: false }));
+test('push preview contains no job/offer/address/token details', () => { assert.deepEqual(Object.keys(GENERIC_PUSH).sort(), ['body', 'title']); assert.doesNotMatch(JSON.stringify(GENERIC_PUSH), /address|\$|bid|token|collection|PIN|payment|cmidGuestAuction123/i); });
