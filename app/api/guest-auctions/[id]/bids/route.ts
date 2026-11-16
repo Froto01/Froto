@@ -15,12 +15,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const membership = user.companies[0];
   if (!membership) return NextResponse.json({ error: "Only Froto companies can bid on guest jobs." }, { status: 403 });
 
-  const auction = await prisma.guestAuction.findUnique({ where: { id }, select: { id: true, createdByUserId: true, status: true, auctionClosesAt: true, awardedBidId: true } });
-  if (!auction) return NextResponse.json({ error: "Guest auction not found." }, { status: 404 });
-  if (auction.createdByUserId === user.id) return NextResponse.json({ error: "You cannot bid on your own guest job." }, { status: 403 });
-  if (auction.status !== "OPEN" || auction.awardedBidId) return NextResponse.json({ error: "This guest auction is no longer accepting bids." }, { status: 409 });
-  if (auction.auctionClosesAt.getTime() <= Date.now()) return NextResponse.json({ error: "The silent auction has closed." }, { status: 409 });
-
   let body: Record<string, unknown>;
   try { body = (await request.json()) as Record<string, unknown>; }
   catch { return NextResponse.json({ error: "Invalid bid payload." }, { status: 400 }); }
@@ -32,13 +26,39 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide a bid amount greater than zero." }, { status: 400 });
   if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) return NextResponse.json({ error: "Bid amounts must have no more than two decimal places." }, { status: 400 });
 
-  try {
-    const bid = await prisma.guestAuctionBid.create({ data: { guestAuctionId: auction.id, bidderCompanyId: membership.companyId, placedByUserId: user.id, amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null } });
-    return NextResponse.json({ id: bid.id, amount: Number(bid.amount), status: bid.status, createdAt: bid.createdAt.toISOString(), privacy: "SEALED" }, { status: 201 });
-  } catch (error) {
-    if (typeof error === "object" && error && "code" in error && error.code === "P2002") return NextResponse.json({ error: "Your company has already submitted a bid to this silent auction." }, { status: 409 });
+  // The award route updates the same parent row. The row lock serializes
+  // insertion with an award, so stale preflight reads cannot admit late bids.
+  const result = await prisma.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "GuestAuction" WHERE "id" = ${id} FOR UPDATE
+    `;
+    if (rows.length !== 1) return { ok: false as const, status: 404, error: "Guest auction not found." };
+    const auction = await tx.guestAuction.findUnique({
+      where: { id },
+      select: { id: true, createdByUserId: true, status: true, auctionClosesAt: true, awardedBidId: true },
+    });
+    if (!auction) return { ok: false as const, status: 404, error: "Guest auction not found." };
+    if (auction.createdByUserId === user.id) return { ok: false as const, status: 403, error: "You cannot bid on your own guest job." };
+    if (auction.status !== "OPEN" || auction.awardedBidId) return { ok: false as const, status: 409, error: "This guest auction is no longer accepting bids." };
+    if (auction.auctionClosesAt.getTime() <= Date.now()) return { ok: false as const, status: 409, error: "The silent auction has closed." };
+
+    const bid = await tx.guestAuctionBid.create({
+      data: {
+        guestAuctionId: auction.id, bidderCompanyId: membership.companyId, placedByUserId: user.id,
+        amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null,
+      },
+    });
+    return { ok: true as const, bid };
+  }, { isolationLevel: "Serializable" }).catch((error: unknown) => {
+    if (typeof error === "object" && error && "code" in error) {
+      if (error.code === "P2002") return { ok: false as const, status: 409, error: "Your company has already submitted a bid to this silent auction." };
+      if (error.code === "P2034") return { ok: false as const, status: 409, error: "This guest auction changed while bidding. Refresh and try again." };
+    }
     throw error;
-  }
+  });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  const bid = result.bid;
+  return NextResponse.json({ id: bid.id, amount: Number(bid.amount), status: bid.status, createdAt: bid.createdAt.toISOString(), privacy: "SEALED" }, { status: 201 });
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
