@@ -14,3 +14,9 @@ Remaining: POST-offer/award races also need review; award and fee snapshot must 
 
 ## Risk and rollback
 Serializable revision may return 409 under contention and requires client refresh/retry; do not blindly resubmit awards or charges. Review for unexpected query plans/connection behavior. Rollback by closing the unmerged PR; after a separately approved integration, revert this scoped code/test commit, with no migration rollback. No release authorisation is implied.
+
+
+## 17 November 2026 follow-up | original POST/award stale-check race
+The original POST also checked the offer window only before the transaction, then could INSERT after an award had committed. This same draft branch (no additional competing PR) now locks the parameterized `SpotRequirement` parent row (`SELECT ... FOR UPDATE`) inside the existing Prisma `Serializable` transaction, re-reads owner/status/award/closing time, and only then inserts the provider's sealed offer and owner notification together. Lost parent/expired/awarded/self-company attempts return 404/409/403 before writing. Duplicate `P2002` and serialization `P2034` map to 409, while other errors remain visible to server monitoring. No auth/role/fee rule/payer code or configuration changed.
+
+Synthetic cases check lock/read/write order, post-preflight award and closing interleavings, missing row, ownership change, duplicates/serialization and unexpected errors. Passing synthetic tests do **not** establish PostgreSQL lock-wait behavior or end-to-end tenant security. Await exact-head CI confirmation before treating this as tested. The branch-only Vercel deployment safeguard remains unchanged. Roll back by closing this unmerged PR or, after separate approval, reverting this follow-up commit; no schema/data rollback. Fee-rule zero-applicable behavior and dependency advisories still need separate financial/security decisions and measured patch verification.

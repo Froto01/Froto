@@ -50,17 +50,64 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!Number.isFinite(amount) || amount <= 0) return NextResponse.json({ error: "Provide an offer amount greater than zero." }, { status: 400 });
   if (!/^\d+(?:\.\d{1,2})?$/.test(String(amount))) return NextResponse.json({ error: "Offer amounts can have no more than two decimal places." }, { status: 400 });
 
-  try {
-    const offer = await prisma.$transaction(async (tx) => {
-      const created = await tx.spotOffer.create({ data: { spotRequirementId: requirement.id, companyId: membership.companyId, submittedByUserId: user.id, amount, serviceDescription: serviceDescription || null, leadTime: leadTime || null, notes: notes || null } });
-      await tx.notification.create({ data: { companyId: requirement.companyId, type: "SPOT_OFFER_RECEIVED", title: "New private spot offer", message: `A provider submitted a private offer for your spot requirement.`, href: `/platform/spot-requirements/${requirement.id}`, metadata: { spotRequirementId: requirement.id, offerId: created.id } } });
-      return created;
+  // An award writes this parent row. Lock it before the final OPEN/window check:
+  // preflight alone permits a delayed INSERT after an award has committed.
+  const result = await prisma.$transaction(async (tx) => {
+    const lockedRows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "SpotRequirement" WHERE "id" = ${requirement.id} FOR UPDATE
+    `;
+    if (lockedRows.length !== 1) {
+      return { ok: false as const, status: 404, error: "Spot requirement not found." };
+    }
+
+    const current = await tx.spotRequirement.findUnique({
+      where: { id: requirement.id },
+      select: { id: true, companyId: true, status: true, awardedOfferId: true, offersCloseAt: true },
     });
-    return NextResponse.json({ id: offer.id, amount: Number(offer.amount), status: offer.status, createdAt: offer.createdAt.toISOString(), privacy: "SEALED" }, { status: 201 });
-  } catch (error) {
-    if (typeof error === "object" && error && "code" in error && error.code === "P2002") return NextResponse.json({ error: "Your company has already submitted an offer to this requirement." }, { status: 409 });
+    if (!current) return { ok: false as const, status: 404, error: "Spot requirement not found." };
+    if (current.companyId === membership.companyId) {
+      return { ok: false as const, status: 403, error: "Your company cannot submit an offer to its own requirement." };
+    }
+    if (current.status !== "OPEN" || current.awardedOfferId) {
+      return { ok: false as const, status: 409, error: "This spot requirement is no longer accepting offers." };
+    }
+    if (current.offersCloseAt && current.offersCloseAt.getTime() <= Date.now()) {
+      return { ok: false as const, status: 409, error: "The offer period has closed." };
+    }
+
+    const created = await tx.spotOffer.create({
+      data: {
+        spotRequirementId: current.id,
+        companyId: membership.companyId,
+        submittedByUserId: user.id,
+        amount,
+        serviceDescription: serviceDescription || null,
+        leadTime: leadTime || null,
+        notes: notes || null,
+      },
+    });
+    await tx.notification.create({
+      data: {
+        companyId: current.companyId,
+        type: "SPOT_OFFER_RECEIVED",
+        title: "New private spot offer",
+        message: "A provider submitted a private offer for your spot requirement.",
+        href: `/platform/spot-requirements/${current.id}`,
+        metadata: { spotRequirementId: current.id, offerId: created.id },
+      },
+    });
+    return { ok: true as const, offer: created };
+  }, { isolationLevel: "Serializable" }).catch((error: unknown) => {
+    if (typeof error === "object" && error && "code" in error) {
+      if (error.code === "P2002") return { ok: false as const, status: 409, error: "Your company has already submitted an offer to this requirement." };
+      if (error.code === "P2034") return { ok: false as const, status: 409, error: "This spot requirement changed while submitting. Refresh and try again." };
+    }
     throw error;
-  }
+  });
+
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  const offer = result.offer;
+  return NextResponse.json({ id: offer.id, amount: Number(offer.amount), status: offer.status, createdAt: offer.createdAt.toISOString(), privacy: "SEALED" }, { status: 201 });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
