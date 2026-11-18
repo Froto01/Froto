@@ -76,9 +76,17 @@ export async function POST(
     }
 
     const now = new Date();
-    const updated = await tx.guestAuction.update({
-      where: { id: auction.id },
+    // Claim the observed transition atomically. Concurrent stale requests may
+    // not overwrite a later milestone or repeat completion-side fee updates.
+    const claimed = await tx.guestAuction.updateMany({
+      where: { id: auction.id, status: transition.from, awardedBidId: auction.awardedBidId },
       data: { status: transition.to },
+    });
+    if (claimed.count !== 1) {
+      return { ok: false as const, status: 409, error: "This guest job changed while updating. Refresh and try again." };
+    }
+    const updated = await tx.guestAuction.findUniqueOrThrow({
+      where: { id: auction.id },
       select: { id: true, status: true, updatedAt: true },
     });
 

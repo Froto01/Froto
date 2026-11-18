@@ -1,0 +1,31 @@
+name: Guest milestone claim security checks (no secrets)
+on:
+  push:
+    branches: [security/guest-status-claim-20261118]
+  pull_request:
+    branches: [spot-requirements]
+permissions:
+  contents: read
+jobs:
+  synthetic-guest-status:
+    if: github.ref_name == 'security/guest-status-claim-20261118' || github.head_ref == 'security/guest-status-claim-20261118'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx eslint 'app/api/guest-auctions/[id]/status/route.ts' lib/security-routes.test.mjs
+      - name: Read-only dependency inventory, no autofix
+        shell: bash
+        run: |
+          npm audit --json > "$RUNNER_TEMP/froto-security-audit.json" || true
+          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/froto-security-audit.json","utf8"));if(!a.metadata?.vulnerabilities)throw Error("npm audit unavailable"); const lock=require("./package-lock.json"); console.log("AUDIT_COUNTS",JSON.stringify(a.metadata.vulnerabilities));for(const name of ["next","sharp","postcss","@prisma/config","eslint-config-next"]){const v=a.vulnerabilities?.[name];console.log("AUDIT_PACKAGE",JSON.stringify({name,locked:lock.packages?.["node_modules/"+name]?.version??"not directly locked",severity:v?.severity??null,range:v?.range??null,fixAvailable:v?.fixAvailable??null}));}'
