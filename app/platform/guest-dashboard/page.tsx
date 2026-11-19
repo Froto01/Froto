@@ -10,6 +10,14 @@ import { guestAuctionDisplayState, isOfferWindowOpen } from "@/lib/marketplace-a
 
 function formatDateTime(value: Date) { return new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }).format(value); }
 
+async function loadGuestDashboardData(userDbId: string) {
+  const [auctions, unreadNotificationCount] = await Promise.all([
+    prisma.guestAuction.findMany({ where: { createdByUserId: userDbId }, orderBy: { createdAt: "desc" }, include: { _count: { select: { bids: true } }, awardedBid: { include: { bidderCompany: { select: { name: true, verified: true } } } } } }),
+    prisma.notification.count({ where: { companyId: null, recipientUserId: userDbId, readAt: null } }),
+  ]);
+  return { auctions, unreadNotificationCount, nowMs: Date.now() };
+}
+
 export default async function GuestDashboardPage() {
   const { userId } = await auth();
   if (!userId) redirect("/auth-test");
@@ -17,11 +25,7 @@ export default async function GuestDashboardPage() {
   if (!user) redirect("/user-sync");
   if (user.companies.length > 0) redirect("/platform/dashboard");
 
-  const [auctions, unreadNotificationCount] = await Promise.all([
-    prisma.guestAuction.findMany({ where: { createdByUserId: user.id }, orderBy: { createdAt: "desc" }, include: { _count: { select: { bids: true } }, awardedBid: { include: { bidderCompany: { select: { name: true, verified: true } } } } } }),
-    prisma.notification.count({ where: { companyId: null, recipientUserId: user.id, readAt: null } }),
-  ]);
-  const nowMs = Date.now();
+  const { auctions, unreadNotificationCount, nowMs } = await loadGuestDashboardData(user.id);
   const openCount = auctions.filter((a) => guestAuctionDisplayState({ status: a.status, auctionClosesAt: a.auctionClosesAt.toISOString() }, nowMs) === "OPEN").length;
   const awardedCount = auctions.filter((a) => a.awardedBidId !== null).length;
   const totalBids = auctions.reduce((sum, a) => sum + a._count.bids, 0);
