@@ -1,0 +1,32 @@
+name: Tender response/award race checks (no secrets)
+on:
+  push:
+    branches: [security/tender-response-award-race-20261119]
+  pull_request:
+    branches: [spot-requirements]
+permissions:
+  contents: read
+jobs:
+  synthetic-tender-response-race:
+    if: github.ref_name == 'security/tender-response-award-race-20261119' || github.head_ref == 'security/tender-response-award-race-20261119'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/tender-response-race.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint 'app/api/tenders/[id]/responses/route.ts' lib/tender-response-race.test.mjs
+      - name: Read-only dependency advisory inventory
+        shell: bash
+        run: |
+          npm audit --json > "$RUNNER_TEMP/froto-audit.json" || true
+          node -e 'const a=JSON.parse(require("fs").readFileSync(process.env.RUNNER_TEMP+"/froto-audit.json","utf8")); if(!a.metadata?.vulnerabilities) throw Error("Dependency audit unavailable"); console.log("AUDIT_COUNTS "+JSON.stringify(a.metadata.vulnerabilities)); console.log("AUDIT_DIRECT_VERSIONS "+JSON.stringify(Object.fromEntries(Object.entries(a.vulnerabilities||{}).filter(([n])=>["next","sharp","postcss","@prisma/config"].includes(n)).map(([n,v])=>[n,{severity:v.severity,range:v.range,fixAvailable:v.fixAvailable}]))));'
