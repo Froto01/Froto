@@ -42,3 +42,15 @@ export function sortOpenFirst<T extends { createdAt: string }>(
     Date.parse(right.createdAt) - Date.parse(left.createdAt),
   );
 }
+/**
+ * Guest-owner display only: expiry closes an OPEN offer window, not the
+ * underlying job. Later awarded/delivery states remain authoritative.
+ * A missing/invalid closing time must never appear open.
+ */
+export function guestAuctionDisplayState(
+  auction: { status?: string | null; auctionClosesAt: string },
+  nowMs: number,
+): string {
+  if (auction.status !== "OPEN") return auction.status ?? "UNKNOWN";
+  return isOfferWindowOpen(auction.auctionClosesAt, nowMs) ? "OPEN" : "OFFERS CLOSED";
+}
