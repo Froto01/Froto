@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { marketplaceDirections } from "@/lib/marketplace-directions";
+import { guestAuctionDisplayState } from "@/lib/marketplace-availability";
 
 type GuestAuction = {
   id: string;
@@ -93,7 +94,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
                     <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">No transport requests posted yet.</div>
                   ) : guestData.auctions.slice(0, 4).map((auction) => (
                     <Link key={auction.id} href={`/platform/guest-auctions/${auction.id}`} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition hover:border-froto-blue/20 hover:bg-blue-50/30">
-                      <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-froto-navy">{auction.title}</p><p className="mt-1 text-sm text-slate-500">{auction.pickupLocation} → {auction.deliveryLocation}</p></div><Badge className={auction.status === "AWARDED" ? "bg-emerald-600 text-white" : "bg-froto-navy text-white"}>{auction.status ?? "OPEN"}</Badge></div>
+                      <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-froto-navy">{auction.title}</p><p className="mt-1 text-sm text-slate-500">{auction.pickupLocation} → {auction.deliveryLocation}</p></div><Badge className={auction.status === "AWARDED" ? "bg-emerald-600 text-white" : "bg-froto-navy text-white"}>{guestAuctionDisplayState({ status: auction.status, auctionClosesAt: auction.auctionClosesAt }, Date.now())}</Badge></div>
                       <div className="mt-3 flex items-center justify-between text-xs text-slate-500"><span>{auction.bidCount ?? 0} offer{auction.bidCount === 1 ? "" : "s"}</span><span className="flex items-center gap-1 font-medium text-froto-blue">Open request <ArrowRight className="h-3.5 w-3.5" /></span></div>
                     </Link>
                   ))}
