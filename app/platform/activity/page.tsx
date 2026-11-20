@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -198,10 +197,9 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
-      <header className="border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
+      <div className="border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Image src="/brand/froto-mark.svg" alt="Froto" width={54} height={54} className="h-12 w-12 rounded-2xl bg-froto-ice p-2 ring-1 ring-froto-blue/10" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Company activity</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-froto-navy">{company.name}</h1>
@@ -212,7 +210,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
             <Link href="/platform/dashboard"><ArrowLeft className="h-4 w-4 text-froto-blue" />Dashboard</Link>
           </Button>
         </div>
-      </header>
+      </div>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
