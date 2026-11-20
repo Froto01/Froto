@@ -108,6 +108,15 @@ export async function POST(
     try {
       result = await prisma.$transaction(
         async (tx): Promise<BidResult> => {
+          // Serialize bidding against awards that update this parent listing.
+          // Recheck the state and highest bid only after acquiring its lock.
+          const locked = await tx.$queryRaw<Array<{ id: string }>>`
+            SELECT "id" FROM "Listing" WHERE "id" = ${listingId} FOR UPDATE
+          `;
+          if (locked.length !== 1) {
+            return { ok: false, status: 404, error: "Listing not found." };
+          }
+
           const listing = await tx.listing.findUnique({
             where: {
               id: listingId,
@@ -238,8 +247,12 @@ export async function POST(
       );
       break;
     } catch (error) {
-      if (isTransactionConflict(error) && attempt < 2) {
-        continue;
+      if (isTransactionConflict(error)) {
+        if (attempt < 2) continue;
+        return NextResponse.json(
+          { error: "This listing changed while bidding. Refresh and try again." },
+          { status: 409 }
+        );
       }
 
       throw error;
