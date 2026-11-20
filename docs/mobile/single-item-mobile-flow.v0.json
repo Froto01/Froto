@@ -1,0 +1,163 @@
+{
+  "contractId": "froto-single-item-mobile-flow-v0",
+  "status": "PROPOSED_DESIGN_ONLY_NOT_IMPLEMENTED",
+  "approvedBacklog": "Froto01/Froto#41, 14 November 2026 single-item delivery addition",
+  "sourceBackendSha": "38627662a93ab6cd7e35a792a46a62de82010904",
+  "target": {
+    "country": "AU",
+    "currency": "AUD",
+    "devices": [
+      "iOS",
+      "Android"
+    ],
+    "frameworkSelected": false,
+    "nativeAppBuilt": false
+  },
+  "customerDraft": {
+    "pickupChoices": [
+      "TODAY_REQUESTED",
+      "SCHEDULE_LATER_REQUESTED"
+    ],
+    "fieldsProposedNotInExistingGuestApi": [
+      "pickupWindowStart",
+      "pickupWindowEnd",
+      "pickupIanaTimezone",
+      "pickupStructuredAddress",
+      "dropoffStructuredAddress",
+      "itemPhotos",
+      "itemDimensions",
+      "accessStairs",
+      "accessLift",
+      "accessParking",
+      "crewCount",
+      "carryIn",
+      "flatPacked",
+      "collectionPoint",
+      "orderReady"
+    ],
+    "notes": "Requested pickup window is not an agreed courier appointment; all structured fields require backend agreement before implementation.",
+    "onNoOffers": "WAITING_FOR_OFFERS",
+    "cameraDeniedFallback": "MANUAL_DESCRIPTION_WITH_OPTIONAL_GALLERY",
+    "locationDeniedFallback": "MANUAL_ADDRESS_ENTRY"
+  },
+  "privateQuoteComparison": {
+    "visibleTo": "GUEST_CUSTOMER_OWNER_ONLY",
+    "fieldsProposedNotInExistingBidApi": [
+      "totalPayable",
+      "pickupWindow",
+      "vehicle",
+      "crew",
+      "inclusions"
+    ],
+    "providerView": "OWN_OFFER_ONLY",
+    "rivalOfferDataExposedToProvider": false,
+    "collectionReferenceBeforeAwardVisible": false,
+    "collectionReferenceAfterAwardVisibleTo": "AWARDED_COURIER_ONLY",
+    "chargeAtBidSubmission": false
+  },
+  "screens": [
+    {
+      "id": "customer-post",
+      "mode": "CUSTOMER",
+      "displayState": "DRAFT",
+      "nextAction": "POST_REQUIREMENT"
+    },
+    {
+      "id": "customer-wait",
+      "mode": "CUSTOMER",
+      "displayState": "WAITING_FOR_OFFERS",
+      "nextAction": "REVIEW_OFFERS_WHEN_RECEIVED"
+    },
+    {
+      "id": "customer-compare",
+      "mode": "CUSTOMER",
+      "displayState": "OFFERS_RECEIVED",
+      "nextAction": "COMPARE_AND_AWARD"
+    },
+    {
+      "id": "courier-offer",
+      "mode": "COURIER",
+      "displayState": "OPEN_FOR_OFFERS",
+      "nextAction": "SUBMIT_PRIVATE_OFFER"
+    },
+    {
+      "id": "courier-awarded",
+      "mode": "COURIER",
+      "displayState": "AWARDED",
+      "nextAction": "CONFIRM_PICKUP_PLAN"
+    },
+    {
+      "id": "courier-delivery",
+      "mode": "COURIER",
+      "displayState": "COLLECTED",
+      "nextAction": "RECORD_DELIVERY_EVIDENCE"
+    },
+    {
+      "id": "customer-confirm",
+      "mode": "CUSTOMER",
+      "displayState": "DELIVERED_REPORTED",
+      "nextAction": "CONFIRM_OR_REPORT_ISSUE"
+    }
+  ],
+  "proposedMilestoneDisplayOnly": [
+    "OFFERS_RECEIVED",
+    "AWARDED",
+    "COLLECTED",
+    "DELIVERED",
+    "COMPLETION_CONFIRMED"
+  ],
+  "existingGuestApiActionsNotToConfuseWithDisplay": [
+    "CREATE",
+    "BID",
+    "AWARD",
+    "ACCEPT",
+    "START",
+    "DELIVER",
+    "COMPLETE"
+  ],
+  "deliveryEvidenceDesign": {
+    "modes": [
+      "RECIPIENT_PIN",
+      "AGREED_SAFE_DROP_PHOTO"
+    ],
+    "exceptions": [
+      "MISSING_PIN",
+      "RECIPIENT_UNAVAILABLE",
+      "EVIDENCE_UPLOAD_FAILED",
+      "PICKUP_FAILED",
+      "DAMAGE_REPORTED"
+    ],
+    "evidenceAloneConfirmsCompletion": false,
+    "evidenceAloneTriggersPaymentRelease": false,
+    "requiresAuthorizedCustomerConfirmation": true,
+    "noPinOrCameraFallback": "REPORT_EXCEPTION_AND_WAIT_FOR_AUTHORIZED_REVIEW"
+  },
+  "interruptionRecoveryDesign": {
+    "ambiguousMutationResult": "FETCH_AUTHORITATIVE_SERVER_STATE_BEFORE_RETRY",
+    "conflict409": "REFRESH_AND_EXPLAIN_CHANGED_STATE",
+    "expiredSession401": "REAUTHENTICATE_WITHOUT_LEAKING_RECORD_DETAILS",
+    "automaticallyRetryAwardOrCharge": false,
+    "idempotencyApiImplemented": false
+  },
+  "deepLinkDesign": {
+    "notificationBodyShowsPrivateOfferOrCollectionReference": false,
+    "unverifiedRecipientPublicLinkEnabled": false,
+    "requiresSessionAndServerSideRoleCheck": true,
+    "signedOutFallback": "SIGN_IN_THEN_RECHECK_ACCESS"
+  },
+  "payment": {
+    "status": "DESIGN_ONLY_NOT_ENABLED",
+    "providerSelected": false,
+    "providerFundsCaptured": false,
+    "noReleaseOnCourierSelfReport": true
+  },
+  "deferredFollowUpFeatures": [
+    "REVOCABLE_RECIPIENT_PROGRESS_LINK",
+    "PHOTO_ASSISTED_EDITABLE_DRAFT"
+  ],
+  "explicitlyOutOfScopeFirstRelease": [
+    "CONTINUOUS_LIVE_GPS",
+    "INSTANT_DISPATCH",
+    "PRODUCTION_CARD_CAPTURE"
+  ]
+}
