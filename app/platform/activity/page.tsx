@@ -71,6 +71,11 @@ function tenderStatus(status: string, responseClosesAt: Date, awardedResponseId:
   return "Live";
 }
 
+async function loadActivityDisplayTimeMs() {
+  // Capture the timestamp outside the JSX render path, as with the guest dashboard.
+  return Date.now();
+}
+
 export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ listingView?: string; listingPage?: string; tenderPage?: string; requirementPage?: string }> }) {
   const { listingView, listingPage: pageParam, tenderPage: tenderPageParam, requirementPage: requirementPageParam } = await searchParams;
   const { userId } = await auth();
@@ -195,6 +200,8 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
     completedJobs.reduce((sum, job) => sum + Number(job.amount), 0) +
     completedGuestAuctions.reduce((sum, auction) => sum + Number(auction.awardedBid?.amount ?? 0), 0);
 
+  const activityLoadedAt = await loadActivityDisplayTimeMs();
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
       <div className="border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
@@ -291,7 +298,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
           <CardHeader><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-froto-cyan">Supplier responses</p><CardTitle className="mt-1 text-xl text-froto-navy">My Tender Responses</CardTitle></div><Send className="h-5 w-5 text-froto-cyan" /></div></CardHeader>
           <CardContent className="space-y-3">
             {tenderResponses.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-500">No tender responses submitted yet.</p> : tenderResponses.map((response) => {
-              const effective = response.status === "SUBMITTED" && response.tender.responseClosesAt.getTime() <= Date.now() ? "Closed" : prettyStatus(response.status);
+              const effective = response.status === "SUBMITTED" && response.tender.responseClosesAt.getTime() <= activityLoadedAt ? "Closed" : prettyStatus(response.status);
               return <Link key={response.id} href={`/platform/tenders/${response.tenderId}`} className="block rounded-2xl border border-slate-200 bg-slate-50/60 p-4 transition-colors hover:border-froto-cyan/20 hover:bg-cyan-50/30"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold text-froto-navy">{response.tender.title}</p><Badge className={response.status === "AWARDED" ? "bg-froto-green text-white" : response.status === "UNSUCCESSFUL" ? "bg-slate-500 text-white" : "bg-froto-cyan text-white"}>{effective}</Badge></div><p className="mt-1 text-sm text-slate-500">Buyer · {response.tender.company.name}</p><p className="mt-1 text-xs text-slate-500">Submitted {formatDateTime(response.createdAt)}</p></div><div className="text-left sm:text-right"><p className="text-xs text-slate-500">Your response</p><p className="font-semibold text-froto-blue">{formatAUD(Number(response.amount))}</p></div></div></Link>;
             })}
           </CardContent>
