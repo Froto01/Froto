@@ -1,0 +1,46 @@
+name: Froto V2 integrated candidate (secret-free, no deploy)
+on:
+  push:
+    branches: [feature/v2-integrated-preview-20261117]
+permissions:
+  contents: read
+concurrency:
+  group: froto-v2-integrated-preview
+  cancel-in-progress: true
+jobs:
+  checks:
+    name: Synthetic and static integration checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Wave A, Wave B and integrated synthetic source checks
+        run: |
+          node --test \
+            lib/marketplace-header.test.mjs \
+            lib/marketplace-availability.test.mjs \
+            lib/marketplace-compact-rows.test.mjs \
+            lib/marketplace-directions.test.mjs \
+            lib/capacity-listing-validation.test.mjs \
+            lib/capacity-listing-copy.test.mjs \
+            lib/capacity-listing-browser-draft.test.mjs \
+            lib/business-reporting-contract.test.mjs \
+            lib/dashboard-job-count-filters.test.mjs \
+            lib/my-business-listings.test.mjs \
+            lib/v2-website-preview-integration.test.mjs
+      - run: npx tsc --noEmit
+      - name: Targeted changed-source lint
+        run: |
+          npx eslint app/platform/page.tsx app/platform/activity/page.tsx app/platform/layout.tsx app/platform/guest-dashboard/page.tsx app/platform/listings/new/page.tsx components/public-brand-header.tsx \
+            lib/marketplace-availability.ts lib/marketplace-directions.ts lib/capacity-listing-validation.ts lib/capacity-listing-browser-draft.ts \
+            lib/marketplace-header.test.mjs lib/marketplace-availability.test.mjs lib/marketplace-compact-rows.test.mjs \
+            lib/marketplace-directions.test.mjs lib/capacity-listing-validation.test.mjs lib/capacity-listing-copy.test.mjs \
+            lib/capacity-listing-browser-draft.test.mjs lib/business-reporting-contract.test.mjs \
+            lib/dashboard-job-count-filters.test.mjs lib/my-business-listings.test.mjs lib/v2-website-preview-integration.test.mjs
+      # No credentials, DB, live provider calls, browser auth, deploy or production writes.

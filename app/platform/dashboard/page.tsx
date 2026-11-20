@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { DashboardSection } from "@/components/dashboard-section";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
@@ -157,10 +156,9 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-froto-ice via-slate-50 to-white pb-16">
-      <header className="border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
+      <div className="border-b border-froto-blue/10 bg-white/95 shadow-sm shadow-froto-navy/5 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Image src="/brand/froto-mark.svg" alt="Froto" width={54} height={54} className="h-12 w-12 rounded-2xl bg-froto-ice p-2 ring-1 ring-froto-blue/10" />
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-froto-blue">Froto dashboard</p>
               <h1 className="mt-1 text-2xl font-semibold tracking-tight text-froto-navy">{company.name}</h1>
@@ -176,7 +174,7 @@ export default async function DashboardPage() {
             <Button asChild variant="outline" className="gap-2 border-froto-teal/15 bg-white text-froto-navy"><Link href="/platform"><ArrowLeft className="h-4 w-4 text-froto-teal" />Marketplace</Link></Button>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 pt-7">
         <Card id="create-opportunity" className="scroll-mt-6 rounded-[1.75rem] border-froto-blue/10 bg-white shadow-md shadow-froto-navy/5">

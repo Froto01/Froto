@@ -1,6 +1,9 @@
 "use client";
 
 import { LOGISTICS_UNITS, type LogisticsUnit } from "@/lib/logistics-units";
+import { copyCapacityListingForNewListing, validateCapacityListing } from "@/lib/capacity-listing-validation";
+import { saveCapacityBrowserDraft, readCapacityBrowserDraft, discardCapacityBrowserDraft } from "@/lib/capacity-listing-browser-draft";
+import { useAuth } from "@clerk/nextjs";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -77,36 +80,120 @@ const selectClass =
   "h-9 w-full rounded-md border border-froto-blue/15 bg-white px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-froto-blue focus-visible:ring-[3px] focus-visible:ring-froto-blue/20";
 
 export default function CreateListingPage() {
+  const { userId } = useAuth();
   const [form, setForm] = useState<CreateListingForm>(emptyListing);
   const [submittedListing, setSubmittedListing] =
     useState<CreateListingForm | null>(null);
+  const [reviewedForm, setReviewedForm] = useState<CreateListingForm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [draftFeedback, setDraftFeedback] = useState<string | null>(null);
+
+  function saveBrowserDraft() {
+    if (!userId) {
+      setDraftFeedback("Sign in to save a draft on this browser.");
+      return;
+    }
+    try {
+      const existing = readCapacityBrowserDraft(window.localStorage, userId);
+      if (existing && !window.confirm(
+        "Saving now will replace your earlier browser draft for this account. Continue?",
+      )) {
+        setDraftFeedback("Save cancelled. Your earlier browser draft was not changed.");
+        return;
+      }
+      saveCapacityBrowserDraft(window.localStorage, userId, form);
+      setDraftFeedback("Draft saved on this browser. Dates and bid terms were not saved.");
+    } catch {
+      setDraftFeedback("Could not save a browser draft. Check storage permissions or shorten the notes.");
+    }
+  }
+
+  function restoreBrowserDraft() {
+    if (!userId) return;
+    try {
+      const saved = readCapacityBrowserDraft(window.localStorage, userId);
+      if (!saved) {
+        setDraftFeedback("No usable browser draft found for this account. Drafts expire after 30 days.");
+        return;
+      }
+      // Restoring replaces the current form, including unsaved commercial details.
+      // Require confirmation only when the user has entered or changed fields.
+      const hasEnteredDetails = Object.keys(form).some(
+        (field) => form[field as keyof CreateListingForm] !== emptyListing[field as keyof CreateListingForm],
+      );
+      if (hasEnteredDetails && !window.confirm(
+        "Restoring this draft will replace your current unsaved listing details, including dates and bid terms. Continue?",
+      )) {
+        setDraftFeedback("Restore cancelled. Your current listing details were not changed.");
+        return;
+      }
+      setForm({ ...emptyListing, ...saved.details });
+      setSubmittedListing(null);
+      setReviewedForm(null);
+      setError(null);
+      setDraftFeedback("Draft restored. Re-enter dates and bid terms, then review before publishing.");
+    } catch {
+      setDraftFeedback("Browser storage is unavailable. Nothing was restored or published.");
+    }
+  }
+
+  function discardBrowserDraft() {
+    if (!userId) return;
+    try {
+      discardCapacityBrowserDraft(window.localStorage, userId);
+      setDraftFeedback("Saved browser draft discarded. Your current form is unchanged.");
+    } catch {
+      setDraftFeedback("Could not discard this draft; check your browser storage settings.");
+    }
+  }
 
   function updateField(field: keyof CreateListingForm, value: string) {
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) =>
+      field === "listingType" && value !== current.listingType
+        ? { ...current, listingType: value as ListingType, origin: "", destination: "", location: "" }
+        : { ...current, [field]: value },
+    );
+    setReviewedForm(null);
+    setError(null);
+    setDraftFeedback(null);
   }
 
   async function submitListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSaving) return;
     setError(null);
-    setIsSaving(true);
 
+    const validationError = validateCapacityListing(form, Date.now());
+    if (validationError) {
+      setReviewedForm(null);
+      setError(validationError);
+      return;
+    }
+
+    // The first submit only displays an editable summary. Changes invalidate it.
+    if (!reviewedForm || JSON.stringify(reviewedForm) !== JSON.stringify(form)) {
+      setReviewedForm({ ...form });
+      return;
+    }
+
+    setIsSaving(true);
     try {
       const localCloseTime = new Date(form.biddingClosesAt);
-
-      if (Number.isNaN(localCloseTime.getTime())) {
-        throw new Error("Please provide a valid bidding close time.");
-      }
-
       await createListing({
         ...form,
         biddingClosesAt: localCloseTime.toISOString(),
       });
       setSubmittedListing(form);
+      setReviewedForm(null);
+      if (userId) {
+        try {
+          discardCapacityBrowserDraft(window.localStorage, userId);
+          setDraftFeedback(null);
+        } catch {
+          setDraftFeedback("Listing published, but the browser draft could not be cleared. Discard it from this browser when possible.");
+        }
+      }
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -152,6 +239,7 @@ export default function CreateListingPage() {
       </header>
 
       <div className="mx-auto max-w-5xl px-4 pt-7">
+        {draftFeedback ? <p role="status" className="mb-4 rounded-xl border border-froto-blue/15 bg-white p-3 text-sm text-froto-navy">{draftFeedback}</p> : null}
         {submittedListing ? (
           <Card className="overflow-hidden rounded-[1.8rem] border-froto-green/15 bg-white shadow-lg shadow-froto-navy/5">
             <div className="h-1.5 bg-gradient-to-r from-froto-blue via-froto-teal to-froto-green" />
@@ -212,12 +300,31 @@ export default function CreateListingPage() {
                   onClick={() => {
                     setForm(emptyListing);
                     setSubmittedListing(null);
+                    setReviewedForm(null);
                     setError(null);
                   }}
                 >
                   Create another listing
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-froto-teal/15 text-froto-navy"
+                  onClick={() => {
+                    setForm(copyCapacityListingForNewListing(submittedListing));
+                    setSubmittedListing(null);
+                    setReviewedForm(null);
+                    setError(null);
+                  }}
+                >
+                  Create similar listing
+                </Button>
               </div>
+              <p className="text-sm text-slate-600" role="note">
+                Copies the description and route into a new, unpublished form. Re-enter availability,
+                bidding close time and bid amounts, then review before publishing. The previous listing
+                stays unchanged.
+              </p>
             </CardContent>
           </Card>
         ) : (
@@ -239,6 +346,15 @@ export default function CreateListingPage() {
 
             <CardContent className="p-6 sm:p-7">
               <form onSubmit={submitListing} className="space-y-6">
+                <section aria-label="Browser draft controls" className="rounded-xl border border-froto-blue/10 bg-froto-ice/40 p-4">
+                  <p className="text-sm font-semibold text-froto-navy">Optional saved browser draft</p>
+                  <p className="mt-1 text-xs text-slate-600">Only descriptive details are stored for up to 30 days in this browser, not shared across devices or with your company. Dates and bid amounts are never saved. Others using this browser profile might see these details, so avoid saving sensitive notes on shared devices. Saving or restoring never publishes a listing.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" disabled={isSaving || !userId} onClick={saveBrowserDraft}>Save draft on this browser</Button>
+                    <Button type="button" variant="outline" disabled={isSaving || !userId} onClick={restoreBrowserDraft}>Restore saved draft</Button>
+                    <Button type="button" variant="outline" disabled={isSaving || !userId} onClick={discardBrowserDraft}>Discard saved draft</Button>
+                  </div>
+                </section>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <label className="space-y-2 text-sm font-medium text-froto-navy">
                     Listing type
@@ -250,6 +366,9 @@ export default function CreateListingPage() {
                       <option value="Transport Lane">Transport Lane</option>
                       <option value="Warehouse Space">Warehouse Space</option>
                     </select>
+                    <span className="block text-xs font-normal text-slate-500">
+                      Changing listing type clears route and location fields so the details can be reconfirmed.
+                    </span>
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy">
@@ -323,6 +442,9 @@ export default function CreateListingPage() {
                     >
                       {LOGISTICS_UNITS.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                     </select>
+                    <span className="block text-xs font-normal text-slate-500">
+                      Slots are vehicle-specific; confirm the applicable dimensions with your customer.
+                    </span>
                   </label>
 
                   <label className="space-y-2 text-sm font-medium text-froto-navy">
@@ -416,8 +538,34 @@ export default function CreateListingPage() {
                   </label>
                 </div>
 
+                {reviewedForm ? (
+                  <section aria-label="Review listing before publishing" className="rounded-2xl border border-froto-teal/25 bg-teal-50/60 p-5">
+                    <h3 className="text-lg font-semibold text-froto-navy">Review before publishing</h3>
+                    <p className="mt-1 text-sm text-slate-600">Check these details carefully. Editing a field above requires another review.</p>
+                    <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                      {Object.entries({
+                        Type: reviewedForm.listingType,
+                        Title: reviewedForm.title,
+                        Location: reviewedForm.listingType === "Transport Lane"
+                          ? `${reviewedForm.origin} → ${reviewedForm.destination}`
+                          : reviewedForm.location,
+                        Capacity: `${reviewedForm.capacityAmount} ${reviewedForm.capacityUnit}`,
+                        Availability: `${reviewedForm.availableFrom} to ${reviewedForm.availableTo}`,
+                        "Starting bid": reviewedForm.startingBid,
+                        "Minimum increment": reviewedForm.minimumBidIncrement,
+                        "Bidding closes": displayCloseTime(reviewedForm.biddingClosesAt),
+                      }).map(([label, value]) => (
+                        <div key={label}>
+                          <dt className="font-medium text-slate-500">{label}</dt>
+                          <dd className="mt-0.5 break-words text-froto-navy">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ) : null}
+
                 {error ? (
-                  <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <p role="alert" className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                   </p>
                 ) : null}
@@ -428,7 +576,7 @@ export default function CreateListingPage() {
                     disabled={isSaving}
                     className="bg-froto-navy hover:bg-[#0a356f]"
                   >
-                    {isSaving ? "Creating listing..." : "Create Listing"}
+                    {isSaving ? "Publishing..." : reviewedForm ? "Publish listing" : "Review listing"}
                   </Button>
                   <Button
                     asChild
