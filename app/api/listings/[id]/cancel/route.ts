@@ -81,10 +81,15 @@ export async function POST(
       };
     }
 
-    await tx.listing.update({
-      where: { id: listing.id },
+    // Compare-and-swap the exact state and tenant read above. A concurrent
+    // award/pause/reopen must not be overwritten by this stale cancellation.
+    const changed = await tx.listing.updateMany({
+      where: { id: listing.id, companyId: membership.companyId, status: listing.status, awardedBidId: null },
       data: { status: "CANCELLED" },
     });
+    if (changed.count !== 1) {
+      return { ok: false as const, status: 409, error: "This listing changed during cancellation. Refresh and try again." };
+    }
 
     return { ok: true as const, listingId: listing.id, title: listing.title };
   });
