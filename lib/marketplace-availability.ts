@@ -25,6 +25,15 @@ export function listingBiddingState(listing: ListingAvailability, nowMs: number)
     : "CLOSED";
 }
 
+/** Display-only action copy; the detail route enforces all bid and award permissions. */
+export function listingMarketplaceAction(
+  listing: ListingAvailability & { isOwner: boolean },
+  nowMs: number,
+): "Manage" | "Bid" | "View" {
+  if (listing.isOwner) return "Manage";
+  return listingBiddingState(listing, nowMs) === "OPEN" ? "Bid" : "View";
+}
+
 export function tenderResponseState(tender: TenderAvailability, nowMs: number): "OPEN" | "CLOSED" | "AWARDED" {
   if (tender.status === "AWARDED") return "AWARDED";
   return tender.status === "OPEN" && !tender.responseClosed && isOfferWindowOpen(tender.responseClosesAt, nowMs)

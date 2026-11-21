@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { isOfferWindowOpen, listingBiddingState, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
+import { isOfferWindowOpen, listingBiddingState, listingMarketplaceAction, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
 
 type MarketplaceListing = {
   id: string;
@@ -509,7 +509,7 @@ export default function PlatformPage() {
                           <p className="text-xs text-froto-teal">{listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}</p>
                         </div>
                         <Button asChild className={listingBiddingState(listing, nowMs) === "CLOSED" ? "shrink-0 bg-froto-navy hover:bg-[#0a356f]" : "shrink-0 bg-froto-blue hover:bg-[#0969ba]"}>
-                          <Link href={`/platform/listing/${listing.id}`}>{listingBiddingState(listing, nowMs) === "CLOSED" ? "View" : "Bid"}<ArrowUpRight aria-hidden="true" className="ml-1 h-4 w-4" /></Link>
+                          <Link href={`/platform/listing/${listing.id}`} aria-label={`${listingMarketplaceAction(listing, nowMs)} listing: ${listing.title}`}>{listingMarketplaceAction(listing, nowMs)}<ArrowUpRight aria-hidden="true" className="ml-1 h-4 w-4" /></Link>
                         </Button>
                       </div>
                     </CardContent>
