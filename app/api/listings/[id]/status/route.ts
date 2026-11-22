@@ -59,7 +59,15 @@ export async function POST(
       if (listing.status !== "ACTIVE") {
         return { ok: false as const, status: 409, error: "Only an active listing can be paused." };
       }
-      await tx.listing.update({ where: { id }, data: { status: "PAUSED" } });
+      // Compare the read state, owning tenant and award marker atomically.
+      // A concurrent award/cancellation/reopen cannot be overwritten.
+      const changed = await tx.listing.updateMany({
+        where: { id, companyId: membership.companyId, status: "ACTIVE", awardedBidId: null },
+        data: { status: "PAUSED" },
+      });
+      if (changed.count !== 1) {
+        return { ok: false as const, status: 409, error: "This listing changed during pause. Refresh and try again." };
+      }
       return { ok: true as const, statusValue: "PAUSED" };
     }
 
@@ -73,7 +81,23 @@ export async function POST(
       return { ok: false as const, status: 409, error: "Extend the availability dates before reopening this listing." };
     }
 
-    await tx.listing.update({ where: { id }, data: { status: "ACTIVE" } });
+    // Repeat the existing window tests at the conditional write to reject
+    // concurrent date edits and windows that expire after the initial read.
+    const now = new Date();
+    const changed = await tx.listing.updateMany({
+      where: {
+        id,
+        companyId: membership.companyId,
+        status: "PAUSED",
+        awardedBidId: null,
+        biddingClosesAt: { gt: now },
+        availableTo: { gte: now },
+      },
+      data: { status: "ACTIVE" },
+    });
+    if (changed.count !== 1) {
+      return { ok: false as const, status: 409, error: "This listing changed during reopen. Refresh and try again." };
+    }
     return { ok: true as const, statusValue: "ACTIVE" };
   });
 
