@@ -1,0 +1,45 @@
+{
+  "status": "PROPOSED_DESIGN_ONLY_NOT_EXECUTED_ON_API",
+  "baselineSha": "38627662a93ab6cd7e35a792a46a62de82010904",
+  "approvedIssue": 41,
+  "market": "AU",
+  "currency": "AUD",
+  "frameworkSelected": false,
+  "nativeBuildCompleted": false,
+  "routes": {
+    "post": "POST /api/guest-auctions",
+    "offer": "GET/POST /api/guest-auctions/[id]/bids",
+    "award": "POST /api/guest-auctions/[id]/award",
+    "milestone": "POST /api/guest-auctions/[id]/status",
+    "inbox": "GET/PATCH /api/notifications"
+  },
+  "clientNegativeCases": {
+    "guestAfterTimeout": "RECONCILE_NO_AUTOMATIC_POST",
+    "bidderSeesOthers": "HIDE_RIVAL_OFFERS",
+    "ownerCompares": "SERVER_AUTHORITATIVE_ONLY",
+    "awardConflict409": "REFRESH_NO_AUTOMATIC_AWARD",
+    "expiredSession401": "CLEAR_PRIVATE_VIEW_REAUTH_FETCH",
+    "otherTenant403": "CLEAR_PRIVATE_VIEW_INBOX",
+    "missingRecord404": "CLEAR_PRIVATE_VIEW_INBOX",
+    "companySwitch": "CLEAR_PRIVATE_CACHE_RECHECK_SERVER",
+    "untrustedDeepLink": "INBOX_AND_AUTHORISED_LOOKUP",
+    "deniedCamera": "MANUAL_DESCRIPTION",
+    "deniedLocation": "MANUAL_ADDRESS_ENTRY",
+    "deniedPush": "IN_APP_INBOX_MANUAL_REFRESH",
+    "requestedWindow": "NOT_AGREED_PICKUP",
+    "courierEvidence": "NOT_CUSTOMER_COMPLETION",
+    "feeSnapshot": "NOT_CUSTOMER_FUNDS",
+    "paymentFlow": "DESIGN_ONLY_NO_CHARGE"
+  },
+  "gapsNotImplemented": [
+    "structured photo/dimensions/address/time/access data",
+    "courier coverage and typed comparable pickup/crew/vehicle/total",
+    "tenant and native-session independent security review",
+    "PIN/photo handover and exception evidence",
+    "push tokens and verified native links",
+    "server idempotency receipts",
+    "sandbox provider funding/refund/release integration"
+  ],
+  "serverAuthOrPaymentModified": false,
+  "publicRebrandProposed": false
+}
