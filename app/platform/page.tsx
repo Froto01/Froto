@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { isOfferWindowOpen, listingBiddingState, listingMarketplaceAction, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
+import { isOfferWindowOpen, listingBiddingState, listingMarketplaceAction, marketplaceResultsLabel, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
 
 type MarketplaceListing = {
   id: string;
@@ -472,7 +472,7 @@ export default function PlatformPage() {
                   <option value="OPEN">Bidding open</option>
                   <option value="CLOSED">Bidding closed</option>
                 </FilterSelect>
-                <div className="ml-auto flex items-end text-xs font-medium text-slate-500">{filteredListings.length} of {marketplaceListings.length} listings</div>
+                <div className="ml-auto flex items-end text-xs font-medium text-slate-500" aria-live="polite" aria-atomic="true">{marketplaceResultsLabel(listingsLoading, listingsError, filteredListings.length, marketplaceListings.length, "capacity listings")}</div>
               </div>
             </div>
 
@@ -552,7 +552,7 @@ export default function PlatformPage() {
                   <option value="all">All temperatures</option>
                   {tenderTemperatures.map((temperature) => <option key={temperature} value={temperature}>{temperature}</option>)}
                 </FilterSelect>
-                <div className="ml-auto flex items-end text-xs font-medium text-slate-500">{filteredTenders.length} of {marketplaceTenders.length} tenders</div>
+                <div className="ml-auto flex items-end text-xs font-medium text-slate-500" aria-live="polite" aria-atomic="true">{marketplaceResultsLabel(tendersLoading, tendersError, filteredTenders.length, marketplaceTenders.length, "tenders")}</div>
               </div>
             </div>
 

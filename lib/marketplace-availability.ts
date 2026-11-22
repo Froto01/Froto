@@ -63,3 +63,16 @@ export function guestAuctionDisplayState(
   if (auction.status !== "OPEN") return auction.status ?? "UNKNOWN";
   return isOfferWindowOpen(auction.auctionClosesAt, nowMs) ? "OPEN" : "OFFERS CLOSED";
 }
+
+/** A loaded subset is not a global total; unavailable data is not zero. */
+export function marketplaceResultsLabel(
+  loading: boolean,
+  error: string | null,
+  visible: number,
+  loaded: number,
+  kind: "capacity listings" | "tenders",
+): string {
+  if (loading) return `Loading ${kind}…`;
+  if (error) return kind === "tenders" ? "Tender count unavailable" : "Capacity listing count unavailable";
+  return `Showing ${visible} of ${loaded} loaded ${kind}`;
+}
