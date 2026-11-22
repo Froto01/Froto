@@ -1,0 +1,13 @@
+# Listing pause/reopen versus concurrent award | 22 November 2026 | DRAFT ONLY
+
+## Evidence-based issue (not a confirmed production exploit)
+On baseline `spot-requirements` SHA `38627662a93ab6cd7e35a792a46a62de82010904`, `POST /api/listings/[id]/status` first checked status, award and tenant, but then unconditionally called `listing.update({ where: { id } })` for both PAUSE and REOPEN. A racing award/cancel could commit after the read and the stale update could overwrite its final state. Draft PR #62 separately corrects cancellation, not pause/reopen. No owner authorization beyond approved pure application-code draft security remediation is inferred.
+
+## Narrow application-only correction
+For each existing action keep all role/tenant checks and current allowed state transitions, but use `listing.updateMany` with matching `id`, authenticated member's company, exact previous ACTIVE/PAUSED status and `awardedBidId: null`. Return HTTP 409 when conditional claim loses. For REOPEN, repeat the original closing and availability limits at the conditional write using `biddingClosesAt > now` and `availableTo >= now`, so concurrent date edits/expiration cannot reopen the listing. No altered fee, payer, market policy, authorization settings, schema or migrations.
+
+## Scope and safeguards
+This is an isolated draft, **not stacked** on other security PRs (#39, #47, #53, #56, #57, #59, #60, #61, #62), website, mobile or UAT branches. Branch-specific `vercel.json` blocks Git auto-deploy for exactly `security/listing-pause-reopen-cas-20261122` before the branch is published, without modifying Vercel project settings. Dedicated read-only GitHub Actions runs regression, 18 synthetic actual-handler cases, TypeScript, targeted lint and read-only dependency audit, without UAT credentials. Audit metadata indicates vulnerability reports, not safe versions or an applied fix. Never use credentials or write production data.
+
+## Failure modes, test limits and rollback
+A stale PAUSE/REOPEN attempt now returns 409 requiring refresh. The 18 local synthetic mocked-handler tests exercise tenant/role denials, lost claims, state transitions, invalid requests, expired windows and unexpected database errors; they cannot prove true concurrent PostgreSQL interleaving, native browser/UI acceptance or tenant isolation for other endpoints. GitHub CI results and exact SHA must be independently checked before claiming success. Full-project lint/build, live payment, credential-bearing UAT and production tests are NOT RUN. Before merger, close draft for rollback. Any later separately authorised integration can revert the isolated route change; no database or financial rollback is needed. Release remains NO-GO.
