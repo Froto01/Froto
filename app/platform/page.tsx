@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { isOfferWindowOpen, listingBiddingState, listingMarketplaceAction, marketplaceResultsLabel, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
+import { isOfferWindowOpen, listingBiddingState, listingMarketplaceAction, marketplaceViewFromHash, marketplaceResultsLabel, sortOpenFirst, tenderResponseState } from "@/lib/marketplace-availability";
 
 type MarketplaceListing = {
   id: string;
@@ -183,16 +183,14 @@ export default function PlatformPage() {
   const [tenderStorage, setTenderStorage] = useState("all");
 
   useEffect(() => {
-    const openTenderHash = () => {
-      if (window.location.hash === "#tenders") {
-        setActiveTab("tenders");
-      }
+    const syncTabWithHash = () => {
+      setActiveTab(marketplaceViewFromHash(window.location.hash));
     };
 
-    queueMicrotask(openTenderHash);
-    window.addEventListener("hashchange", openTenderHash);
+    queueMicrotask(syncTabWithHash);
+    window.addEventListener("hashchange", syncTabWithHash);
 
-    return () => window.removeEventListener("hashchange", openTenderHash);
+    return () => window.removeEventListener("hashchange", syncTabWithHash);
   }, []);
 
   useEffect(() => {
@@ -377,8 +375,8 @@ export default function PlatformPage() {
       <div className="mx-auto max-w-6xl px-4 pt-7">
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex w-fit items-center gap-1 rounded-full border border-froto-blue/10 bg-white p-1 shadow-sm" role="group" aria-label="Marketplace views">
-            <button type="button" aria-pressed={activeTab === "marketplace"} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "marketplace" ? "bg-froto-navy text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("marketplace")}>Marketplace</button>
-            <button type="button" aria-pressed={activeTab === "tenders"} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === "tenders" ? "bg-gradient-to-r from-froto-teal to-froto-green text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("tenders")}>Tenders</button>
+            <button type="button" aria-pressed={activeTab === "marketplace"} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-froto-blue ${activeTab === "marketplace" ? "bg-froto-navy text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("marketplace")}>Marketplace</button>
+            <button type="button" aria-pressed={activeTab === "tenders"} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-froto-blue ${activeTab === "tenders" ? "bg-gradient-to-r from-froto-teal to-froto-green text-white shadow-sm" : "text-slate-500 hover:bg-froto-ice hover:text-froto-navy"}`} onClick={() => setActiveTab("tenders")}>Tenders</button>
           </div>
           <Button asChild variant="outline" className="gap-2 border-froto-blue/15 bg-white text-froto-navy">
             <Link href="/platform/onboarding">Company profile</Link>
