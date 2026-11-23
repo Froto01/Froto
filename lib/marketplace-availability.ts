@@ -13,6 +13,11 @@ export type TenderAvailability = {
   responseClosesAt: string;
 };
 
+/** Browser-only display navigation: unknown/cleared hashes return to Marketplace. */
+export function marketplaceViewFromHash(hash: string): "marketplace" | "tenders" {
+  return hash === "#tenders" ? "tenders" : "marketplace";
+}
+
 export function isOfferWindowOpen(closesAt: string | null, nowMs: number): boolean {
   if (closesAt === null) return true;
   const deadline = Date.parse(closesAt);
