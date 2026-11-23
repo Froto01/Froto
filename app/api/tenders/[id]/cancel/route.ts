@@ -46,10 +46,20 @@ export async function POST(
         if (current.awardedResponseId || current.status === "AWARDED") throw new Error("AWARDED");
         if (current.status === "CANCELLED") return current;
 
-        return tx.tender.update({
-          where: { id },
+        // The read is not a claim: an award may race this cancellation.
+        // Recheck the original status, owner and unawarded state at the write.
+        const claim = await tx.tender.updateMany({
+          where: {
+            id,
+            companyId: membership.companyId,
+            status: current.status,
+            awardedResponseId: null,
+          },
           data: { status: "CANCELLED" },
         });
+
+        if (claim.count !== 1) throw new Error("CONFLICT");
+        return { ...current, status: "CANCELLED" };
       },
       { isolationLevel: "Serializable" }
     );
@@ -66,6 +76,12 @@ export async function POST(
       if (error.message === "AWARDED") {
         return NextResponse.json({ error: "An awarded tender cannot be cancelled." }, { status: 409 });
       }
+      if (error.message === "CONFLICT") {
+        return NextResponse.json({ error: "This tender changed while you were cancelling it. Refresh and try again." }, { status: 409 });
+      }
+    }
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
+      return NextResponse.json({ error: "This tender changed while you were cancelling it. Refresh and try again." }, { status: 409 });
     }
 
     return NextResponse.json({ error: "Froto could not cancel this tender." }, { status: 500 });
