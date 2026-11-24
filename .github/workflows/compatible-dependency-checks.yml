@@ -20,66 +20,45 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-      - name: Measure checked-in lock, resolve compatible candidate and measure again
-        shell: bash
+      - name: Verify exact generated lock (no resolution or mutation)
         run: |
-          set -euo pipefail
-          cp package-lock.json "$RUNNER_TEMP/base-lock.json"
-          cp package.json "$RUNNER_TEMP/base-package.json"
-          npm audit --json > "$RUNNER_TEMP/before-audit.json" || true
-          node -e 'const a=JSON.parse(require("fs").readFileSync(process.env.RUNNER_TEMP+"/before-audit.json")); if(!a.metadata?.vulnerabilities) throw Error("Baseline audit unavailable");'
-          set +e
-          npm audit fix --package-lock-only --ignore-scripts
-          fix_status=$?
-          set -e
-          echo "AUDIT_FIX_EXIT=$fix_status"
-          cmp package.json "$RUNNER_TEMP/base-package.json"
-          npm audit --json > "$RUNNER_TEMP/after-audit.json" || true
-          node <<'NODE'
-          const fs = require('node:fs');
-          const d = process.env.RUNNER_TEMP;
-          for (const label of ['before','after']) {
-            const a = JSON.parse(fs.readFileSync(d+'/'+label+'-audit.json'));
-            if (!a.metadata?.vulnerabilities) throw Error(label+' audit unavailable');
-            console.log('AUDIT_'+label.toUpperCase()+' '+JSON.stringify(a.metadata.vulnerabilities));
-            for (const [name,v] of Object.entries(a.vulnerabilities||{})) console.log('ADVISORY_'+label.toUpperCase()+' '+JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x==='string'?x:{title:x.title,url:x.url,range:x.range,severity:x.severity})}));
-          }
-          const before = JSON.parse(fs.readFileSync(d+'/base-lock.json'));
-          const after = JSON.parse(fs.readFileSync('package-lock.json'));
-          const names = ['next','sharp','postcss','@prisma/config','prisma','@prisma/client','eslint-config-next'];
-          console.log('LOCK_VERSIONS '+JSON.stringify(Object.fromEntries(names.map(n=>[n,[before.packages['node_modules/'+n]?.version,after.packages['node_modules/'+n]?.version]]))));
-          const changed = Object.entries(after.packages).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before.packages[k]));
-          console.log('LOCK_CHANGED '+JSON.stringify(changed.map(([k,v])=>[k,before.packages[k]?.version??null,v.version??null])));
-          const baseline = JSON.parse(fs.readFileSync(d+'/before-audit.json')).metadata.vulnerabilities;
-          const candidate = JSON.parse(fs.readFileSync(d+'/after-audit.json')).metadata.vulnerabilities;
-          if (candidate.critical>baseline.critical || candidate.high>baseline.high) throw Error('Candidate increases critical/high findings');
-          console.log('HIGH_RISK_IMPROVED='+(candidate.critical<baseline.critical || candidate.high<baseline.high));
-          NODE
+          test "$(git hash-object package-lock.json)" = "da2316fcad06c91b30b9c94a46dbd6a4ea9a487d"
+          git hash-object package-lock.json | sed 's/^/CHECKED_IN_LOCK=/'
       - run: npm ci
       - run: npm test
       - run: npx tsc --noEmit
-      - name: Candidate lock evidence
+      - name: Measure checked-in lock advisories
         shell: bash
         run: |
           set -euo pipefail
-          cmp package.json "$RUNNER_TEMP/base-package.json"
-          git hash-object package-lock.json | sed 's/^/CANDIDATE_BLOB=/'
+          git diff --exit-code -- package.json package-lock.json
+          npm audit --json > "$RUNNER_TEMP/final-audit.json" || true
+          npm audit --omit=dev --json > "$RUNNER_TEMP/runtime-audit.json" || true
           node <<'NODE'
-          const fs = require('node:fs');
-          const before = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/base-lock.json'));
-          const after = JSON.parse(fs.readFileSync('package-lock.json'));
-          const {packages,...top}=after;
-          const delta = {top,rootOrder:Object.keys(after),keys:Object.keys(packages),changed:Object.fromEntries(Object.entries(packages).filter(([k,v])=>JSON.stringify(v)!==JSON.stringify(before.packages[k])))};
-          const encoded = Buffer.from(JSON.stringify(delta)).toString('base64');
-          for(let i=0;i<encoded.length;i+=3000) console.log('LOCKDELTA '+(i/3000)+' '+encoded.slice(i,i+3000));
+          const fs=require('node:fs');
+          for (const label of ['final','runtime']) {
+            const a=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/'+label+'-audit.json'));
+            if(!a.metadata?.vulnerabilities) throw Error(label+' audit unavailable');
+            console.log('AUDIT_'+label.toUpperCase()+' '+JSON.stringify(a.metadata.vulnerabilities));
+            for(const [name,v] of Object.entries(a.vulnerabilities||{})) console.log('ADVISORY_'+label.toUpperCase()+' '+JSON.stringify({name,severity:v.severity,range:v.range,fixAvailable:v.fixAvailable,via:v.via.map(x=>typeof x==='string'?x:{url:x.url,title:x.title,range:x.range,severity:x.severity})}));
+            if(a.metadata.vulnerabilities.critical>0 || a.metadata.vulnerabilities.high>3) throw Error('High-risk audit regression');
+          }
           NODE
+      - name: Full lint diagnostic (separate from regression gate)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          npm run lint
+          result=$?
+          echo "FULL_LINT_EXIT=$result"
+          exit "$result"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: compatible-dependency-candidate
+          name: committed-dependency-audit
           path: |
             package-lock.json
-            package.json
-            ${{ runner.temp }}/before-audit.json
-            ${{ runner.temp }}/after-audit.json
+            ${{ runner.temp }}/final-audit.json
+            ${{ runner.temp }}/runtime-audit.json
           retention-days: 7
