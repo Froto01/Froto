@@ -43,4 +43,16 @@ jobs:
             lib/marketplace-directions.test.mjs lib/capacity-listing-validation.test.mjs lib/capacity-listing-copy.test.mjs \
             lib/capacity-listing-browser-draft.test.mjs lib/business-reporting-contract.test.mjs \
             lib/dashboard-job-count-filters.test.mjs lib/my-business-listings.test.mjs lib/v2-website-preview-integration.test.mjs
+      - name: Install Chromium for isolated component fixture
+        run: npx playwright install --with-deps chromium
+      - name: Browser-rendered shared header (synthetic fixture only)
+        run: node --test scripts/v2-header-fixture.test.mjs
+      - name: Upload synthetic header screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-header-fixture-${{ github.run_id }}-${{ github.run_attempt }}
+          path: v2-header-fixture-results/
+          retention-days: 7
+          if-no-files-found: warn
       # No credentials, DB, live provider calls, browser auth, deploy or production writes.
