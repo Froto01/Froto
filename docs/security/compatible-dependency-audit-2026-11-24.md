@@ -1,0 +1,7 @@
+# Dependency remediation experiment — 24 November 2026 (Brisbane)
+
+Base 38627662a93ab6cd7e35a792a46a62de82010904; separate from #39/#47/#53/#56/#57/#59–#64 and financial draft #48. The 23 Nov measured audit at #64 reported 22 vulnerable packages (1 critical, 17 high, 3 moderate, 1 low). Current lock: Next 16.2.10, Sharp 0.34.5, PostCSS 8.5.6, Prisma/config 7.9.1, eslint-config-next 16.0.1. Local registry DNS failed (EAI_AGAIN). No patched version is assumed.
+
+This draft runs a no-force, no-scripts lock-only npm audit fix on a disposable secret-free Actions runner. It captures actual before/after audits, changes and candidate blob, verifies the manifest stays byte-identical, and executes npm ci, npm test and TypeScript before emitting candidate evidence. The candidate lock is NOT applied to the branch until separately verified against exact evidence. No credential-bearing UAT, database, fee, payer, application auth or release changes. No auto-deployment on this draft branch. A failed experiment is not a security fix.
+
+Promotion conditions: actual lower critical/high counts with no increase in either category; manifest unchanged; successful clean install/regressions/TypeScript; exact generated lock verified, then repeat CI on committed lock. Full lint/build/browser acceptance and independent audit still required before merge. If no compatible resolution exists, report exact remaining advisory/version constraints and stop rather than using --force or manual lock editing. Rollback: close draft; no migration or production action.
