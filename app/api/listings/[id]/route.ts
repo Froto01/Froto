@@ -234,33 +234,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Your company role cannot edit listings." }, { status: 403 });
   }
 
-  const existing = await prisma.listing.findUnique({
-    where: { id },
-    include: { _count: { select: { bids: true } } },
-  });
-
-  if (!existing) {
-    return NextResponse.json({ error: "Listing not found." }, { status: 404 });
-  }
-
-  if (existing.companyId !== membership.companyId) {
-    return NextResponse.json({ error: "Only the listing company can edit this listing." }, { status: 403 });
-  }
-
-  if (
-    (existing.status !== "ACTIVE" && existing.status !== "PAUSED") ||
-    existing.awardedBidId
-  ) {
-    return NextResponse.json({ error: "This listing can no longer be edited." }, { status: 409 });
-  }
-
-  if (existing._count.bids > 0) {
-    return NextResponse.json(
-      { error: "Listings are locked for editing after the first bid. You can cancel it instead." },
-      { status: 409 }
-    );
-  }
-
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
@@ -314,25 +287,70 @@ export async function PATCH(
     return NextResponse.json({ error: "Warehouse listings need a location." }, { status: 400 });
   }
 
-  const updated = await prisma.listing.update({
-    where: { id },
-    data: {
-      listingType,
-      title,
-      location: listingType === "Warehouse Space" ? location : null,
-      origin: listingType === "Transport Lane" ? origin : null,
-      destination: listingType === "Transport Lane" ? destination : null,
-      capacityAmount,
-      capacityUnit,
-      temperatureClass,
-      availableFrom,
-      availableTo,
-      startingBid,
-      minimumBidIncrement,
-      biddingClosesAt,
-      notes: notes || null,
-    },
-  });
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.listing.findUnique({
+        where: { id },
+        include: { _count: { select: { bids: true } } },
+      });
+    
+      if (!existing) {
+        return NextResponse.json({ error: "Listing not found." }, { status: 404 });
+      }
+    
+      if (existing.companyId !== membership.companyId) {
+        return NextResponse.json({ error: "Only the listing company can edit this listing." }, { status: 403 });
+      }
+    
+      if (
+        (existing.status !== "ACTIVE" && existing.status !== "PAUSED") ||
+        existing.awardedBidId
+      ) {
+        return NextResponse.json({ error: "This listing can no longer be edited." }, { status: 409 });
+      }
+    
+      if (existing._count.bids > 0) {
+        return NextResponse.json(
+          { error: "Listings are locked for editing after the first bid. You can cancel it instead." },
+          { status: 409 }
+        );
+      }
 
-  return NextResponse.json({ success: true, listingId: updated.id });
+      // Recheck ownership, state and absence of bids in the atomic write.
+      const claimed = await tx.listing.updateMany({
+        where: {
+          id,
+          companyId: membership.companyId,
+          status: existing.status,
+          awardedBidId: null,
+          bids: { none: {} },
+        },
+        data: {
+          listingType,
+          title,
+          location: listingType === "Warehouse Space" ? location : null,
+          origin: listingType === "Transport Lane" ? origin : null,
+          destination: listingType === "Transport Lane" ? destination : null,
+          capacityAmount,
+          capacityUnit,
+          temperatureClass,
+          availableFrom,
+          availableTo,
+          startingBid,
+          minimumBidIncrement,
+          biddingClosesAt,
+          notes: notes || null,
+        },
+      });
+      if (claimed.count !== 1) {
+        return NextResponse.json({ error: "Listing changed. Refresh and try again." }, { status: 409 });
+      }
+      return NextResponse.json({ success: true, listingId: id });
+    }, { isolationLevel: "Serializable" });
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2034") {
+      return NextResponse.json({ error: "Listing changed. Refresh and try again." }, { status: 409 });
+    }
+    throw error;
+  }
 }
