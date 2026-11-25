@@ -100,3 +100,101 @@ for (const width of [375, 768, 1440]) {
     });
   }
 }
+
+
+// Exercise the checked-in marketplace layout and its real UI primitives.
+// SSR runs no effects, so guest API calls, redirects and auth are not exercised.
+async function renderDirections() {
+  const localPaths = {
+    "@/components/ui/badge": "components/ui/badge.tsx",
+    "@/components/ui/button": "components/ui/button.tsx",
+    "@/components/ui/card": "components/ui/card.tsx",
+    "@/lib/utils": "lib/utils.ts",
+    "@/lib/marketplace-directions": "lib/marketplace-directions.ts",
+    "@/lib/marketplace-availability": "lib/marketplace-availability.ts",
+    layout: "app/platform/layout.tsx",
+  };
+  const compiledSources = Object.fromEntries(await Promise.all(
+    Object.entries(localPaths).map(async ([id, path]) => [id, ts.transpileModule(
+      await readFile(path, "utf8"), {
+        compilerOptions: {
+          module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
+          jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
+        },
+      }
+    ).outputText])
+  ));
+  const cache = new Map();
+  const dependencies = new Set([
+    "react", "react/jsx-runtime", "lucide-react", "@radix-ui/react-slot",
+    "class-variance-authority", "clsx", "tailwind-merge",
+  ]);
+  function load(id) {
+    if (id === "next/link") return ({ children, ...props }) => React.createElement("a", props, children);
+    if (id === "next/navigation") return { usePathname: () => "/platform" };
+    if (dependencies.has(id)) return nativeRequire(id);
+    if (!Object.hasOwn(compiledSources, id)) throw new Error("Unexpected layout import: " + id);
+    if (cache.has(id)) return cache.get(id).exports;
+    const compiled = { exports: {} };
+    cache.set(id, compiled);
+    new Function("module", "exports", "require", compiledSources[id])(compiled, compiled.exports, load);
+    return compiled.exports;
+  }
+  return renderToStaticMarkup(React.createElement(load("layout").default));
+}
+
+const directionCases = [
+  ["Buying: I need transport", "/platform/spot-requirements/new?type=transport", "Buying"],
+  ["Buying: I need storage", "/platform/spot-requirements/new?type=storage", "Buying"],
+  ["Supplying: I have spare capacity", "/platform/listings/new", "Supplying"],
+  ["Buying: I want supplier quotes", "/platform/tenders/new", "Buying"],
+];
+
+for (const [width, columns] of [[375, 1], [768, 2], [1440, 4]]) {
+  test("marketplace buying/supplying paths at " + width + "px", async () => {
+    const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>' + css + '</style></head><body>' + await renderDirections() + '</body></html>';
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage({ viewport: { width, height: 1000 } });
+      const unexpected = [];
+      const destinations = new Set(directionCases.map(([, href]) => origin + href));
+      await page.route("**/*", async (route) => {
+        const url = route.request().url();
+        if (url === origin + "/") return route.fulfill({ contentType: "text/html", body: html });
+        // Inert destination, not the real form or a live route.
+        if (destinations.has(url) && route.request().isNavigationRequest()) {
+          return route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Fixture destination</title><p>Fixture destination</p>" });
+        }
+        unexpected.push(url);
+        return route.abort();
+      });
+      await page.goto(origin + "/", { waitUntil: "load" });
+      assert.equal(await page.getByRole("link").count(), 4);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+      const lefts = [];
+      for (const [name, href, side] of directionCases) {
+        const link = page.getByRole("link", { name, exact: true });
+        assert.equal(await link.getAttribute("href"), href);
+        assert.equal(await link.locator('[data-slot="badge"]').innerText(), side);
+        const box = await link.boundingBox();
+        assert.ok(box && box.x >= -1 && box.x + box.width <= width + 1, "Direction exceeds viewport");
+        lefts.push(Math.round(box.x));
+        await page.keyboard.press("Tab");
+        assert.ok(await link.evaluate((el) => el === document.activeElement), "Direction keyboard order");
+        const focus = await link.evaluate((el) => {
+          const style = getComputedStyle(el);
+          return el.matches(":focus-visible") && parseFloat(style.outlineWidth) >= 2 && style.outlineStyle !== "none";
+        });
+        assert.ok(focus, "Direction has a visible keyboard outline");
+      }
+      assert.equal(new Set(lefts).size, columns, "Responsive direction grid columns");
+      await page.screenshot({ path: out + "/buying-supplying-" + width + ".png", fullPage: true });
+      // Activate the final focused card with Enter and assert the intended URL.
+      await Promise.all([page.waitForURL(origin + directionCases[3][1]), page.keyboard.press("Enter")]);
+      assert.equal(await page.title(), "Fixture destination");
+      assert.deepEqual(unexpected, [], "No non-fixture requests");
+    } finally {
+      await browser.close();
+    }
+  });
+}
