@@ -78,10 +78,11 @@ export async function GET(
     : viewerResponse
       ? [viewerResponse]
       : [];
-  const canSeeAwardResult = Boolean(tender.awardedResponseId && (isOwner || viewerResponse));
   const isWinningSupplier = Boolean(
     viewerResponse && tender.awardedResponseId === viewerResponse.id
   );
+  // The awarded price and identity are private to the contracting parties.
+  const canSeeAwardResult = Boolean(tender.awardedResponseId && (isOwner || isWinningSupplier));
   const canOpenJob = Boolean(
     tender.job &&
       viewerCompanyId &&
@@ -121,7 +122,7 @@ export async function GET(
           ? "UNSUCCESSFUL"
           : viewerResponse.status
       : null,
-    awardedResponseId: tender.awardedResponseId,
+    awardedResponseId: canSeeAwardResult ? tender.awardedResponseId : null,
     awardedCompanyName: canSeeAwardResult ? awardedResponse?.company.name ?? null : null,
     awardedAmount: canSeeAwardResult && awardedResponse ? Number(awardedResponse.amount) : null,
     awardedAt: tender.awardedAt?.toISOString() ?? null,
