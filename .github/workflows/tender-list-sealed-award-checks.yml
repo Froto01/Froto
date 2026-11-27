@@ -1,0 +1,32 @@
+name: Tender list sealed award checks (no secrets)
+on:
+  push:
+    branches: [security/tender-list-sealed-award-20261127]
+  pull_request:
+    branches: [spot-requirements]
+permissions:
+  contents: read
+jobs:
+  tender-list-sealed-award:
+    if: github.ref_name == 'security/tender-list-sealed-award-20261127' || github.head_ref == 'security/tender-list-sealed-award-20261127'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: node --test lib/tender-list-sealed-award.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint 'app/api/tenders/route.ts' lib/tender-list-sealed-award.test.mjs
+      - name: Read-only dependency inventory
+        shell: bash
+        run: |
+          npm audit --json > "$RUNNER_TEMP/froto-audit.json" || true
+          node -e 'const a=JSON.parse(require("fs").readFileSync(process.env.RUNNER_TEMP+"/froto-audit.json","utf8")); if(!a.metadata?.vulnerabilities) throw Error("Audit unavailable"); console.log("AUDIT_COUNTS "+JSON.stringify(a.metadata.vulnerabilities)); console.log("AUDIT_PACKAGES "+JSON.stringify(Object.fromEntries(Object.entries(a.vulnerabilities||{}).filter(([n])=>["next","sharp","postcss","@prisma/config"].includes(n)).map(([n,v])=>[n,{severity:v.severity,range:v.range,fixAvailable:v.fixAvailable}]))));'

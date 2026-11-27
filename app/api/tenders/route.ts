@@ -43,6 +43,9 @@ export async function GET() {
         ? tender.responses.find((response) => response.companyId === viewerCompanyId)
         : undefined;
 
+      const isOwner = viewerCompanyId === tender.companyId;
+      const isAwardedSupplier = Boolean(viewerResponse && viewerResponse.id === tender.awardedResponseId);
+
       return {
         id: tender.id,
         title: tender.title,
@@ -60,10 +63,10 @@ export async function GET() {
         companyName: tender.company.name,
         companyVerified: tender.company.verified,
         responseCount: tender.responses.length,
-        isOwner: viewerCompanyId === tender.companyId,
+        isOwner,
         hasResponded: Boolean(viewerResponse),
         viewerResponseAmount: viewerResponse ? Number(viewerResponse.amount) : null,
-        awardedResponseId: tender.awardedResponseId,
+        awardedResponseId: isOwner || isAwardedSupplier ? tender.awardedResponseId : null,
         awardedAt: tender.awardedAt?.toISOString() ?? null,
         createdAt: tender.createdAt.toISOString(),
       };
