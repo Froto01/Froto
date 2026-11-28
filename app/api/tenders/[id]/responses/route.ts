@@ -43,6 +43,15 @@ export async function POST(
     return NextResponse.json({ error: "Provide a response amount greater than zero." }, { status: 400 });
   }
 
+  // TenderResponse.amount is Decimal(12, 2). Reject values that would be
+  // rounded or overflow on insert, rather than persisting a different quote.
+  if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(String(amount))) {
+    return NextResponse.json(
+      { error: "Response amounts must fit the supported currency range and have no more than two decimal places." },
+      { status: 400 }
+    );
+  }
+
   // An award updates this same tender row. Lock and recheck the parent inside
   // the INSERT transaction so a delayed request cannot respond after award.
   const result: ResponseResult = await prisma.$transaction(async (tx): Promise<ResponseResult> => {
